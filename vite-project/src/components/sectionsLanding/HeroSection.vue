@@ -1,0 +1,511 @@
+<template>
+  <section
+    ref="containerRef"
+    class="relative min-h-screen flex items-center overflow-hidden bg-gray-900"
+    :style="{
+      position: 'relative',
+      backgroundImage: lightGradient,
+    }"
+  >
+    <!-- Dynamic light effect - follows mouse position -->
+    <div
+      class="absolute inset-0 pointer-events-none transition-all duration-300 ease-out"
+      :style="{
+        background: `radial-gradient(circle at ${mousePosition.x}px ${mousePosition.y}px, rgba(99,102,241,0.15) 0%, transparent 60%)`,
+        willChange: 'background-position'
+      }"
+    />
+
+    <!-- Holographic grid -->
+    <div class="absolute inset-0 opacity-10">
+      <div
+        class="absolute inset-0"
+        :style="{
+          backgroundImage: `linear-gradient(to right, rgba(165,180,252,0.1) 1px, transparent 1px), linear-gradient(to bottom, rgba(165,180,252,0.1) 1px, transparent 1px)`,
+          backgroundSize: '80px 80px',
+          transform: 'perspective(1000px) rotateX(60deg)'
+        }"
+      />
+    </div>
+
+    <!-- Particle network -->
+    <div class="absolute inset-0 pointer-events-none">
+      <div
+        v-for="(p, i) in particles"
+        :key="i"
+        class="absolute rounded-full"
+        :style="{
+          width: `${p.size}px`,
+          height: `${p.size}px`,
+          left: `${p.left}%`,
+          top: `${p.top}%`,
+          backgroundColor: p.color,
+          transform: `translate3d(0, ${p.offset}px, 0)`
+        }"
+      />
+    </div>
+
+    <!-- Content wrapper -->
+    <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 md:py-20 z-20 w-full">
+      <div class="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
+        <!-- Left content -->
+        <div 
+          class="space-y-6 md:space-y-8 text-center lg:text-left"
+          :style="{
+            opacity: entered ? 1 : 0,
+            transform: entered ? 'translateY(0)' : 'translateY(30px)',
+            transition: 'opacity 0.8s ease-out, transform 0.8s cubic-bezier(.2,.9,.3,1)'
+          }"
+        >
+          <div class="space-y-6">
+            <div class="inline-block">
+              <div
+                class="inline-flex items-center gap-2 px-4 py-2 backdrop-blur-sm rounded-full border mb-6"
+                :style="{ backgroundColor: 'rgba(15,23,42,0.08)', borderColor: 'rgba(15,23,42,0.08)' }"
+              >
+                <span class="h-2 w-2 rounded-full animate-pulse" style="background-color: var(--blue)"></span>
+                <span class="text-sm font-medium" style="color: var(--blue)">E-quanouita Landing Page</span>
+              </div>
+            </div>
+
+            <h1 class="text-4xl md:text-5xl lg:text-6xl font-bold leading-tight">
+              <span class="block text-white bg-gradient-to-r from-white to-blue-200 bg-clip-text text-transparent">
+                Master the Future of
+              </span>
+              <span
+                ref="animatedTitle"
+                class="block text-white mt-2 bg-clip-text text-transparent"
+                :style="{
+                  background: 'linear-gradient(to right, var(--blue), var(--blue-dark))',
+                  WebkitBackgroundClip: 'text',
+                  WebkitTextFillColor: 'transparent',
+                  backgroundSize: '200% 200%',
+                  backgroundPosition: titleBgPos
+                }"
+              >
+                Crypto Finance with E-Qanaouita
+              </span>
+            </h1>
+
+            <p class="text-lg lg:text-xl text-gray-300 leading-relaxed max-w-2xl">
+              E-Qanaouita is your gateway to mastering the world of cryptocurrencies — combining real-time insights, smart portfolio management, and beginner-friendly tools to help you thrive in digital finance.
+            </p>
+
+            <div class="flex flex-col sm:flex-row gap-4 pt-2">
+              <router-link
+                to="/signup"
+                class="group relative flex items-center justify-center text-white px-8 py-4 rounded-xl font-semibold transition-all duration-300 transform hover:scale-[1.03] shadow-lg"
+                style="background: linear-gradient(to right, var(--blue-dark), var(--blue)); box-shadow: 0 0 20px rgba(53,167,255,0.3)"
+              >
+                <span>Get Started Today</span>
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 ml-2 transition-transform group-hover:translate-x-1" viewBox="0 0 20 20" fill="currentColor">
+                  <path fill-rule="evenodd" d="M10.293 5.293a1 1 0 011.414 0l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414-1.414L12.586 11H5a1 1 0 110-2h7.586l-2.293-2.293a1 1 0 010-1.414z" clip-rule="evenodd"/>
+                </svg>
+                <div class="absolute inset-0 rounded-xl bg-white opacity-0 group-hover:opacity-10 transition-opacity"></div>
+              </router-link>
+
+              <router-link
+                to="/features"
+                class="group relative flex items-center justify-center px-8 py-4 rounded-xl font-semibold transition-all duration-300 backdrop-blur-sm bg-white/5 border border-white/10"
+              >
+                <span>Explore Features</span>
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 ml-2 transition-transform group-hover:translate-x-1" viewBox="0 0 20 20" fill="currentColor">
+                  <path fill-rule="evenodd" d="M12.586 4.586a2 2 0 112.828 2.828l-3 3a2 2 0 01-2.828 0 1 1 0 00-1.414 1.414 4 4 0 005.656 0l3-3a4 4 0 00-5.656-5.656l-1.5 1.5a1 1 0 101.414 1.414l1.5-1.5zm-5 5a2 2 0 012.828 0 1 1 0 101.414-1.414 4 4 0 00-5.656 0l-3 3a4 4 0 105.656 5.656l1.5-1.5a1 1 0 10-1.414-1.414l-1.5 1.5a2 2 0 11-2.828-2.828l3-3z" clip-rule="evenodd"/>
+                </svg>
+              </router-link>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right content (illustration) -->
+        <div class="relative flex justify-center items-center">
+          <div class="relative w-full max-w-2xl h-[600px] flex items-center justify-center">
+            <!-- Rotating rings with icons -->
+            <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
+              <div
+                v-for="i in 3"
+                :key="`ring-${i}`"
+                class="absolute rounded-full flex items-center justify-center"
+                :style="ringStyle(i - 1)"
+              >
+                <div
+                  v-for="(crypto, j) in cryptoIcons"
+                  :key="`ring-${i}-icon-${j}`"
+                  class="absolute"
+                  :style="iconOnRingStyle(i - 1, j, cryptoIcons.length)"
+                >
+                  <div
+                    class="w-8 h-8 rounded-full flex items-center justify-center"
+                    :style="{
+                      background: `linear-gradient(145deg, ${crypto.color}40, ${crypto.color}20)`,
+                      boxShadow: `0 0 15px ${crypto.color}30`
+                    }"
+                  >
+                    <img :src="crypto.icon" :alt="crypto.symbol" class="w-4 h-4" />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Central card -->
+            <div
+              class="absolute z-20 transform transition-all duration-500 hover:scale-105"
+              :style="{ 
+                transform: entered ? 'scale(1) rotate(0deg)' : 'scale(0.96) rotate(-5deg)',
+                opacity: entered ? 1 : 0,
+                transition: 'transform 0.7s cubic-bezier(.2,.9,.3,1), opacity 0.7s ease-out'
+              }"
+            >
+              <div class="w-80 h-96 rounded-2xl overflow-hidden backdrop-blur-xl border border-white/10 shadow-2xl" :style="{ background: 'linear-gradient(to bottom right, rgba(53,167,255,0.1), rgba(56,97,140,0.1))', boxShadow: '0 0 50px rgba(53,167,255,0.1)' }">
+                <div class="p-5 h-full flex flex-col">
+                  <div class="flex items-center gap-3 mb-6">
+                    <div class="w-10 h-10 rounded-full flex items-center justify-center" :style="{ background: 'linear-gradient(to bottom right, var(--blue-dark), var(--blue))' }">
+                      <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                      </svg>
+                    </div>
+                    <div>
+                      <div class="font-medium text-white">Crypto Portfolio</div>
+                      <div class="text-xs" style="color: var(--blue)">Active Dashboard</div>
+                    </div>
+                  </div>
+
+                  <div class="flex-1 grid grid-cols-2 gap-3">
+                    <div
+                      v-for="(crypto, idx) in cryptoIcons.slice(0,4)"
+                      :key="`small-${idx}`"
+                      class="rounded-xl p-3 backdrop-blur-sm bg-white/5 border border-white/5 transition-colors cursor-pointer hover:-translate-y-1"
+                      :style="{ borderColor: hoveredIndex === idx ? crypto.color : '', backgroundColor: hoveredIndex === idx ? crypto.color + '15' : '' }"
+                      @mouseenter="hoveredIndex = idx"
+                      @mouseleave="hoveredIndex = -1"
+                    >
+                      <div class="flex items-center gap-2">
+                        <img :src="crypto.icon" :alt="crypto.symbol" class="w-6 h-6" />
+                        <div class="text-sm font-medium text-white">{{ crypto.symbol }}</div>
+                      </div>
+                      <div class="mt-2 text-xs font-mono text-gray-300">${{ crypto.price.toFixed(2) }}</div>
+                      <div :class="['mt-1 text-xs', crypto.change24h >= 0 ? 'text-green-400' : 'text-red-400']">
+                        {{ crypto.change24h >= 0 ? '↑' : '↓' }} {{ Math.abs(crypto.change24h) }}%
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Animated rings inside card (decorative) -->
+                  <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
+                    <div
+                      v-for="i in 3"
+                      :key="`card-ring-${i}`"
+                      class="absolute rounded-full"
+                      :style="cardRingStyle(i - 1)"
+                    >
+                      <div
+                        v-for="(crypto, j) in cryptoIcons"
+                        :key="`card-ring-${i}-icon-${j}`"
+                        class="absolute"
+                        :style="cardIconOnRingStyle(i - 1, j, cryptoIcons.length)"
+                      >
+                        <div class="w-8 h-8 rounded-full flex items-center justify-center" :style="{ background: `linear-gradient(145deg, ${crypto.color}40, ${crypto.color}20)`, boxShadow: `0 0 15px ${crypto.color}30` }">
+                          <img :src="crypto.icon" :alt="crypto.symbol" class="w-4 h-4" />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="mt-6 pt-4 border-t border-white/10">
+                    <div class="flex justify-between items-center">
+                      <div class="text-xs text-gray-400">Total Balance</div>
+                      <div class="text-lg font-bold text-white" :style="{ opacity: lightPulse }">
+                        {{ formatCurrency(totalBalance) }}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Floating avatars -->
+            <div v-for="(_, i) in cryptoIcons" :key="`float-${i}`" class="absolute flex items-center justify-center pointer-events-auto"
+                 :style="floatingStyle(i)">
+              <div class="w-20 h-20 rounded-full flex items-center justify-center" :style="{ transform: 'translate(-50%,-50%)', left: '50%', top: '50%' }">
+                <!-- empty wrapper just to hold the position -->
+              </div>
+            </div>
+
+            <!-- central light glow -->
+            <div class="absolute inset-0 z-10 pointer-events-none" :style="{ background: 'radial-gradient(circle at center, rgba(99,102,241,0.15) 0%, transparent 70%)', mixBlendMode: 'screen', opacity: 0.9 }" />
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+</template>
+
+<script setup lang="ts">
+import { ref, reactive, onMounted, onBeforeUnmount, computed } from 'vue';
+import { cryptocurrencies } from '../../data/cryptoData';
+
+// Utility: color map
+const getColorForCrypto = (symbol: string) => {
+  const colors: Record<string, string> = {
+    BTC: '#F7931A',
+    ETH: '#627EEA',
+    XRP: '#23292F',
+    BCH: '#8DC351',
+    ADA: '#0033AD',
+    LTC: '#345D9D',
+    XEM: '#67B2E8',
+    XLM: '#14B6E7'
+  };
+  return colors[symbol] || '#627EEA';
+};
+
+// Refs & reactive state
+const containerRef = ref<HTMLElement | null>(null);
+const mousePosition = reactive({ x: 0, y: 0 });
+const entered = ref(false);
+const titleBgPos = ref('0% 50%');
+const lightPulse = ref(1);
+const hoveredIndex = ref<number>(-1);
+
+// Prepare crypto icons (first 8)
+const cryptoIcons = cryptocurrencies.slice(0, 8).map(c => ({
+  icon: c.icon,
+  color: getColorForCrypto(c.symbol),
+  symbol: c.symbol,
+  price: c.price,
+  change24h: c.change24h,
+  name: c.name
+}));
+
+// total balance - calculated dynamically
+const totalBalance = computed(() => cryptoIcons.reduce((acc, crypto) => acc + (crypto.price || 0), 0));
+
+// Function to format numbers in currency format
+const formatCurrency = (value: number) => {
+  return new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: 'USD',
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2
+  }).format(value);
+};
+
+// Light gradient helper (kept so radial shows on section background too)
+const lightGradient = computed(() => {
+  return `radial-gradient(circle at ${mousePosition.x}px ${mousePosition.y}px, rgba(99,102,241,0.06) 0%, transparent 60%)`;
+});
+
+// Particles array
+const particles = Array.from({ length: 40 }).map(() => {
+  const size = Math.random() * 4 + 1;
+  return {
+    size,
+    left: Math.random() * 100,
+    top: Math.random() * 100,
+    color: `rgba(165,180,252,${Math.random() * 0.3 + 0.1})`,
+    offset: (Math.random() - 0.5) * 6,
+    speed: 0.5 + Math.random() * 1.2,
+    phase: Math.random() * Math.PI * 2
+  };
+});
+
+// Animation loop / pointer handling
+let rafId: number | null = null;
+let titleRafId: number | null = null;
+
+const clamp = (v: number, a: number, b: number) => Math.max(a, Math.min(b, v));
+
+const updateCssMouseVars = () => {
+  if (!containerRef.value) return;
+  containerRef.value.style.setProperty('--mouse-x', `${mousePosition.x}px`);
+  containerRef.value.style.setProperty('--mouse-y', `${mousePosition.y}px`);
+};
+
+const onPointerMove = (e: PointerEvent) => {
+  if (!containerRef.value) return;
+  const rect = containerRef.value.getBoundingClientRect();
+  const x = clamp((e.clientX - rect.left), 0, rect.width);
+  const y = clamp((e.clientY - rect.top), 0, rect.height);
+
+  // smoother values (use normalized to container for some calculations if needed)
+  mousePosition.x = Math.round(x);
+  mousePosition.y = Math.round(y);
+
+  // update CSS vars immediately for GPU-accelerated repaints
+  updateCssMouseVars();
+};
+
+const onPointerLeave = () => {
+  // center fallback when leaving
+  if (!containerRef.value) return;
+  const rect = containerRef.value.getBoundingClientRect();
+  mousePosition.x = Math.round(rect.width / 2);
+  mousePosition.y = Math.round(rect.height / 2);
+  updateCssMouseVars();
+};
+
+// Smooth animation loop using requestAnimationFrame
+const animate = (ts?: number) => {
+  if (!containerRef.value) return;
+
+  // Light pulse animation
+  lightPulse.value = 0.7 + Math.abs(Math.sin(Date.now() / 900));
+
+  // animate particles offsets for bobbing effect
+  const now = Date.now();
+  for (let i = 0; i < particles.length; i++) {
+    const p = particles[i];
+    p.phase += 0.01 * p.speed;
+    p.offset = Math.sin(p.phase + i) * (2 + p.speed);
+    // subtle horizontal drift (update left slightly)
+    p.left = (p.left + Math.cos(p.phase) * 0.005 * p.speed + 100) % 100;
+  }
+
+  rafId = requestAnimationFrame(animate);
+};
+
+// Title background pan via RAF (smoother than setInterval)
+let titlePos = 0;
+let titleDir = 1;
+const titleAnimate = () => {
+  titlePos += titleDir * 0.2;
+  if (titlePos > 100) titlePos = 0;
+  if (titlePos < 0) titlePos = 100;
+  titleBgPos.value = `${titlePos.toFixed(2)}% 50%`;
+  titleRafId = requestAnimationFrame(titleAnimate);
+};
+
+onMounted(() => {
+  entered.value = true;
+
+  // pointer events on container (covers mouse + touch + pen)
+  if (containerRef.value) {
+    containerRef.value.addEventListener('pointermove', onPointerMove, { passive: true });
+    containerRef.value.addEventListener('pointerleave', onPointerLeave, { passive: true });
+    // init CSS vars to center
+    const rect = containerRef.value.getBoundingClientRect();
+    mousePosition.x = Math.round(rect.width / 2);
+    mousePosition.y = Math.round(rect.height / 2);
+    updateCssMouseVars();
+  }
+
+  // Start animation loops
+  if (!rafId) rafId = requestAnimationFrame(animate);
+  if (!titleRafId) titleRafId = requestAnimationFrame(titleAnimate);
+});
+
+onBeforeUnmount(() => {
+  if (containerRef.value) {
+    containerRef.value.removeEventListener('pointermove', onPointerMove);
+    containerRef.value.removeEventListener('pointerleave', onPointerLeave);
+  }
+  if (rafId) {
+    cancelAnimationFrame(rafId);
+    rafId = null;
+  }
+  if (titleRafId) {
+    cancelAnimationFrame(titleRafId);
+    titleRafId = null;
+  }
+});
+
+// Helpers for ring styles & icon placement
+const ringStyle = (index: number) => {
+  const size = 400 + index * 100;
+  const deg = 90 + index * 30;
+  const rotateDur = 30 + index * 10;
+  return {
+    width: `${size}px`,
+    height: `${size}px`,
+    background: `linear-gradient(${deg}deg, rgba(99,102,241,0.1), rgba(59,130,246,0.05))`,
+    border: '1px solid rgba(99,102,241,0.2)',
+    filter: 'blur(0.5px)',
+    borderRadius: '9999px',
+    animation: `spin ${rotateDur}s linear infinite`
+  };
+};
+
+const iconOnRingStyle = (ringIndex: number, iconIndex: number, total: number) => {
+  const angle = (iconIndex * Math.PI * 2) / total;
+  const radius = (400 + ringIndex * 100) / 2;
+  const x = Math.cos(angle) * radius;
+  const y = Math.sin(angle) * radius;
+  const delay = iconIndex * 0.15;
+  return {
+    left: `calc(50% + ${x}px)`,
+    top: `calc(50% + ${y}px)`,
+    transform: 'translate(-50%,-50%)',
+    animation: `pulseScale 2.2s ${delay}s ease-in-out infinite`
+  };
+};
+
+const cardRingStyle = (index: number) => {
+  const size = 400 + index * 100;
+  const deg = 90 + index * 30;
+  const rotateDur = 30 + index * 10;
+  return {
+    width: `${size}px`,
+    height: `${size}px`,
+    background: `linear-gradient(${deg}deg, rgba(99,102,241,0.08), rgba(59,130,246,0.04))`,
+    border: '1px solid rgba(99,102,241,0.12)',
+    filter: 'blur(0.5px)',
+    borderRadius: '9999px',
+    animation: `spin ${rotateDur}s linear infinite`
+  };
+};
+
+const cardIconOnRingStyle = (ringIndex: number, iconIndex: number, total: number) => {
+  const angle = (iconIndex * Math.PI * 2) / total;
+  const radius = (400 + ringIndex * 100) / 2;
+  const x = Math.cos(angle) * radius;
+  const y = Math.sin(angle) * radius;
+  const delay = iconIndex * 0.12;
+  return {
+    left: `calc(50% + ${x}px)`,
+    top: `calc(50% + ${y}px)`,
+    transform: 'translate(-50%,-50%)',
+    animation: `pulseScale 2.2s ${delay}s ease-in-out infinite`
+  };
+};
+
+// Floating avatars style
+const floatingStyle = (i: number) => {
+  const angle = (i * Math.PI * 2) / cryptoIcons.length;
+  const radius = 280;
+  const x = Math.cos(angle) * radius;
+  const y = Math.sin(angle) * radius;
+  const delay = i * 100;
+  // mount stagger: use transition with delay
+  return {
+    width: '100px',
+    height: '100px',
+    left: `calc(50% + ${x}px)`,
+    top: `calc(50% + ${y}px)`,
+    transform: 'translate(-50%, -50%)',
+    transition: `transform 700ms ${delay}ms cubic-bezier(.2,.9,.3,1), opacity 700ms ${delay}ms`,
+    opacity: entered.value ? 1 : 0
+  };
+};
+</script>
+
+<style scoped>
+/* use css vars exposed by script to drive background radial */
+section[ref] {
+  /* nothing here; we set vars on container element from JS */
+}
+
+/* update radial uses --mouse-x/--mouse-y fallback to center */
+.absolute.inset-0.pointer-events-none.transition-all.duration-300.ease-out {
+  background: radial-gradient(circle at var(--mouse-x, 50%) var(--mouse-y, 50%), rgba(99,102,241,0.15) 0%, transparent 60%);
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+@keyframes pulseScale {
+  0% { transform: translate(-50%, -50%) scale(1); opacity: 0.6; }
+  50% { transform: translate(-50%, -50%) scale(1.2); opacity: 1; }
+  100% { transform: translate(-50%, -50%) scale(1); opacity: 0.6; }
+}
+</style>

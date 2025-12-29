@@ -1,0 +1,980 @@
+{
+	"info": {
+		"_postman_id": "bitchest-api-collection",
+		"name": "BitChest API",
+		"description": "Complete API collection for BitChest cryptocurrency trading platform",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Authentication",
+			"item": [
+				{
+					"name": "Register",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 201\", function () {",
+									"    pm.response.to.have.status(201);",
+									"});",
+									"",
+									"pm.test(\"Response has pending status\", function () {",
+									"    const jsonData = pm.response.json();",
+									"    pm.expect(jsonData.status).to.eql(\"pending\");",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"Jean Dupont\",\n    \"email\": \"jean.dupont@example.com\",\n    \"password\": \"password123\",\n    \"password_confirmation\": \"password123\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/register",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"register"
+							]
+						},
+						"description": "Register a new client account. Account will be in 'pending' status until approved by admin."
+					},
+					"response": []
+				},
+				{
+					"name": "Login",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Response contains token\", function () {",
+									"    const jsonData = pm.response.json();",
+									"    pm.expect(jsonData).to.have.property('token');",
+									"    pm.expect(jsonData).to.have.property('user');",
+									"    ",
+									"    // Auto-save token based on role",
+									"    const user = jsonData.user;",
+									"    if (user.role === 'admin') {",
+									"        pm.environment.set('admin_token', jsonData.token);",
+									"    } else if (user.role === 'client') {",
+									"        pm.environment.set('client_token', jsonData.token);",
+									"        pm.environment.set('client_id', user.id);",
+									"        pm.environment.set('client_email', user.email);",
+									"    }",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"email\": \"admin@bitchest.com\",\n    \"password\": \"admin123\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/login",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"login"
+							]
+						},
+						"description": "Login and get authentication token. Default admin: admin@bitchest.com / admin123"
+					},
+					"response": []
+				},
+				{
+					"name": "Logout",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{admin_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/logout",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"logout"
+							]
+						},
+						"description": "Logout and invalidate current token"
+					},
+					"response": []
+				}
+			],
+			"description": "Public authentication endpoints"
+		},
+		{
+			"name": "Client - Portfolio",
+			"item": [
+				{
+					"name": "Get Portfolio",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Response contains balance and portfolio\", function () {",
+									"    const jsonData = pm.response.json();",
+									"    pm.expect(jsonData).to.have.property('balance');",
+									"    pm.expect(jsonData).to.have.property('portfolio');",
+									"    pm.expect(jsonData.portfolio).to.be.an('array');",
+									"    ",
+									"    // Verify portfolio structure if portfolios exist",
+									"    if (jsonData.portfolio.length > 0) {",
+									"        const portfolio = jsonData.portfolio[0];",
+									"        pm.expect(portfolio).to.have.property('euro_balance');",
+									"        pm.expect(portfolio).to.have.property('total_crypto_value');",
+									"        pm.expect(portfolio).to.have.property('crypto');",
+									"    }",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{client_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/portfolio",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"portfolio"
+							]
+						},
+						"description": "Get client portfolio with total balance (sum of all portfolio euro_balance) and crypto holdings. Each portfolio contains euro_balance and total_crypto_value for a specific cryptocurrency."
+					},
+					"response": []
+				}
+			],
+			"description": "Client portfolio management endpoints"
+		},
+		{
+			"name": "Client - Transactions",
+			"item": [
+				{
+					"name": "Buy Crypto",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 201\", function () {",
+									"    pm.response.to.have.status(201);",
+									"});",
+									"",
+									"pm.test(\"Response contains transaction\", function () {",
+									"    const jsonData = pm.response.json();",
+									"    pm.expect(jsonData).to.have.property('transaction');",
+									"    ",
+									"    const tx = jsonData.transaction;",
+									"    pm.expect(tx).to.have.property('portfolio_id');",
+									"    pm.expect(tx).to.have.property('type');",
+									"    pm.expect(tx).to.have.property('quantity');",
+									"    pm.expect(tx).to.have.property('price_at_transaction');",
+									"    pm.expect(tx).to.have.property('euro_amount');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{client_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"symbol\": \"BTC\",\n    \"quantity\": 0.1\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/transaction/buy",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"transaction",
+								"buy"
+							]
+						},
+						"description": "Buy cryptocurrency. Requires symbol and quantity. Portfolio is created automatically if it doesn't exist. Transaction uses portfolio_id instead of user_id and crypto_currency_id."
+					},
+					"response": []
+				},
+				{
+					"name": "Sell Crypto",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 201\", function () {",
+									"    pm.response.to.have.status(201);",
+									"});",
+									"",
+									"pm.test(\"Response contains transaction\", function () {",
+									"    const jsonData = pm.response.json();",
+									"    pm.expect(jsonData).to.have.property('transaction');",
+									"    ",
+									"    const tx = jsonData.transaction;",
+									"    pm.expect(tx).to.have.property('portfolio_id');",
+									"    pm.expect(tx).to.have.property('type');",
+									"    pm.expect(tx).to.have.property('quantity');",
+									"    pm.expect(tx).to.have.property('price_at_transaction');",
+									"    pm.expect(tx).to.have.property('euro_amount');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{client_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"symbol\": \"BTC\",\n    \"quantity\": 0.05\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/transaction/sell",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"transaction",
+								"sell"
+							]
+						},
+						"description": "Sell cryptocurrency. Requires symbol and quantity. Transaction uses portfolio_id instead of user_id and crypto_currency_id."
+					},
+					"response": []
+				}
+			],
+			"description": "Client transaction endpoints for buying and selling crypto"
+		},
+		{
+			"name": "Client - Market",
+			"item": [
+				{
+					"name": "Get Market Prices",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Response is an array\", function () {",
+									"    const jsonData = pm.response.json();",
+									"    pm.expect(jsonData).to.be.an('array');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{client_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/market",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"market"
+							]
+						},
+						"description": "Get current market prices for all cryptocurrencies"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Crypto History",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{client_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/market/history/:symbol",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"market",
+								"history",
+								":symbol"
+							],
+							"variable": [
+								{
+									"key": "symbol",
+									"value": "BTC",
+									"description": "Cryptocurrency symbol (e.g., BTC, ETH)"
+								}
+							]
+						},
+						"description": "Get 30-day price history for a specific cryptocurrency"
+					},
+					"response": []
+				}
+			],
+			"description": "Client market data endpoints"
+		},
+		{
+			"name": "Admin - Profile",
+			"item": [
+				{
+					"name": "Update Admin Profile",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Response contains admin data\", function () {",
+									"    const jsonData = pm.response.json();",
+									"    pm.expect(jsonData).to.have.property('admin');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{admin_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"Updated Admin Name\",\n    \"email\": \"newadmin@bitchest.com\",\n    \"password\": \"newpassword123\",\n    \"password_confirmation\": \"newpassword123\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/admin/profile",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"admin",
+								"profile"
+							]
+						},
+						"description": "Update admin profile. All fields are optional."
+					},
+					"response": []
+				}
+			],
+			"description": "Admin profile management endpoints"
+		},
+		{
+			"name": "Admin - Users",
+			"item": [
+				{
+					"name": "Create Client",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 201\", function () {",
+									"    pm.response.to.have.status(201);",
+									"});",
+									"",
+									"pm.test(\"Response contains user and temporary password\", function () {",
+									"    const jsonData = pm.response.json();",
+									"    pm.expect(jsonData).to.have.property('user');",
+									"    pm.expect(jsonData).to.have.property('temporary_password');",
+									"    ",
+									"    // Save temporary password for later use",
+									"    if (jsonData.temporary_password) {",
+									"        pm.environment.set('temp_password', jsonData.temporary_password);",
+									"    }",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{admin_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"New Client\",\n    \"email\": \"newclient@example.com\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/admin/users",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"admin",
+								"users"
+							]
+						},
+						"description": "Create a new client account. Returns a temporary password."
+					},
+					"response": []
+				},
+				{
+					"name": "List All Clients",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Response is an array\", function () {",
+									"    const jsonData = pm.response.json();",
+									"    pm.expect(jsonData).to.be.an('array');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{admin_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/admin/users",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"admin",
+								"users"
+							]
+						},
+						"description": "Get list of all client users"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Client by ID",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Response contains user data\", function () {",
+									"    const jsonData = pm.response.json();",
+									"    pm.expect(jsonData).to.have.property('id');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{admin_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/admin/users/:id",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"admin",
+								"users",
+								":id"
+							],
+							"variable": [
+								{
+									"key": "id",
+									"value": "{{client_id}}",
+									"description": "User ID"
+								}
+							]
+						},
+						"description": "Get specific client user details by ID"
+					},
+					"response": []
+				},
+				{
+					"name": "Approve Client",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Response contains user with active status\", function () {",
+									"    const jsonData = pm.response.json();",
+									"    pm.expect(jsonData).to.have.property('user');",
+									"    pm.expect(jsonData.user.status).to.eql('active');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{admin_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/admin/users/:id/approve",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"admin",
+								"users",
+								":id",
+								"approve"
+							],
+							"variable": [
+								{
+									"key": "id",
+									"value": "{{client_id}}",
+									"description": "User ID to approve"
+								}
+							]
+						},
+						"description": "Approve a pending client account. Sets status to 'active'. Portfolio will be created automatically on first transaction."
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Client",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Response contains deletion message\", function () {",
+									"    const jsonData = pm.response.json();",
+									"    pm.expect(jsonData).to.have.property('message');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{admin_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/admin/users/:id",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"admin",
+								"users",
+								":id"
+							],
+							"variable": [
+								{
+									"key": "id",
+									"value": "{{client_id}}",
+									"description": "User ID to delete"
+								}
+							]
+						},
+						"description": "Delete a client user account"
+					},
+					"response": []
+				}
+			],
+			"description": "Admin user management endpoints"
+		},
+		{
+			"name": "Admin - Cryptos",
+			"item": [
+				{
+					"name": "Get All Cryptos",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Response is an array\", function () {",
+									"    const jsonData = pm.response.json();",
+									"    pm.expect(jsonData).to.be.an('array');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{admin_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/admin/cryptos",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"admin",
+								"cryptos"
+							]
+						},
+						"description": "Get all cryptocurrencies with current prices from price_histories table"
+					},
+					"response": []
+				},
+				{
+					"name": "Generate Initial Prices",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Response contains success message\", function () {",
+									"    const jsonData = pm.response.json();",
+									"    pm.expect(jsonData).to.have.property('message');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{admin_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/admin/cryptos/generate",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"admin",
+								"cryptos",
+								"generate"
+							]
+						},
+						"description": "Generate initial prices for all cryptocurrencies. Prices are stored in price_histories table."
+					},
+					"response": []
+				}
+			],
+			"description": "Admin cryptocurrency management endpoints"
+		}
+	],
+	"variable": [
+		{
+			"key": "base_url",
+			"value": "http://localhost:8000/api",
+			"type": "string"
+		}
+	]
+}

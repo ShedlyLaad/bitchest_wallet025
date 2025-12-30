@@ -11,26 +11,44 @@ class DashboardController extends Controller
 {
     public function summary()
     {
-        $totalUsers = User::count();
-        $activeUsers = User::where('status', 'active')->count();
-        $pendingValidation = User::where('status', 'pending_validation')->count();
-        $euroBalance = (float) User::sum('euro_balance');
+        // Only count client accounts in the dashboard stats
+        $totalUsers = User::where('role', 'client')->count();
+        $activeUsers = User::where('role', 'client')->where('status', 'active')->count();
+        $pendingValidation = User::where('role', 'client')->where('status', 'pending_validation')->count();
+        $euroBalance = (float) User::where('role', 'client')->sum('euro_balance');
 
-        $totalRevenue = (float) Transaction::where('type', 'sell')->sum('euro_amount');
-        $tradesCount = Transaction::count();
+        // Only count transactions from client users (exclude admin transactions)
+        $totalRevenue = (float) Transaction::where('type', 'sell')
+            ->whereHas('portfolio.user', function ($query) {
+                $query->where('role', 'client');
+            })
+            ->sum('euro_amount');
+        
+        $tradesCount = Transaction::whereHas('portfolio.user', function ($query) {
+            $query->where('role', 'client');
+        })->count();
 
-        // Build 30-day series
+        // Build 30-day series (exclude admin transactions)
         $start = Carbon::now()->subDays(29)->startOfDay();
         $revenueSeries = [];
         $tradesSeries = [];
         for ($i = 0; $i < 30; $i++) {
             $day = (clone $start)->addDays($i);
             $revenueSeries[] = (float) Transaction::where('type', 'sell')
-                ->whereDate('created_at', $day)->sum('euro_amount');
-            $tradesSeries[] = (int) Transaction::whereDate('created_at', $day)->count();
+                ->whereHas('portfolio.user', function ($query) {
+                    $query->where('role', 'client');
+                })
+                ->whereDate('created_at', $day)
+                ->sum('euro_amount');
+            $tradesSeries[] = (int) Transaction::whereHas('portfolio.user', function ($query) {
+                $query->where('role', 'client');
+            })
+                ->whereDate('created_at', $day)
+                ->count();
         }
 
-        $pendingUsers = User::where('status', 'pending_validation')
+        $pendingUsers = User::where('role', 'client')
+            ->where('status', 'pending_validation')
             ->limit(20)
             ->get(['id', 'name', 'email', 'created_at'])
             ->map(function ($u) {
@@ -42,7 +60,11 @@ class DashboardController extends Controller
                 ];
             });
 
+        // Only show recent activities from client users (exclude admin transactions)
         $recentActivities = Transaction::with(['portfolio.crypto', 'portfolio.user'])
+            ->whereHas('portfolio.user', function ($query) {
+                $query->where('role', 'client');
+            })
             ->latest()
             ->take(5)
             ->get()

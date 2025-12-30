@@ -45,8 +45,8 @@
                 <td class="p-4 text-gray-300">{{ crypto.name }}</td>
                 <td class="p-4 text-white text-right">{{ formatEUR(crypto.price) }}</td>
                 <td class="p-4 text-right">
-                  <span :class="crypto.change24h >= 0 ? 'PnL--pos font-medium' : 'PnL--neg font-medium'">
-                    {{ crypto.change24h >= 0 ? '+' : '' }}{{ crypto.change24h.toFixed(2) }}%
+                  <span :class="(crypto.change24h ?? 0) >= 0 ? 'PnL--pos font-medium' : 'PnL--neg font-medium'">
+                    {{ (crypto.change24h ?? 0) >= 0 ? '+' : '' }}{{ (crypto.change24h ?? 0).toFixed(2) }}%
                   </span>
                 </td>
               </tr>
@@ -77,7 +77,16 @@
           <div v-else class="text-sm text-gray-400 mb-2">Sélectionnez une crypto pour afficher les détails.</div>
 
           <div class="h-[300px] sm:h-[400px]">
-            <CryptoChart :series="priceSeries" :symbol="selectedCrypto.symbol" :mode="mode" type="area" height="100%" currency="EUR" />
+            <CryptoChart
+              v-if="selectedCrypto"
+              :series="priceSeries"
+              :symbol="selectedCrypto?.symbol || 'N/A'"
+              :mode="mode"
+              type="area"
+              height="100%"
+              currency="EUR"
+            />
+            <div v-else class="text-sm text-gray-400">Select a crypto to view chart.</div>
             <div v-if="historyLoading" class="text-sm text-gray-400 mt-2">Loading history...</div>
           </div>
         </div>

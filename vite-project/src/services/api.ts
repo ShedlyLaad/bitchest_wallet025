@@ -59,7 +59,7 @@ api.interceptors.response.use(
 api.interceptors.request.use((config) => {
   // Ensure Authorization header is present if we have a stored token
   if (currentToken && !config.headers?.Authorization) {
-    config.headers = { ...(config.headers || {}), Authorization: `Bearer ${currentToken}` };
+    config.headers = { ...(config.headers || {}), Authorization: `Bearer ${currentToken}` } as any;
   }
   const method = (config.method || 'get').toLowerCase();
   if (config.withCredentials && method !== 'get') {
@@ -198,6 +198,24 @@ export async function getAdminCryptoHistory(symbol: string) {
   return data;
 }
 
+export async function getAdminDashboard() {
+  const { data } = await api.get('/api/admin/dashboard');
+  return data as {
+    totals: {
+      total_users: number;
+      active_users: number;
+      pending_validation: number;
+      euro_balance: number;
+      total_revenue: number;
+      trades_count: number;
+    };
+    revenue_series: number[];
+    trades_series: number[];
+    pending_users: { id: number; name: string; email: string; submitDate: string }[];
+    recent_activities: { id: number; user: string; action: string; time: string }[];
+  };
+}
+
 // exposed default instance for ad-hoc calls
 export default {
   instance: api,
@@ -221,6 +239,7 @@ export default {
   getAdminTransactions,
   getAdminCryptos,
   generateAdminPrices,
-  getAdminCryptoHistory
+  getAdminCryptoHistory,
+  getAdminDashboard
 };
 

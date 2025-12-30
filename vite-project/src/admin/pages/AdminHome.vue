@@ -18,7 +18,7 @@
     </div>
 
     <!-- Stats Cards -->
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-6">
       <div v-for="(stat, i) in statCards" :key="i" class="bg-gray-800 rounded-xl p-6 border border-gray-700 hover:border-gray-600 transition-all duration-300 transform hover:scale-105">
         <div class="flex items-center justify-between mb-4">
           <div class="text-gray-400"><component :is="stat.icon" class="h-6 w-6" /></div>
@@ -129,75 +129,61 @@ import { Search, Filter, Eye, CheckCircle, XCircle, MoreVertical, Users, Trendin
 import CryptoChart from '@/components/CryptoChart.vue';
 import AnimatedCounter from '@/components/AnimatedCounter.vue';
 import api from '@/services/api';
-import type { AuthUser, Transaction } from '@/types';
-
+import { useAuthStore } from '@/stores/auth';
+const auth = useAuthStore();
 const timeFilter = ref('7d');
 const searchTerm = ref('');
-const users = ref<AuthUser[]>([]);
-const transactions = ref<Transaction[]>([]);
 const loading = ref(false);
 const errorMessage = ref('');
 
-onMounted(() => {
-  loadData();
+type Totals = {
+  total_users: number;
+  active_users: number;
+  pending_validation: number;
+  euro_balance: number;
+  total_revenue: number;
+  trades_count: number;
+};
+
+const totals = ref<Totals | null>(null);
+const revenueSeries = ref<number[]>([]);
+const tradesSeries = ref<number[]>([]);
+const pendingKycUsers = ref<{ id: number; name: string; email: string; submitDate: string }[]>([]);
+const recentActivities = ref<{ id: number; user: string; action: string; time: string }[]>([]);
+
+onMounted(async () => {
+  auth.hydrate?.();
+  if (!auth.token) {
+    errorMessage.value = 'Not authenticated as admin.';
+    return;
+  }
+  await loadData();
 });
 
 async function loadData() {
   loading.value = true;
   errorMessage.value = '';
   try {
-    if (!auth.token) {
-      errorMessage.value = 'Non authentifié. Connectez-vous en admin.';
-      return;
-    }
-    users.value = await api.getAdminUsers();
-    const txPage = await api.getAdminTransactions({ per_page: 200 });
-    transactions.value = txPage.data ?? [];
+    const data = await api.getAdminDashboard();
+    totals.value = data.totals ?? null;
+    revenueSeries.value = data.revenue_series || [];
+    tradesSeries.value = data.trades_series || [];
+    pendingKycUsers.value = data.pending_users || [];
+    recentActivities.value = data.recent_activities || [];
   } catch (e: any) {
-    errorMessage.value = e?.response?.data?.message || 'Impossible de charger les données admin';
+    errorMessage.value = e?.response?.data?.message || 'Unable to load admin data';
   } finally {
     loading.value = false;
   }
 }
 
-const totalUsers = computed(() => users.value.length);
-const activeUsers = computed(() => users.value.filter((u) => u.status === 'active').length);
-const pendingKyc = computed(() => users.value.filter((u) => u.status === 'pending_validation').length);
-const blockedUsers = computed(() => users.value.filter((u) => u.status === 'blocked').length);
-const revenueEUR = computed(() => transactions.value.filter((t) => t.type === 'sell').reduce((sum, t) => sum + Number(t.euro_amount || 0), 0));
-const tradesCount = computed(() => transactions.value.length);
-
-const revenueSeries = computed(() => {
-  const amounts = transactions.value.slice(-30).map((t) => Number(t.euro_amount || 0));
-  const padded = amounts.length ? amounts : Array(30).fill(0);
-  return padded;
-});
-
-const tradesSeries = computed(() => {
-  const last = Math.max(tradesCount.value, 1);
-  return Array(30).fill(last / 30);
-});
-
-const pendingKycUsers = computed(() =>
-  users.value
-    .filter((u) => u.status === 'pending_validation')
-    .map((u) => ({ id: u.id, name: u.name, email: u.email, submitDate: u.created_at }))
-);
-
-const recentActivities = computed(() =>
-  transactions.value.slice(0, 4).map((t) => ({
-    id: t.id,
-    user: t.portfolio?.user?.name || 'Client',
-    action: `${t.type.toUpperCase()} ${t.portfolio?.crypto?.symbol || ''} : €${Number(t.euro_amount || 0).toFixed(2)}`,
-    time: t.created_at
-  }))
-);
-
 const statCards = computed(() => [
-  { title: 'Total Users', value: totalUsers.value, change: '', changeType: 'positive', icon: Users },
-  { title: 'Active Users', value: activeUsers.value, change: '', changeType: 'positive', icon: TrendingUp },
-  { title: 'Total Revenue', value: revenueEUR.value, change: '', changeType: 'positive', icon: DollarSign, prefix: '€' },
-  { title: 'Pending Validation', value: pendingKyc.value, change: '', changeType: pendingKyc.value > 0 ? 'negative' : 'positive', icon: AlertCircle },
+  { title: 'Total Users', value: totals.value?.total_users ?? 0, change: '', changeType: 'positive', icon: Users },
+  { title: 'Active Users', value: totals.value?.active_users ?? 0, change: '', changeType: 'positive', icon: TrendingUp },
+  { title: 'Total Revenue', value: totals.value?.total_revenue ?? 0, change: '', changeType: 'positive', icon: DollarSign, prefix: '€' },
+  { title: 'Pending Validation', value: totals.value?.pending_validation ?? 0, change: '', changeType: (totals.value?.pending_validation ?? 0) > 0 ? 'negative' : 'positive', icon: AlertCircle },
+  { title: 'EUR Balance', value: totals.value?.euro_balance ?? 0, change: '', changeType: 'positive', icon: DollarSign, prefix: '€' },
+  { title: 'Trades', value: totals.value?.trades_count ?? 0, change: '', changeType: 'positive', icon: TrendingUp },
 ]);
 </script>
 

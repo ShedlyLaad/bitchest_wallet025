@@ -12,6 +12,7 @@ class DatabaseSeeder extends Seeder
             UserSeeder::class,
             CryptoAndPricesSeeder::class,
             PriceHistorySeeder::class,
+            TransactionSeeder::class,
         ]);
     }
 }

@@ -65,6 +65,7 @@ Route::middleware(['auth:sanctum','account.status'])->group(function () {
 
         // Profile Admin
         Route::put('/profile', [AdminProfileController::class, 'update']);
+        Route::get('/dashboard', [\App\Http\Controllers\Admin\DashboardController::class, 'summary']);
 
         // CRUD Clients
         Route::post('/users', [AdminUserController::class, 'store']);

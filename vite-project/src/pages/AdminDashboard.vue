@@ -115,21 +115,167 @@
         </div>
 
         <!-- Payment Methods Tab -->
-        <div v-else-if="activeTab === 'payment'">
-          <h3 class="text-lg font-semibold mb-3">Payment Methods</h3>
-          <div class="space-y-3">
-            <div 
-              v-for="pm in paymentMethods" 
-              :key="pm.id" 
-              class="bg-gray-700/30 rounded-lg p-3 flex items-center justify-between"
-            >
-              <div>
-                <div class="font-medium">{{ pm.name }}</div>
-                <div class="text-sm text-gray-400">{{ pm.type }}</div>
+        <div v-else-if="activeTab === 'payment'" class="space-y-6">
+          <!-- Unified Payment & History Section -->
+          <div class="bg-gray-800 rounded-xl border border-gray-700 overflow-hidden">
+            <!-- Header -->
+            <div class="bg-gradient-to-r from-blue-600/20 to-purple-600/20 border-b border-gray-700 px-6 py-4">
+              <div class="flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                  <div class="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
+                    <CreditCard class="h-5 w-5 text-white" />
+                  </div>
+                  <div>
+                    <h3 class="text-lg font-semibold">Payments & Deposits</h3>
+                    <p class="text-sm text-gray-400">Manage your payment methods and view transaction history</p>
+                  </div>
+                </div>
+                <button 
+                  @click="showAddCardForm = !showAddCardForm"
+                  class="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg font-medium transition-colors flex items-center gap-2"
+                >
+                  <Plus class="h-4 w-4" />
+                  Add Payment Method
+                </button>
               </div>
-              <div class="text-sm">
-                <span class="mr-3" v-if="pm.verified">Verified</span>
-                <button class="px-3 py-1 bg-gray-600 rounded text-sm hover:bg-gray-500 transition-colors">Manage</button>
+            </div>
+
+            <!-- Add Card Form (Collapsible) -->
+            <div v-if="showAddCardForm" class="border-b border-gray-700 px-6 py-6 bg-gray-800/50">
+              <div class="space-y-4 max-w-3xl">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label class="block text-sm text-gray-300 mb-2">Card Number</label>
+                    <div class="relative">
+                      <CreditCard class="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+                      <input
+                        v-model="cardForm.cardNumber"
+                        type="text"
+                        placeholder="1234 5678 9012 3456"
+                        maxlength="19"
+                        class="w-full bg-gray-700 border border-gray-600 rounded-lg pl-10 pr-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label class="block text-sm text-gray-300 mb-2">Cardholder Name</label>
+                    <input
+                      v-model="cardForm.cardholderName"
+                      type="text"
+                      placeholder="John Doe"
+                      class="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    />
+                  </div>
+                  <div>
+                    <label class="block text-sm text-gray-300 mb-2">Expiry Date</label>
+                    <input
+                      v-model="cardForm.expiryDate"
+                      type="text"
+                      placeholder="MM/YY"
+                      maxlength="5"
+                      class="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    />
+                  </div>
+                  <div>
+                    <label class="block text-sm text-gray-300 mb-2">CVV</label>
+                    <input
+                      v-model="cardForm.cvv"
+                      type="text"
+                      placeholder="123"
+                      maxlength="4"
+                      class="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    />
+                  </div>
+                </div>
+                <div class="flex gap-3">
+                  <button 
+                    @click="handleAddCard"
+                    :disabled="isAddingCard"
+                    class="px-6 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg font-medium transition-colors"
+                  >
+                    {{ isAddingCard ? 'Adding...' : 'Add Card' }}
+                  </button>
+                  <button 
+                    @click="showAddCardForm = false; resetCardForm()"
+                    class="px-6 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg font-medium transition-colors"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Payment History List -->
+            <div class="divide-y divide-gray-700">
+              <div v-if="isLoadingPayments" class="px-6 py-8">
+                <div class="space-y-3">
+                  <div v-for="i in 3" :key="i" class="h-20 bg-gray-700/30 rounded-lg animate-pulse"></div>
+                </div>
+              </div>
+              <div v-else-if="paymentHistory.length > 0" class="px-6 py-4">
+                <div class="space-y-3">
+                  <div 
+                    v-for="payment in paymentHistory" 
+                    :key="payment.id" 
+                    class="group relative bg-gray-700/20 hover:bg-gray-700/40 rounded-lg p-4 transition-all duration-200 border border-transparent hover:border-gray-600"
+                  >
+                    <div class="flex items-center justify-between">
+                      <div class="flex items-center gap-4 flex-1">
+                        <div :class="[
+                          'w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 transition-all',
+                          payment.type === 'initialization' 
+                            ? 'bg-gradient-to-br from-blue-600/30 to-blue-800/30 group-hover:from-blue-600/40 group-hover:to-blue-800/40' 
+                            : 'bg-gradient-to-br from-green-600/30 to-green-800/30 group-hover:from-green-600/40 group-hover:to-green-800/40'
+                        ]">
+                          <component 
+                            :is="payment.type === 'initialization' ? Wallet : CreditCard" 
+                            :class="[
+                              'h-6 w-6',
+                              payment.type === 'initialization' ? 'text-blue-400' : 'text-green-400'
+                            ]" 
+                          />
+                        </div>
+                        <div class="flex-1 min-w-0">
+                          <div class="flex items-center gap-3 mb-1">
+                            <div class="font-semibold text-white">{{ payment.description }}</div>
+                            <span :class="[
+                              'px-2 py-0.5 rounded text-xs font-medium',
+                              payment.status === 'completed' 
+                                ? 'bg-green-600/20 text-green-400' 
+                                : payment.status === 'pending' 
+                                ? 'bg-yellow-600/20 text-yellow-400' 
+                                : 'bg-red-600/20 text-red-400'
+                            ]">
+                              {{ payment.status === 'completed' ? 'Completed' : payment.status === 'pending' ? 'Pending' : 'Failed' }}
+                            </span>
+                          </div>
+                          <div class="flex items-center gap-4 text-sm text-gray-400">
+                            <div class="flex items-center gap-1.5">
+                              <Calendar class="h-3.5 w-3.5" />
+                              <span>{{ new Date(payment.date).toLocaleDateString('fr-FR', { year: 'numeric', month: 'short', day: 'numeric' }) }}</span>
+                              <span>•</span>
+                              <span>{{ new Date(payment.date).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }) }}</span>
+                            </div>
+                            <div v-if="payment.type === 'initialization'" class="flex items-center gap-1.5 text-blue-400">
+                              <span class="text-xs">Initialized by admin</span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                      <div class="text-right ml-4">
+                        <div class="text-2xl font-bold text-green-400">{{ formatEUR(payment.amount) }}</div>
+                        <div class="text-xs text-gray-500 mt-0.5">{{ payment.method || 'Deposit' }}</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div v-else class="px-6 py-12 text-center">
+                <div class="w-16 h-16 bg-gray-700/30 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <CreditCard class="h-8 w-8 text-gray-500" />
+                </div>
+                <p class="text-gray-400 mb-2">No payment history available</p>
+                <p class="text-sm text-gray-500">Add a payment method to get started</p>
               </div>
             </div>
           </div>
@@ -222,7 +368,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue';
-import { Wallet, TrendingUp, DollarSign, Activity, User, Shield, CreditCard, History } from 'lucide-vue-next';
+import { Wallet, TrendingUp, DollarSign, Activity, User, Shield, CreditCard, History, Plus, Calendar } from 'lucide-vue-next';
 import FooterSection from '../components/sectionsLanding/FooterSection.vue';
 import { formatEUR } from '../utils/formatEUR';
 import { useAuthStore } from '@/stores/auth';
@@ -257,11 +403,72 @@ const securitySettings = [
   { name: 'Login Alerts', description: 'Get notified when someone logs into your account', enabled: true, critical: true }
 ];
 
-const paymentMethods = [
-  { id: '1', type: 'Bank Account', name: 'Chase ****1234', isDefault: true, verified: true },
-  { id: '2', type: 'Credit Card', name: 'Visa ****5678', isDefault: false, verified: true },
-  { id: '3', type: 'PayPal', name: 'john.doe@example.com', isDefault: false, verified: false }
-];
+// Payment form state
+const showAddCardForm = ref(false);
+const isAddingCard = ref(false);
+const isLoadingPayments = ref(false);
+const cardForm = ref({
+  cardNumber: '',
+  cardholderName: '',
+  expiryDate: '',
+  cvv: ''
+});
+
+function resetCardForm() {
+  cardForm.value = {
+    cardNumber: '',
+    cardholderName: '',
+    expiryDate: '',
+    cvv: ''
+  };
+}
+
+async function handleAddCard() {
+  // Validation
+  if (!cardForm.value.cardNumber || !cardForm.value.cardholderName || !cardForm.value.expiryDate || !cardForm.value.cvv) {
+    return;
+  }
+  
+  isAddingCard.value = true;
+  try {
+    // TODO: Add API call to save payment method
+    // For now, just simulate success
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    resetCardForm();
+    showAddCardForm.value = false;
+  } catch (error) {
+    console.error('Error adding card:', error);
+  } finally {
+    isAddingCard.value = false;
+  }
+}
+
+// Payment history - dynamically computed from user data
+const paymentHistory = computed(() => {
+  const history = [];
+  
+  // Add initialization payment if user exists and was approved
+  if (auth.user) {
+    const userCreatedAt = auth.user.created_at ? new Date(auth.user.created_at) : null;
+    const initialBalance = 500.00;
+    
+    // Show initialization if user has balance >= 500€ (meaning they were approved by admin)
+    if (auth.user.euro_balance && auth.user.euro_balance >= initialBalance && userCreatedAt) {
+      history.push({
+        id: `init-${auth.user.id}`,
+        type: 'initialization',
+        description: 'Account Initialization Deposit',
+        amount: initialBalance,
+        date: userCreatedAt.toISOString(),
+        status: 'completed',
+        method: 'Admin Deposit'
+      });
+    }
+  }
+  
+  // Sort by date (newest first)
+  return history.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+});
 
 // Stats computed from real data
 const stats = computed(() => {

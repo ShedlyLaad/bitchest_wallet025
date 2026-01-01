@@ -9,12 +9,33 @@
         </div>
 
         <div class="w-full sm:w-auto">
-          <div class="bg-gray-800 rounded-lg p-3 sm:p-4 border border-gray-700 w-full">
-            <div class="flex items-center justify-between sm:space-x-2">
-              <WalletIcon class="h-5 w-5" />
-              <span class="text-sm text-gray-400">Balance:</span>
-              <span class="font-semibold">{{ showBalance ? formattedBalance : '****' }}</span>
-              <button @click="showBalance = !showBalance" class="text-gray-400 hover:text-white">
+          <div class="bg-gradient-to-r from-gray-800 to-gray-800/95 rounded-xl p-4 sm:p-5 border border-gray-700/50 shadow-lg w-full">
+            <div class="flex items-center justify-between gap-4">
+              <div class="flex items-center gap-3">
+                <div :class="[
+                  'p-2.5 rounded-lg',
+                  totalGainLoss >= 0 ? 'bg-green-500/20' : 'bg-red-500/20'
+                ]">
+                  <component 
+                    :is="totalGainLoss >= 0 ? TrendingUpIcon : TrendingDownIcon" 
+                    :class="['h-5 w-5', totalGainLoss >= 0 ? 'text-green-400' : 'text-red-400']"
+                  />
+                </div>
+                <div>
+                  <div class="text-xs text-gray-400 font-medium mb-0.5">Total P&L</div>
+                  <span :class="[
+                    'text-xl font-bold tracking-tight',
+                    totalGainLoss >= 0 ? 'text-green-400' : 'text-red-400'
+                  ]">
+                    {{ showBalance ? formattedTotalGainLoss : '****' }}
+                  </span>
+                </div>
+              </div>
+              <button 
+                @click="showBalance = !showBalance" 
+                class="p-2 text-gray-400 hover:text-white hover:bg-gray-700/50 rounded-lg transition-all"
+                title="Toggle visibility"
+              >
                 <component :is="showBalance ? EyeOffIcon : EyeIcon" class="h-4 w-4" />
               </button>
             </div>
@@ -98,105 +119,188 @@
           </div>
 
           <!-- Trade Form -->
-          <div class="bg-gray-800 rounded-xl p-4 sm:p-6 border border-gray-700">
-            <div class="flex items-center justify-between mb-6">
-              <h3 class="text-xl font-semibold">Place Order</h3>
+          <div class="bg-gray-800 rounded-xl p-5 sm:p-6 border border-gray-700 shadow-lg">
+            <!-- Header with Order Type Toggle -->
+            <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
+              <div>
+                <h3 class="text-xl sm:text-2xl font-bold text-white">Place Order</h3>
+                <p class="text-sm text-gray-400 mt-1">Trade {{ selectedCrypto?.symbol || 'crypto' }} instantly</p>
+              </div>
 
-              <div class="flex bg-gray-700 rounded-lg p-1">
-                <button @click="tradeType = 'buy'" :class="tradeType === 'buy' ? 'text-white px-4 py-2 rounded-md' : 'text-gray-400 hover:text-white px-4 py-2 rounded-md'" :style="tradeType === 'buy' ? { backgroundColor: 'var(--accent-green)' } : {}">Buy</button>
-                <button @click="tradeType = 'sell'" :class="tradeType === 'sell' ? 'text-white px-4 py-2 rounded-md' : 'text-gray-400 hover:text-white px-4 py-2 rounded-md'" :style="tradeType === 'sell' ? { backgroundColor: 'var(--accent-red)' } : {}">Sell</button>
+              <div class="flex bg-gray-700/50 rounded-xl p-1 border border-gray-600/50 shadow-inner">
+                <button 
+                  @click="tradeType = 'buy'"
+                  :class="[
+                    'px-5 py-2.5 rounded-lg font-semibold text-sm transition-all duration-200',
+                    tradeType === 'buy' 
+                      ? 'text-white shadow-lg transform scale-105' 
+                      : 'text-gray-400 hover:text-gray-300'
+                  ]"
+                  :style="tradeType === 'buy' ? { backgroundColor: 'var(--accent-green)' } : {}"
+                >
+                  Buy
+                </button>
+                <button 
+                  @click="tradeType = 'sell'"
+                  :class="[
+                    'px-5 py-2.5 rounded-lg font-semibold text-sm transition-all duration-200',
+                    tradeType === 'sell' 
+                      ? 'text-white shadow-lg transform scale-105' 
+                      : 'text-gray-400 hover:text-gray-300'
+                  ]"
+                  :style="tradeType === 'sell' ? { backgroundColor: 'var(--accent-red)' } : {}"
+                >
+                  Sell
+                </button>
               </div>
             </div>
 
-            <div class="grid md:grid-cols-2 gap-4 sm:gap-6">
-              <div class="space-y-4 sm:space-y-6">
+            <div class="grid lg:grid-cols-2 gap-6">
+              <!-- Left Column: Input Fields -->
+              <div class="space-y-5">
                 <div>
-                  <label class="block text-sm font-medium text-gray-400 mb-2">Amount (EUR)</label>
-                  <input 
-                    type="number" 
-                    v-model="amount" 
-                    placeholder="0.00" 
-                    step="0.01"
-                    min="0"
-                    class="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-2 sm:py-3 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500" 
-                  />
+                  <label class="block text-sm font-semibold text-gray-300 mb-2.5 flex items-center gap-2">
+                    <span>Amount</span>
+                    <span class="text-xs font-normal text-gray-500">(EUR)</span>
+                  </label>
+                  <div class="relative group">
+                    <input 
+                      type="number" 
+                      v-model="amount" 
+                      @input="onAmountChange"
+                      placeholder="0.00" 
+                      step="0.01"
+                      min="0"
+                      :class="[
+                        'amount-input w-full bg-gray-900/70 border-2 rounded-xl pl-4 pr-16 py-3.5 placeholder-gray-500/60 focus:outline-none focus:ring-2 focus:ring-blue-500/30 transition-all duration-200 font-semibold text-lg tracking-wide',
+                        isAmountExceedingBalance ? 'text-red-400 border-red-500 focus:border-red-500' : 'text-gray-100 border-gray-600 focus:border-blue-500'
+                      ]"
+                    />
+                    <div class="absolute right-4 top-1/2 -translate-y-1/2 text-sm text-gray-400 font-semibold pointer-events-none">EUR</div>
+                  </div>
                 </div>
 
                 <div>
-                  <label class="block text-sm font-medium text-gray-400 mb-2">Quantity ({{ selectedCrypto?.symbol }})</label>
-                  <input type="number" :value="amount ? calculateQuantity.toFixed(8) : ''" readonly placeholder="0.00000000" class="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-2 sm:py-3 text-white placeholder-gray-400 opacity-60" />
+                  <label class="block text-sm font-semibold text-gray-300 mb-2.5 flex items-center gap-2">
+                    <span>Quantity</span>
+                    <span class="text-xs font-normal text-gray-500">({{ selectedCrypto?.symbol }})</span>
+                  </label>
+                  <div class="relative">
+                    <input 
+                      type="number"
+                      v-model="quantity"
+                      @input="onQuantityChange"
+                      placeholder="0.00000000" 
+                      step="0.00000001"
+                      min="0"
+                      class="w-full bg-gray-900/50 border-2 border-gray-700 rounded-xl pl-4 pr-20 py-3.5 text-emerald-400 placeholder-gray-500/60 font-mono text-base font-semibold tracking-wide focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/30 transition-all duration-200" 
+                    />
+                    <div class="absolute right-4 top-1/2 -translate-y-1/2 text-sm text-gray-400 font-semibold pointer-events-none">{{ selectedCrypto?.symbol }}</div>
+                  </div>
+                </div>
+
+                <!-- Available Balance Info (for Sell) -->
+                <div v-if="tradeType === 'sell' && availableQuantity !== null" class="bg-blue-600/10 border border-blue-600/30 rounded-lg p-3">
+                  <div class="flex items-center justify-between text-sm">
+                    <span class="text-gray-400 font-medium">Available Balance</span>
+                    <span class="text-blue-400 font-semibold font-mono">{{ availableQuantity.toFixed(8) }} {{ selectedCrypto?.symbol }}</span>
+                  </div>
                 </div>
               </div>
 
-              <div class="space-y-4 sm:space-y-6">
-                <div class="bg-gray-700/30 rounded-lg p-4 sm:p-6 space-y-3">
-                  <h4 class="font-semibold text-gray-300">Order Summary</h4>
+              <!-- Right Column: Order Summary & Action -->
+              <div class="space-y-5">
+                <!-- Order Summary Card -->
+                <div class="bg-gradient-to-br from-gray-900/80 to-gray-800/60 rounded-xl p-5 border border-gray-700/50 shadow-inner">
+                  <h4 class="font-bold text-white mb-4 text-base flex items-center gap-2">
+                    <div class="w-1 h-4 rounded-full" :style="{ backgroundColor: tradeType === 'buy' ? 'var(--accent-green)' : 'var(--accent-red)' }"></div>
+                    Order Summary
+                  </h4>
 
-                  <div class="space-y-2 text-sm">
-                    <div class="flex justify-between"><span class="text-gray-400">Price per {{ selectedCrypto?.symbol }}:</span><span>{{ formatPrice(selectedCrypto?.price || 0) }}</span></div>
-                    <div class="flex justify-between"><span class="text-gray-400">Quantity:</span><span>{{ amount ? calculateQuantity.toFixed(8) : '0.00000000' }} {{ selectedCrypto?.symbol }}</span></div>
-                    <div class="flex justify-between"><span class="text-gray-400">Amount:</span><span>{{ formatPrice(parseFloat(amount) || 0) }}</span></div>
-                    <div v-if="tradeType === 'sell' && availableQuantity !== null" class="flex justify-between text-xs"><span class="text-gray-500">Available:</span><span class="text-gray-400">{{ availableQuantity.toFixed(8) }} {{ selectedCrypto?.symbol }}</span></div>
-                    <div class="border-t border-gray-600 pt-2 flex justify-between font-semibold">
-                      <span>{{ tradeType === 'buy' ? 'Total Cost' : 'Total Value' }}:</span>
-                      <span>{{ formatPrice(parseFloat(amount) || 0) }}</span>
+                  <div class="space-y-3.5">
+                    <div class="flex justify-between items-center py-1.5 border-b border-gray-700/50">
+                      <span class="text-sm text-gray-400 font-medium">Price per {{ selectedCrypto?.symbol }}</span>
+                      <span class="text-white font-semibold font-mono">{{ formatPrice(selectedCrypto?.price || 0) }}</span>
+                    </div>
+                    <div class="flex justify-between items-center py-1.5 border-b border-gray-700/50">
+                      <span class="text-sm text-gray-400 font-medium">Quantity</span>
+                      <span class="text-white font-semibold font-mono">{{ (parseFloat(quantity) || calculateQuantity || 0).toFixed(8) }} {{ selectedCrypto?.symbol }}</span>
+                    </div>
+                    <div class="flex justify-between items-center py-1.5 border-b border-gray-700/50">
+                      <span class="text-sm text-gray-400 font-medium">Amount</span>
+                      <span :class="['font-semibold font-mono', isAmountExceedingBalance ? 'text-red-400' : 'text-white']">
+                        {{ formatPrice(parseFloat(amount) || calculateAmount || 0) }}
+                      </span>
+                    </div>
+                    <div class="flex justify-between items-center pt-2">
+                      <span class="text-base font-bold text-gray-300">{{ tradeType === 'buy' ? 'Total Cost' : 'Total Value' }}</span>
+                      <span :class="['text-lg font-bold', isAmountExceedingBalance ? 'text-red-400' : tradeType === 'buy' ? 'text-green-400' : 'text-red-400']">
+                        {{ formatPrice(parseFloat(amount) || calculateAmount || 0) }}
+                      </span>
                     </div>
                   </div>
                 </div>
 
-                <div class="space-y-4">
-                  <button 
-                    @click="handleTrade"
-                    :disabled="!amount || isTrading || !canTrade"
-                    class="w-full py-4 rounded-lg font-semibold transition-all transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none text-white" 
-                    :style="{ backgroundColor: tradeType === 'buy' ? 'var(--accent-green)' : 'var(--accent-red)' }"
-                  >
-                    {{ isTrading ? 'Processing...' : `${tradeType === 'buy' ? 'Buy' : 'Sell'} ${selectedCrypto?.symbol || ''}` }}
-                  </button>
-                </div>
+                <!-- Action Button -->
+                <button 
+                  @click="handleTrade"
+                  :disabled="!amount || isTrading || !canTrade"
+                  :class="[
+                    'w-full py-4 rounded-xl font-bold text-base transition-all duration-200 transform',
+                    isTrading || (!amount || !canTrade)
+                      ? 'opacity-50 cursor-not-allowed' 
+                      : 'hover:scale-[1.02] hover:shadow-xl active:scale-[0.98]'
+                  ]"
+                  :style="{ 
+                    backgroundColor: tradeType === 'buy' ? 'var(--accent-green)' : 'var(--accent-red)',
+                    boxShadow: (!isTrading && amount && canTrade) ? (tradeType === 'buy' ? '0 10px 30px rgba(34, 197, 94, 0.3)' : '0 10px 30px rgba(239, 68, 68, 0.3)') : 'none'
+                  }"
+                >
+                  <span v-if="isTrading" class="flex items-center justify-center gap-2">
+                    <svg class="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                      <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    Processing...
+                  </span>
+                  <span v-else>
+                    {{ tradeType === 'buy' ? 'Buy' : 'Sell' }} {{ selectedCrypto?.symbol || '' }}
+                  </span>
+                </button>
                 
                 <!-- Error Message -->
-                <div v-if="tradeError" class="mt-4 p-3 bg-red-900/50 border border-red-700 rounded-lg">
-                  <div class="flex items-center justify-between">
-                    <span class="text-red-200 text-sm">{{ tradeError }}</span>
-                    <button @click="tradeError = ''" class="text-red-300 hover:text-red-100">
-                      <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                      </svg>
-                    </button>
+                <Transition name="slide-fade">
+                  <div v-if="tradeError" class="bg-red-900/40 border-2 border-red-700/50 rounded-xl p-4 backdrop-blur-sm">
+                    <div class="flex items-center justify-between gap-3">
+                      <div class="flex items-center gap-2.5 flex-1">
+                        <div class="w-1.5 h-1.5 rounded-full bg-red-400"></div>
+                        <span class="text-red-200 text-sm font-medium flex-1">{{ tradeError }}</span>
+                      </div>
+                      <button @click="tradeError = ''" class="text-red-300 hover:text-red-100 transition-colors p-1 hover:bg-red-900/30 rounded">
+                        <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                      </button>
+                    </div>
                   </div>
-                </div>
+                </Transition>
                 
                 <!-- Success Message -->
-                <div v-if="tradeSuccess" class="mt-4 p-3 bg-green-900/50 border border-green-700 rounded-lg">
-                  <div class="flex items-center justify-between">
-                    <span class="text-green-200 text-sm">{{ tradeSuccess }}</span>
-                    <button @click="tradeSuccess = ''" class="text-green-300 hover:text-green-100">
-                      <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                      </svg>
-                    </button>
+                <Transition name="slide-fade">
+                  <div v-if="tradeSuccess" class="bg-green-900/40 border-2 border-green-700/50 rounded-xl p-4 backdrop-blur-sm">
+                    <div class="flex items-center justify-between gap-3">
+                      <div class="flex items-center gap-2.5 flex-1">
+                        <div class="w-1.5 h-1.5 rounded-full bg-green-400"></div>
+                        <span class="text-green-200 text-sm font-medium flex-1">{{ tradeSuccess }}</span>
+                      </div>
+                      <button @click="tradeSuccess = ''" class="text-green-300 hover:text-green-100 transition-colors p-1 hover:bg-green-900/30 rounded">
+                        <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                      </button>
+                    </div>
                   </div>
-                </div>
-              </div>
-            </div>
-
-            <!-- Wallet Integration -->
-            <div class="mt-6 sm:mt-8 p-3 sm:p-4 bg-blue-600/10 border border-blue-600/30 rounded-lg">
-              <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                <div class="flex items-center space-x-3"><ShieldIcon class="h-5 w-5 text-blue-400" /><span class="font-medium text-sm sm:text-base">Secure Wallet Integration</span></div>
-                <div class="flex items-center gap-2 w-full sm:w-auto">
-                  <button class="flex-1 sm:flex-none bg-orange-600 hover:bg-orange-700 px-4 py-2 rounded-lg text-sm font-medium transition-colors">MetaMask</button>
-                  <button class="flex-1 sm:flex-none bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded-lg text-sm font-medium transition-colors">WalletConnect</button>
-                </div>
-              </div>
-            </div>
-
-            <!-- 2FA Notice -->
-            <div class="mt-4 p-3 sm:p-4 bg-yellow-600/10 border border-yellow-600/30 rounded-lg">
-              <div class="flex items-start sm:items-center space-x-3">
-                <ZapIcon class="h-5 w-5 text-yellow-400 mt-1 sm:mt-0" />
-                <div><div class="font-medium text-yellow-400">2FA Required</div><div class="text-sm text-gray-300">Two-factor authentication will be required to complete this transaction</div></div>
+                </Transition>
               </div>
             </div>
           </div>
@@ -213,11 +317,10 @@
 import { ref, computed, onMounted, watch } from 'vue';
 import {
   Search as SearchIcon,
-  Wallet as WalletIcon,
-  Shield as ShieldIcon,
-  Zap as ZapIcon,
   Eye as EyeIcon,
-  EyeOff as EyeOffIcon
+  EyeOff as EyeOffIcon,
+  TrendingUp as TrendingUpIcon,
+  TrendingDown as TrendingDownIcon
 } from 'lucide-vue-next';
 
 import ProfessionalTradingChart from '../components/ProfessionalTradingChart.vue';
@@ -253,12 +356,15 @@ const errorMessage = ref('');
 
 const tradeType = ref<'buy' | 'sell'>('buy');
 const amount = ref('');
+const quantity = ref('');
 const showBalance = ref(true);
 const isTrading = ref(false);
 const tradeError = ref('');
 const tradeSuccess = ref('');
 const portfolioData = ref<PortfolioResponse | null>(null);
 const isLoadingPortfolio = ref(false);
+const isAmountInputActive = ref(false);
+const isQuantityInputActive = ref(false);
 
 const auth = useAuthStore();
 
@@ -275,9 +381,35 @@ const calculateQuantity = computed(() => {
   return amountValue / price;
 });
 
-const formattedBalance = computed(() => {
+const calculateAmount = computed(() => {
+  const quantityValue = parseFloat(quantity.value) || 0;
+  const price = selectedCrypto.value?.price || 0;
+  if (!price) return 0;
+  return quantityValue * price;
+});
+
+// Check if amount exceeds balance (for buy orders)
+const isAmountExceedingBalance = computed(() => {
+  if (tradeType.value !== 'buy') return false;
+  const amountValue = parseFloat(amount.value) || 0;
+  const calculatedAmount = calculateAmount.value;
+  const finalAmount = amountValue || calculatedAmount;
   const balance = auth.user?.euro_balance ?? 0;
-  return formatEUR(balance);
+  return finalAmount > balance;
+});
+
+// Calculate total gain/loss from portfolio
+const totalGainLoss = computed(() => {
+  if (!portfolioData.value) return 0;
+  return portfolioData.value.portfolio.reduce((sum, position) => {
+    return sum + (position.gain_loss || 0);
+  }, 0);
+});
+
+const formattedTotalGainLoss = computed(() => {
+  const total = totalGainLoss.value;
+  const sign = total >= 0 ? '+' : '';
+  return `${sign}${formatEUR(Math.abs(total))}`;
 });
 
 // Get available quantity for selected crypto (for sell)
@@ -291,19 +423,72 @@ const availableQuantity = computed(() => {
 
 // Check if trade can be executed
 const canTrade = computed(() => {
-  if (!selectedCrypto.value || !amount.value) return false;
-  const amountValue = parseFloat(amount.value);
-  if (isNaN(amountValue) || amountValue <= 0) return false;
+  if (!selectedCrypto.value) return false;
+  
+  // Check if either amount or quantity is provided
+  const amountValue = parseFloat(amount.value) || 0;
+  const quantityValue = parseFloat(quantity.value) || 0;
+  const finalAmount = amountValue || calculateAmount.value;
+  const finalQuantity = quantityValue || calculateQuantity.value;
+  
+  if (finalAmount <= 0 && finalQuantity <= 0) return false;
   
   if (tradeType.value === 'buy') {
     const balance = auth.user?.euro_balance ?? 0;
-    return balance >= amountValue;
+    return balance >= finalAmount && finalAmount > 0;
   } else {
     // For sell, check if user has enough quantity
-    const quantity = calculateQuantity.value;
-    return availableQuantity.value !== null && quantity > 0 && quantity <= (availableQuantity.value ?? 0);
+    return availableQuantity.value !== null && finalQuantity > 0 && finalQuantity <= (availableQuantity.value ?? 0);
   }
 });
+
+// Handle amount input change
+function onAmountChange() {
+  if (isQuantityInputActive.value) return;
+  isAmountInputActive.value = true;
+  const amountValue = parseFloat(amount.value) || 0;
+  const price = selectedCrypto.value?.price || 0;
+  if (price > 0 && amountValue > 0) {
+    quantity.value = (amountValue / price).toFixed(8);
+  } else {
+    quantity.value = '';
+  }
+  setTimeout(() => {
+    isAmountInputActive.value = false;
+  }, 100);
+}
+
+// Handle quantity input change
+function onQuantityChange() {
+  if (isAmountInputActive.value) return;
+  isQuantityInputActive.value = true;
+  const quantityValue = parseFloat(quantity.value) || 0;
+  const price = selectedCrypto.value?.price || 0;
+  
+  // For sell orders, validate against available quantity and cap it
+  if (tradeType.value === 'sell' && availableQuantity.value !== null) {
+    const maxQuantity = availableQuantity.value;
+    if (quantityValue > maxQuantity) {
+      quantity.value = maxQuantity.toFixed(8);
+      const finalQuantity = maxQuantity;
+      if (price > 0) {
+        amount.value = (finalQuantity * price).toFixed(2);
+      }
+    } else if (price > 0 && quantityValue > 0) {
+      amount.value = (quantityValue * price).toFixed(2);
+    } else {
+      amount.value = '';
+    }
+  } else if (price > 0 && quantityValue > 0) {
+    amount.value = (quantityValue * price).toFixed(2);
+  } else {
+    amount.value = '';
+  }
+  
+  setTimeout(() => {
+    isQuantityInputActive.value = false;
+  }, 100);
+}
 
 
 const selectedStyle = { backgroundColor: 'var(--blue-dark)', borderColor: 'var(--blue)', opacity: 0.2 };
@@ -333,24 +518,27 @@ async function handleTrade() {
   isTrading.value = true;
   
   try {
-    const amountValue = parseFloat(amount.value);
-    if (isNaN(amountValue) || amountValue <= 0) {
-      tradeError.value = 'Please enter a valid amount greater than 0';
-      return;
-    }
-    
     const price = selectedCrypto.value.price || 0;
     if (!price || price <= 0) {
       tradeError.value = 'Invalid crypto price. Please refresh the market data.';
       return;
     }
     
-    const quantity = amountValue / price;
+    // Get final quantity (either from quantity input or calculated from amount)
+    const quantityValue = parseFloat(quantity.value) || 0;
+    const amountValue = parseFloat(amount.value) || 0;
+    const finalQuantity = quantityValue || (amountValue / price);
+    const finalAmount = amountValue || (quantityValue * price);
+    
+    if (finalQuantity <= 0) {
+      tradeError.value = 'Please enter a valid quantity greater than 0';
+      return;
+    }
     
     if (tradeType.value === 'buy') {
       // Check balance
       const balance = auth.user?.euro_balance ?? 0;
-      if (balance < amountValue) {
+      if (balance < finalAmount) {
         tradeError.value = `Insufficient balance. Available: ${formatEUR(balance)}`;
         return;
       }
@@ -358,7 +546,7 @@ async function handleTrade() {
       // Execute buy
       const buyResponse = await buyCrypto({
         symbol: selectedCrypto.value.symbol,
-        quantity: quantity
+        quantity: finalQuantity
       });
       
       // Update user balance from response
@@ -369,23 +557,34 @@ async function handleTrade() {
         }
       }
       
-      tradeSuccess.value = `Successfully purchased ${quantity.toFixed(8)} ${selectedCrypto.value.symbol}`;
+      tradeSuccess.value = `Successfully purchased ${finalQuantity.toFixed(8)} ${selectedCrypto.value.symbol}`;
       amount.value = '';
+      quantity.value = '';
       
       // Reload portfolio to update available quantities
       await loadPortfolio();
     } else {
-      // Sell
+      // Sell - Validate quantity against portfolio
       const availableQty = availableQuantity.value ?? 0;
-      if (quantity > availableQty) {
-        tradeError.value = `Insufficient quantity. Available: ${availableQty.toFixed(8)} ${selectedCrypto.value.symbol}`;
+      if (availableQty <= 0) {
+        tradeError.value = `You don't have any ${selectedCrypto.value.symbol} in your portfolio`;
+        return;
+      }
+      
+      if (finalQuantity > availableQty) {
+        tradeError.value = `Insufficient quantity. You have ${availableQty.toFixed(8)} ${selectedCrypto.value.symbol} available`;
+        return;
+      }
+      
+      if (finalQuantity <= 0) {
+        tradeError.value = 'Please enter a valid quantity greater than 0';
         return;
       }
       
       // Execute sell
       const sellResponse = await sellCrypto({
         symbol: selectedCrypto.value.symbol,
-        quantity: quantity
+        quantity: finalQuantity
       });
       
       // Update user balance from response
@@ -396,8 +595,9 @@ async function handleTrade() {
         }
       }
       
-      tradeSuccess.value = `Successfully sold ${quantity.toFixed(8)} ${selectedCrypto.value.symbol}`;
+      tradeSuccess.value = `Successfully sold ${finalQuantity.toFixed(8)} ${selectedCrypto.value.symbol}`;
       amount.value = '';
+      quantity.value = '';
       
       // Reload portfolio to update available quantities
       await loadPortfolio();
@@ -485,6 +685,7 @@ watch(tradeType, () => {
   tradeError.value = '';
   tradeSuccess.value = '';
   amount.value = '';
+  quantity.value = '';
 });
 
 // Watch selectedCrypto to reload portfolio
@@ -504,4 +705,37 @@ onMounted(async () => {
 
 <style scoped>
 /* rely on Tailwind utilities */
+
+/* Slide Fade Transition for Messages */
+.slide-fade-enter-active {
+  transition: all 0.3s ease-out;
+}
+
+.slide-fade-leave-active {
+  transition: all 0.2s ease-in;
+}
+
+.slide-fade-enter-from {
+  transform: translateY(-10px);
+  opacity: 0;
+}
+
+.slide-fade-leave-to {
+  transform: translateY(-10px);
+  opacity: 0;
+}
+
+/* Styling for number input spinners (arrows) - Gray color instead of white */
+.amount-input::-webkit-inner-spin-button,
+.amount-input::-webkit-outer-spin-button {
+  opacity: 1;
+  cursor: pointer;
+  filter: grayscale(1) brightness(0.7);
+}
+
+/* Firefox - hide default arrows */
+.amount-input[type="number"] {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
 </style>

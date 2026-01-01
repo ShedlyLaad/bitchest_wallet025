@@ -12,21 +12,16 @@
           <div class="bg-gradient-to-r from-gray-800 to-gray-800/95 rounded-xl p-4 sm:p-5 border border-gray-700/50 shadow-lg w-full">
             <div class="flex items-center justify-between gap-4">
               <div class="flex items-center gap-3">
-                <div :class="[
-                  'p-2.5 rounded-lg',
-                  totalGainLoss >= 0 ? 'bg-green-500/20' : 'bg-red-500/20'
-                ]">
+                <div class="p-2.5 rounded-lg" :style="{ backgroundColor: totalGainLoss >= 0 ? 'rgba(1, 255, 25, 0.2)' : 'rgba(255, 89, 100, 0.2)' }">
                   <component 
                     :is="totalGainLoss >= 0 ? TrendingUpIcon : TrendingDownIcon" 
-                    :class="['h-5 w-5', totalGainLoss >= 0 ? 'text-green-400' : 'text-red-400']"
+                    class="h-5 w-5"
+                    :style="{ color: totalGainLoss >= 0 ? '#01ff19' : '#ff5964' }"
                   />
                 </div>
                 <div>
                   <div class="text-xs text-gray-400 font-medium mb-0.5">Total P&L</div>
-                  <span :class="[
-                    'text-xl font-bold tracking-tight',
-                    totalGainLoss >= 0 ? 'text-green-400' : 'text-red-400'
-                  ]">
+                  <span class="text-xl font-bold tracking-tight" :style="{ color: totalGainLoss >= 0 ? '#01ff19' : '#ff5964' }">
                     {{ showBalance ? formattedTotalGainLoss : '****' }}
                   </span>
                 </div>
@@ -57,7 +52,7 @@
                   class="w-full bg-gray-700 border border-gray-600 rounded-lg pl-10 pr-4 py-2 sm:py-3 text-sm sm:text-base text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
-              <div v-if="errorMessage" class="text-xs text-red-400 mt-2">{{ errorMessage }}</div>
+              <div v-if="errorMessage" class="text-xs mt-2" style="color: #ff5964;">{{ errorMessage }}</div>
               <div v-else-if="loading" class="text-xs text-gray-400 mt-2">Loading market data...</div>
             </div>
 
@@ -136,7 +131,7 @@
                       ? 'text-white shadow-lg transform scale-105' 
                       : 'text-gray-400 hover:text-gray-300'
                   ]"
-                  :style="tradeType === 'buy' ? { backgroundColor: 'var(--accent-green)' } : {}"
+                  :style="tradeType === 'buy' ? { backgroundColor: '#01ff19' } : {}"
                 >
                   Buy
                 </button>
@@ -148,7 +143,7 @@
                       ? 'text-white shadow-lg transform scale-105' 
                       : 'text-gray-400 hover:text-gray-300'
                   ]"
-                  :style="tradeType === 'sell' ? { backgroundColor: 'var(--accent-red)' } : {}"
+                  :style="tradeType === 'sell' ? { backgroundColor: '#ff5964' } : {}"
                 >
                   Sell
                 </button>
@@ -173,8 +168,9 @@
                       min="0"
                       :class="[
                         'amount-input w-full bg-gray-900/70 border-2 rounded-xl pl-4 pr-16 py-3.5 placeholder-gray-500/60 focus:outline-none focus:ring-2 focus:ring-blue-500/30 transition-all duration-200 font-semibold text-lg tracking-wide',
-                        isAmountExceedingBalance ? 'text-red-400 border-red-500 focus:border-red-500' : 'text-gray-100 border-gray-600 focus:border-blue-500'
+                        isAmountExceedingBalance ? 'border-red-500 focus:border-red-500' : 'text-gray-100 border-gray-600 focus:border-blue-500'
                       ]"
+                      :style="isAmountExceedingBalance ? { color: '#ff5964' } : {}"
                     />
                     <div class="absolute right-4 top-1/2 -translate-y-1/2 text-sm text-gray-400 font-semibold pointer-events-none">EUR</div>
                   </div>
@@ -213,7 +209,7 @@
                 <!-- Order Summary Card -->
                 <div class="bg-gradient-to-br from-gray-900/80 to-gray-800/60 rounded-xl p-5 border border-gray-700/50 shadow-inner">
                   <h4 class="font-bold text-white mb-4 text-base flex items-center gap-2">
-                    <div class="w-1 h-4 rounded-full" :style="{ backgroundColor: tradeType === 'buy' ? 'var(--accent-green)' : 'var(--accent-red)' }"></div>
+                    <div class="w-1 h-4 rounded-full" :style="{ backgroundColor: tradeType === 'buy' ? '#01ff19' : '#ff5964' }"></div>
                     Order Summary
                   </h4>
 
@@ -228,13 +224,13 @@
                     </div>
                     <div class="flex justify-between items-center py-1.5 border-b border-gray-700/50">
                       <span class="text-sm text-gray-400 font-medium">Amount</span>
-                      <span :class="['font-semibold font-mono', isAmountExceedingBalance ? 'text-red-400' : 'text-white']">
+                      <span class="font-semibold font-mono" :style="{ color: isAmountExceedingBalance ? '#ff5964' : '#fff' }">
                         {{ formatPrice(parseFloat(amount) || calculateAmount || 0) }}
                       </span>
                     </div>
                     <div class="flex justify-between items-center pt-2">
                       <span class="text-base font-bold text-gray-300">{{ tradeType === 'buy' ? 'Total Cost' : 'Total Value' }}</span>
-                      <span :class="['text-lg font-bold', isAmountExceedingBalance ? 'text-red-400' : tradeType === 'buy' ? 'text-green-400' : 'text-red-400']">
+                      <span class="text-lg font-bold" :style="{ color: isAmountExceedingBalance ? '#ff5964' : tradeType === 'buy' ? '#01ff19' : '#ff5964' }">
                         {{ formatPrice(parseFloat(amount) || calculateAmount || 0) }}
                       </span>
                     </div>
@@ -252,8 +248,8 @@
                       : 'hover:scale-[1.02] hover:shadow-xl active:scale-[0.98]'
                   ]"
                   :style="{ 
-                    backgroundColor: tradeType === 'buy' ? 'var(--accent-green)' : 'var(--accent-red)',
-                    boxShadow: (!isTrading && amount && canTrade) ? (tradeType === 'buy' ? '0 10px 30px rgba(34, 197, 94, 0.3)' : '0 10px 30px rgba(239, 68, 68, 0.3)') : 'none'
+                    backgroundColor: tradeType === 'buy' ? '#01ff19' : '#ff5964',
+                    boxShadow: (!isTrading && amount && canTrade) ? (tradeType === 'buy' ? '0 10px 30px rgba(1, 255, 25, 0.3)' : '0 10px 30px rgba(255, 89, 100, 0.3)') : 'none'
                   }"
                 >
                   <span v-if="isTrading" class="flex items-center justify-center gap-2">
@@ -270,13 +266,13 @@
                 
                 <!-- Error Message -->
                 <Transition name="slide-fade">
-                  <div v-if="tradeError" class="bg-red-900/40 border-2 border-red-700/50 rounded-xl p-4 backdrop-blur-sm">
+                  <div v-if="tradeError" class="border-2 rounded-xl p-4 backdrop-blur-sm" style="background-color: rgba(255, 89, 100, 0.15); border-color: rgba(255, 89, 100, 0.5);">
                     <div class="flex items-center justify-between gap-3">
                       <div class="flex items-center gap-2.5 flex-1">
-                        <div class="w-1.5 h-1.5 rounded-full bg-red-400"></div>
-                        <span class="text-red-200 text-sm font-medium flex-1">{{ tradeError }}</span>
+                        <div class="w-1.5 h-1.5 rounded-full" style="background-color: #ff5964;"></div>
+                        <span class="text-sm font-medium flex-1" style="color: rgba(255, 89, 100, 0.9);">{{ tradeError }}</span>
                       </div>
-                      <button @click="tradeError = ''" class="text-red-300 hover:text-red-100 transition-colors p-1 hover:bg-red-900/30 rounded">
+                      <button @click="tradeError = ''" class="transition-colors p-1 rounded" style="color: rgba(255, 89, 100, 0.8);">
                         <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
                         </svg>
@@ -287,13 +283,13 @@
                 
                 <!-- Success Message -->
                 <Transition name="slide-fade">
-                  <div v-if="tradeSuccess" class="bg-green-900/40 border-2 border-green-700/50 rounded-xl p-4 backdrop-blur-sm">
+                  <div v-if="tradeSuccess" class="border-2 rounded-xl p-4 backdrop-blur-sm" style="background-color: rgba(1, 255, 25, 0.15); border-color: rgba(1, 255, 25, 0.5);">
                     <div class="flex items-center justify-between gap-3">
                       <div class="flex items-center gap-2.5 flex-1">
-                        <div class="w-1.5 h-1.5 rounded-full bg-green-400"></div>
-                        <span class="text-green-200 text-sm font-medium flex-1">{{ tradeSuccess }}</span>
+                        <div class="w-1.5 h-1.5 rounded-full" style="background-color: #01ff19;"></div>
+                        <span class="text-sm font-medium flex-1" style="color: rgba(1, 255, 25, 0.9);">{{ tradeSuccess }}</span>
                       </div>
-                      <button @click="tradeSuccess = ''" class="text-green-300 hover:text-green-100 transition-colors p-1 hover:bg-green-900/30 rounded">
+                      <button @click="tradeSuccess = ''" class="transition-colors p-1 rounded" style="color: rgba(1, 255, 25, 0.8);">
                         <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
                         </svg>

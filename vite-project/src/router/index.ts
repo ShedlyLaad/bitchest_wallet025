@@ -18,7 +18,7 @@ const AdminMarket = () => import('../admin/pages/AdminMarket.vue');
 const AdminProfile = () => import('../admin/pages/AdminProfile.vue');
 
 const LandingPage = () => import('../pages/LandingPage.vue');
-const AdminDashboard = () => import('../pages/AdminDashboard.vue');
+const UserDashboard = () => import('../pages/UserDashboard.vue');
 const UserProfile = () => import('../pages/UserProfile.vue');
 const TradePage = () => import('../pages/TradePage.vue');
 const SignupPage = () => import('../pages/SignupPage.vue');
@@ -46,7 +46,7 @@ const routes = [
   { path: '/signin', name: 'Signin', component: SigninPage, meta: { hideNavbar: true } },
   { path: '/signup', name: 'Signup', component: SignupPage, meta: { hideNavbar: true } },
   { path: '/change-password', name: 'ChangePassword', component: ChangePasswordPage, meta: { requiresAuth: true, hideNavbar: true } },
-  { path: '/dashboard', name: 'Dashboard', component: AdminDashboard, meta: { requiresAuth: true, roles: ['client', 'admin'] } },
+  { path: '/dashboard', name: 'Dashboard', component: UserDashboard, meta: { requiresAuth: true, roles: ['client', 'admin'] } },
   { path: '/profile', name: 'Profile', component: UserProfile, meta: { requiresAuth: true, roles: ['client', 'admin'] } },
   { path: '/trade', name: 'Trade', component: TradePage, meta: { requiresAuth: true, roles: ['client', 'admin'] } },
   { path: '/support', name: 'Support', component: SupportPage, meta: { requiresAuth: true, roles: ['client', 'admin'] } },

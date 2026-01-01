@@ -12,6 +12,8 @@ export interface AuthUser {
   status: UserStatus;
   must_change_password?: boolean;
   euro_balance?: number;
+  profile_picture?: string | null;
+  profile_banner?: string | null;
   created_at?: string;
   updated_at?: string;
 }

@@ -44,6 +44,12 @@ Route::middleware(['auth:sanctum','account.status'])->group(function () {
         // Portfolio
         Route::get('/portfolio', [PortfolioController::class, 'index']);
         Route::put('/profile', [ProfileController::class, 'update']);
+        
+        // Profile picture and banner uploads
+        Route::post('/profile/picture', [ProfileController::class, 'uploadProfilePicture']);
+        Route::post('/profile/banner', [ProfileController::class, 'uploadProfileBanner']);
+        Route::delete('/profile/picture', [ProfileController::class, 'deleteProfilePicture']);
+        Route::delete('/profile/banner', [ProfileController::class, 'deleteProfileBanner']);
 
         // Achat / vente crypto
         Route::post('/transaction/buy', [TransactionController::class, 'buy']);

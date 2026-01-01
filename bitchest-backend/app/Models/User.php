@@ -27,6 +27,8 @@ class User extends Authenticatable
         'status',
         'euro_balance',
         'must_change_password',
+        'profile_picture',
+        'profile_banner',
     ];
 
     protected $casts = [

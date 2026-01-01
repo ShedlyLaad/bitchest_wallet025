@@ -173,6 +173,38 @@ export async function updateProfile(payload: { first_name: string; last_name: st
   return data;
 }
 
+export async function uploadProfilePicture(file: File) {
+  const formData = new FormData();
+  formData.append('profile_picture', file);
+  const { data } = await api.post<{ message: string; path: string; url: string; user: AuthUser }>('/api/profile/picture', formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data',
+    },
+  });
+  return data;
+}
+
+export async function uploadProfileBanner(file: File) {
+  const formData = new FormData();
+  formData.append('profile_banner', file);
+  const { data } = await api.post<{ message: string; path: string; url: string; user: AuthUser }>('/api/profile/banner', formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data',
+    },
+  });
+  return data;
+}
+
+export async function deleteProfilePicture() {
+  const { data } = await api.delete<{ message: string; user: AuthUser }>('/api/profile/picture');
+  return data;
+}
+
+export async function deleteProfileBanner() {
+  const { data } = await api.delete<{ message: string; user: AuthUser }>('/api/profile/banner');
+  return data;
+}
+
 export async function deleteUser(id: number) {
   const { data } = await api.delete<{ message: string }>(`/api/admin/users/${id}`);
   return data;
@@ -225,6 +257,10 @@ export default {
   changePassword,
   fetchUser,
   updateProfile,
+  uploadProfilePicture,
+  uploadProfileBanner,
+  deleteProfilePicture,
+  deleteProfileBanner,
   getPortfolio,
   buyCrypto,
   sellCrypto,

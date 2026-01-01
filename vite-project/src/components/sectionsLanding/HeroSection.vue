@@ -83,12 +83,12 @@
                   backgroundPosition: titleBgPos
                 }"
               >
-                Crypto Finance with E-Qanaouita
+                Crypto Finance Platform
               </span>
             </h1>
 
             <p class="text-lg lg:text-xl text-gray-300 leading-relaxed max-w-2xl">
-              E-Qanaouita is your gateway to mastering the world of cryptocurrencies — combining real-time insights, smart portfolio management, and beginner-friendly tools to help you thrive in digital finance.
+              Your gateway to mastering the world of cryptocurrencies — combining real-time insights, smart portfolio management, and beginner-friendly tools to help you thrive in digital finance.
             </p>
 
             <div class="flex flex-col sm:flex-row gap-4 pt-2">

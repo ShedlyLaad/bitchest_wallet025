@@ -4,9 +4,9 @@
     <div class="hidden lg:flex flex-1 bg-gradient-to-br from-blue-900/50 to-purple-900/50 items-center justify-center p-8">
       <div class="max-w-md space-y-8">
         <div class="text-center">
-          <img :src="Logo1" alt="E-QANAOUITA Logo" class="h-24 w-auto mx-auto mb-4" />
+          <img :src="BitchestLogo" alt="Bitchest Logo" class="h-24 w-auto mx-auto mb-4" />
           <h3 class="text-2xl font-bold mb-4 bg-gradient-to-r from-blue-300 via-blue-400 to-white bg-clip-text text-transparent">
-            Welcome Back to E-QANAOUITA
+            Welcome Back
           </h3>
           <p class="text-xl text-gray-300">
             Experience the next generation of digital trading on Morocco's most innovative platform.
@@ -50,11 +50,8 @@
       <div class="max-w-md w-full space-y-8">
         <!-- Header -->
         <div class="text-center">
-          <RouterLink to="/" class="inline-flex items-center space-x-2 mb-8">
-            <img :src="Logo1" alt="E-QANAOUITA Logo" class="h-12 w-auto" />
-            <span class="text-2xl font-bold bg-gradient-to-r from-blue-300 via-blue-400 to-white bg-clip-text text-transparent">
-              E-QANAOUITA
-            </span>
+          <RouterLink to="/" class="inline-flex items-center mb-8">
+            <img :src="BitchestLogo" alt="Bitchest Logo" class="h-12 w-auto" />
           </RouterLink>
 
           <h2 class="text-3xl font-bold">Sign In to Your Account</h2>
@@ -182,7 +179,7 @@ import { reactive, ref, computed } from 'vue';
 import { RouterLink, useRoute, useRouter } from 'vue-router';
 import { Eye, EyeOff, Lock, Mail, Shield, Smartphone } from 'lucide-vue-next';
 import { useAuthStore } from '@/stores/auth';
-import Logo1 from '@/assets/Logo1.png';
+import BitchestLogo from '@/assets/bitchest_logo.png';
 
 const EyeIcon = Eye;
 const EyeOffIcon = EyeOff;

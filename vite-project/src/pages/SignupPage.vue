@@ -5,11 +5,8 @@
       <div class="max-w-md w-full space-y-8">
         <!-- Header -->
         <div class="text-center">
-          <RouterLink to="/" class="inline-flex items-center space-x-2 mb-8">
-            <img :src="Logo1" alt="E-QANAOUITA Logo" class="h-12 w-auto" />
-            <span class="text-2xl font-bold bg-gradient-to-r from-blue-300 via-blue-400 to-white bg-clip-text text-transparent">
-              E-QANAOUITA
-            </span>
+          <RouterLink to="/" class="inline-flex items-center mb-8">
+            <img :src="BitchestLogo" alt="Bitchest Logo" class="h-12 w-auto" />
           </RouterLink>
 
           <h2 class="text-3xl font-bold">Create Your Account</h2>
@@ -142,7 +139,7 @@
 import { reactive, ref } from 'vue';
 import { RouterLink, useRouter } from 'vue-router';
 import { Mail, Shield, User, CheckCircle } from 'lucide-vue-next';
-import Logo1 from '@/assets/Logo1.png';
+import BitchestLogo from '@/assets/bitchest_logo.png';
 import { register as registerApi } from '@/services/api';
 
 const MailIcon = Mail;

@@ -5,9 +5,8 @@
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 py-12 md:py-16">
           <!-- Company Info -->
           <div class="space-y-6">
-            <div class="flex items-center space-x-2">
-              <img :src="Logo1" alt="E-Qanaouita Logo" class="h-8 w-auto" />
-              <span class="text-2xl font-bold text-white">E-QANAOUITA</span>
+            <div class="flex items-center">
+              <img :src="BitchestFooterLogo" alt="Bitchest Logo" class="h-10 w-auto" />
             </div>
             <p class="text-gray-400 text-sm">
               The world's leading cryptocurrency trading platform. Trusted by millions of users worldwide.
@@ -103,7 +102,7 @@
         <div class="border-t border-gray-700 py-6 md:py-8">
           <div class="flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0">
             <div class="text-gray-400 text-sm">
-              © {{ year }} E-QANAOUITA. All rights reserved.
+              © {{ year }} Bitchest. All rights reserved.
             </div>
 
             <div class="flex flex-wrap justify-center gap-4 text-sm">
@@ -143,7 +142,7 @@ import {
   Store
 } from 'lucide-vue-next';
 
-import Logo1 from '@/assets/Logo1.png';
+import BitchestFooterLogo from '@/assets/bitchest_Footer.png';
 
 // Social icons mapping (key -> component)
 const socialIcons: Record<string, any> = {

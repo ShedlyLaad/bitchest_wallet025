@@ -2,12 +2,9 @@
   <nav class="sticky top-0 z-50 w-full backdrop-blur-xl bg-gradient-to-r from-[#0f172a]/70 via-[#1e293b]/70 to-[#0f172a]/70 border-b border-white/10 shadow-xl transition-all duration-300">
     <div class="max-w-7xl mx-auto px-6 sm:px-8 lg:px-10">
       <div class="flex items-center justify-center h-16 relative">
-        <!-- Logo + Nom (With spacing from left) -->
-        <router-link to="/" class="absolute left-4 sm:left-6 flex items-center gap-3">
-          <img :src="Logo1" alt="E-Qanaouita Logo" class="h-9 w-auto drop-shadow-md" />
-          <span class="text-2xl font-bold text-white tracking-wider font-sans hover:scale-105 transition-transform duration-200">
-            E-Qanaouita
-          </span>
+        <!-- Logo (With spacing from left) -->
+        <router-link to="/" class="absolute left-4 sm:left-6 flex items-center">
+          <img :src="BitchestLogo" alt="Bitchest Logo" class="h-12 w-auto drop-shadow-md" />
         </router-link>
 
         <!-- Desktop Links (Centered) -->
@@ -35,45 +32,70 @@
 
           <!-- Auth state with Avatar Dropdown (Absolute Right for Desktop) -->
           <div v-if="auth.isAuthenticated" class="hidden md:flex absolute right-0 items-center space-x-3">
+            <!-- Notifications Icon -->
+            <div class="relative">
+              <button 
+                class="relative p-2 rounded-full text-white hover:bg-white/10 transition-all focus:outline-none focus:ring-2 focus:ring-blue-500"
+                title="Notifications"
+              >
+                <Bell class="h-5 w-5" />
+                <span class="absolute top-0 right-0 w-2 h-2 bg-red-500 rounded-full border-2 border-gray-900"></span>
+              </button>
+            </div>
+
             <!-- Balance Chip for Client Users -->
             <div
               v-if="auth.user?.role === 'client'"
-              class="flex items-center space-x-1 px-2 py-1 rounded-full text-xs sm:text-sm text-white"
-              :style="{ backgroundColor: 'rgba(59, 130, 246, 0.2)' }"
+              class="relative group"
             >
-              <template v-if="isBalanceLoading">
-                <div class="flex items-center space-x-1">
-                  <div class="w-12 h-4 bg-white/20 rounded animate-pulse"></div>
-                </div>
-              </template>
-              <template v-else>
-                <span>Euro Balance: {{ formattedBalance }}</span>
-              </template>
+              <div
+                class="flex items-center space-x-1 px-3 py-1.5 rounded-full text-xs sm:text-sm text-white cursor-pointer transition-all duration-200"
+                :style="{ backgroundColor: 'rgba(59, 130, 246, 0.2)' }"
+              >
+                <template v-if="isBalanceLoading">
+                  <div class="flex items-center space-x-1">
+                    <div class="w-12 h-4 bg-white/20 rounded animate-pulse"></div>
+                  </div>
+                </template>
+                <template v-else>
+                  <span class="group-hover:hidden">Balance</span>
+                  <div class="hidden group-hover:flex items-center space-x-1.5 animate-fade-in">
+                    <span class="text-base font-semibold">€</span>
+                    <span>{{ formattedBalance.replace('€', '').trim() }}</span>
+                  </div>
+                </template>
+              </div>
             </div>
 
             <!-- Avatar Button with User Name -->
             <div ref="avatarMenuRef" class="relative">
-              <button 
-                @click="toggleProfileMenu" 
-                class="flex items-center space-x-3 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-gray-900 rounded-full transition-all px-2 py-1 hover:bg-white/5"
-              >
-                <div class="hidden lg:flex text-right text-white">
-                  <span class="text-sm font-semibold truncate max-w-[150px]">{{ userDisplayName }}</span>
+              <div class="relative group">
+                <button 
+                  @click="toggleProfileMenu" 
+                  class="flex items-center space-x-3 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-gray-900 rounded-full transition-all px-2 py-1 hover:bg-white/5"
+                >
+                  <div class="hidden lg:flex text-right text-white">
+                    <span class="text-sm font-semibold truncate max-w-[150px]">{{ userDisplayName }}</span>
+                  </div>
+                  <div class="w-10 h-10 rounded-full overflow-hidden border-2 border-white/20 hover:border-white/40 transition-colors bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center">
+                    <img 
+                      v-if="profilePictureUrl" 
+                      :src="profilePictureUrl" 
+                      :alt="auth.user?.name || 'User'" 
+                      class="w-full h-full object-cover"
+                      @error="handleImageError"
+                    />
+                    <span v-else class="text-white font-semibold text-sm">
+                      {{ (auth.user?.name || 'U').charAt(0).toUpperCase() }}
+                    </span>
+                  </div>
+                  <ChevronDown class="h-4 w-4 text-white" :class="{ 'rotate-180': isProfileMenuOpen }" />
+                </button>
+                <!-- Tooltip for User Name -->
+                <div class="absolute right-0 top-full mt-2 px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg shadow-xl text-sm text-white whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity duration-200 z-50">
+                  {{ userDisplayName }}
                 </div>
-                <div class="w-10 h-10 rounded-full overflow-hidden border-2 border-white/20 hover:border-white/40 transition-colors bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center">
-                  <img 
-                    v-if="profilePictureUrl" 
-                    :src="profilePictureUrl" 
-                    :alt="auth.user?.name || 'User'" 
-                    class="w-full h-full object-cover"
-                    @error="handleImageError"
-                  />
-                  <span v-else class="text-white font-semibold text-sm">
-                    {{ (auth.user?.name || 'U').charAt(0).toUpperCase() }}
-                  </span>
-                </div>
-                <ChevronDown class="h-4 w-4 text-white" :class="{ 'rotate-180': isProfileMenuOpen }" />
-              </button>
+              </div>
 
               <!-- Dropdown Menu -->
               <div 
@@ -128,6 +150,16 @@
         </div>
 
         <!-- Mobile Menu Button (Absolute Right) -->
+        <div v-if="auth.isAuthenticated" class="md:hidden absolute right-12 flex items-center space-x-2">
+          <!-- Mobile Notifications -->
+          <button 
+            class="relative p-2 rounded-full text-white hover:bg-white/10 transition-all"
+            title="Notifications"
+          >
+            <Bell class="h-5 w-5" />
+            <span class="absolute top-0 right-0 w-2 h-2 bg-red-500 rounded-full border-2 border-gray-900"></span>
+          </button>
+        </div>
         <div class="md:hidden absolute right-0">
           <button @click="toggleMenu" class="p-2 rounded-full text-white hover:bg-white/10 hover:scale-105 transition">
             <component :is="isMenuOpen ? X : Menu" class="h-6 w-6" />
@@ -215,8 +247,8 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { User, Shield, TrendingUp, HelpCircle, Menu, X, ChevronDown, Wallet, LogOut } from 'lucide-vue-next';
-import Logo1 from '../assets/Logo1.png';
+import { User, Shield, TrendingUp, HelpCircle, Menu, X, ChevronDown, Wallet, LogOut, Bell } from 'lucide-vue-next';
+import BitchestLogo from '../assets/bitchest_logo.png';
 import { formatEUR } from '../utils/formatEUR';
 import { useAuthStore } from '@/stores/auth';
 
@@ -334,5 +366,20 @@ async function handleLogout() {
 <style scoped>
 .dropdown-menu-item:hover {
   background-color: rgba(53, 167, 255, 0.15);
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+    transform: translateX(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.animate-fade-in {
+  animation: fade-in 0.2s ease-out;
 }
 </style>

@@ -11,7 +11,7 @@
       :style="{ transform: `translateY(${yOffset}px)`, opacity: cardOpacity }"
     >
       <h1 class="font-['Orbitron'] text-5xl md:text-6xl font-bold text-center tracking-wider bg-gradient-to-r from-blue-300 via-blue-400 to-white bg-clip-text text-transparent mb-4">
-        E-Qanaouita
+        Bitchest
       </h1>
       <p class="font-['Inter'] text-center text-blue-200/80 mb-8 text-lg md:text-xl">
         The Future of Digital Transactions

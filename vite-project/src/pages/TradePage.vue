@@ -13,7 +13,7 @@
             <div class="flex items-center justify-between sm:space-x-2">
               <WalletIcon class="h-5 w-5" />
               <span class="text-sm text-gray-400">Balance:</span>
-              <span class="font-semibold">{{ showBalance ? walletBalanceFormatted : '****' }}</span>
+              <span class="font-semibold">{{ showBalance ? formattedBalance : '****' }}</span>
               <button @click="showBalance = !showBalance" class="text-gray-400 hover:text-white">
                 <component :is="showBalance ? EyeOffIcon : EyeIcon" class="h-4 w-4" />
               </button>
@@ -82,46 +82,19 @@
 
         <!-- Trading Interface -->
         <div class="lg:col-span-2 space-y-4 sm:space-y-8 order-1 lg:order-2">
-          <!-- Chart -->
-          <div class="bg-gray-800 rounded-xl p-4 sm:p-6 border border-gray-700">
-            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
-              <div class="flex items-center space-x-4">
-                <div class="w-10 h-10 sm:w-12 sm:h-12 flex-shrink-0 bg-gray-700 rounded-lg flex items-center justify-center overflow-hidden">
-                  <img 
-                    v-if="selectedCrypto?.icon" 
-                    :src="selectedCrypto.icon" 
-                    :alt="selectedCrypto?.name" 
-                    class="w-full h-full object-contain"
-                    @error="(e: any) => e.target.style.display = 'none'"
-                  />
-                  <span v-else class="text-white font-bold text-xs sm:text-sm">
-                    {{ selectedCrypto?.symbol }}
-                  </span>
-                </div>
-                <div>
-                  <h2 class="text-xl sm:text-2xl font-bold">{{ selectedCrypto?.name }}</h2>
-                  <div class="flex flex-wrap items-center gap-4 text-sm text-gray-400">
-                    <span>${{ (selectedCrypto?.price || 0).toLocaleString() }}</span>
-                    <span :class="(selectedCrypto?.change24h ?? 0) >= 0 ? 'PnL--pos' : 'PnL--neg'">
-                      <component :is="(selectedCrypto?.change24h ?? 0) >= 0 ? TrendingUpIcon : TrendingDownIcon" class="h-4 w-4 inline" />
-                      {{ (selectedCrypto?.change24h ?? 0) >= 0 ? '+' : '' }}{{ selectedCrypto?.change24h ?? 0 }}%
-                    </span>
-                  </div>
-                </div>
-              </div>
-              <button class="text-gray-400 hover:text-yellow-400"><StarIcon class="h-5 w-5" /></button>
-            </div>
-
-            <div class="h-[250px] sm:h-[350px]">
-              <CryptoChart
-                :series="chartSeries"
-                :symbol="selectedCrypto?.symbol"
-                :mode="(selectedCrypto?.change24h ?? 0) >= 0 ? 'positive' : 'negative'"
-                height="100%"
-                :showGrid="true"
-                :animated="true"
-              />
-            </div>
+          <!-- Professional Trading Chart -->
+          <div class="bg-gray-800 rounded-xl border border-gray-700 overflow-hidden">
+            <ProfessionalTradingChart
+              :symbol="selectedCrypto?.symbol || ''"
+              :crypto-name="selectedCrypto?.name || ''"
+              :price-data="history"
+              :current-price="selectedCrypto?.price || 0"
+              :change24h="selectedCrypto?.change24h || 0"
+              :crypto-icon="selectedCrypto?.icon"
+              :market-cap="(selectedCrypto?.price || 0) * 21000000"
+              :height="500"
+              currency="EUR"
+            />
           </div>
 
           <!-- Trade Form -->
@@ -138,15 +111,15 @@
             <div class="grid md:grid-cols-2 gap-4 sm:gap-6">
               <div class="space-y-4 sm:space-y-6">
                 <div>
-                  <label class="block text-sm font-medium text-gray-400 mb-2">Fiat Currency</label>
-                  <select v-model="selectedFiat" class="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-2 sm:py-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
-                    <option v-for="f in fiatCurrencies" :key="f" :value="f">{{ f }}</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label class="block text-sm font-medium text-gray-400 mb-2">Amount ({{ selectedFiat }})</label>
-                  <input type="number" v-model="amount" placeholder="0.00" class="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-2 sm:py-3 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                  <label class="block text-sm font-medium text-gray-400 mb-2">Amount (EUR)</label>
+                  <input 
+                    type="number" 
+                    v-model="amount" 
+                    placeholder="0.00" 
+                    step="0.01"
+                    min="0"
+                    class="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-2 sm:py-3 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500" 
+                  />
                 </div>
 
                 <div>
@@ -160,16 +133,50 @@
                   <h4 class="font-semibold text-gray-300">Order Summary</h4>
 
                   <div class="space-y-2 text-sm">
-                    <div class="flex justify-between"><span class="text-gray-400">Price per {{ selectedCrypto?.symbol }}:</span><span>${{ (selectedCrypto?.price || 0).toLocaleString() }}</span></div>
-                    <div class="flex justify-between"><span class="text-gray-400">Amount:</span><span>${{ amount || '0' }}</span></div>
-                    <div class="flex justify-between"><span class="text-gray-400">Fee ({{ fee }}%):</span><span>${{ amount ? ((parseFloat(amount) * fee) / 100).toFixed(2) : '0.00' }}</span></div>
-                    <div class="border-t border-gray-600 pt-2 flex justify-between font-semibold"><span>Total:</span><span>${{ amount ? calculateTotal.toFixed(2) : '0.00' }}</span></div>
+                    <div class="flex justify-between"><span class="text-gray-400">Price per {{ selectedCrypto?.symbol }}:</span><span>{{ formatPrice(selectedCrypto?.price || 0) }}</span></div>
+                    <div class="flex justify-between"><span class="text-gray-400">Quantity:</span><span>{{ amount ? calculateQuantity.toFixed(8) : '0.00000000' }} {{ selectedCrypto?.symbol }}</span></div>
+                    <div class="flex justify-between"><span class="text-gray-400">Amount:</span><span>{{ formatPrice(parseFloat(amount) || 0) }}</span></div>
+                    <div v-if="tradeType === 'sell' && availableQuantity !== null" class="flex justify-between text-xs"><span class="text-gray-500">Available:</span><span class="text-gray-400">{{ availableQuantity.toFixed(8) }} {{ selectedCrypto?.symbol }}</span></div>
+                    <div class="border-t border-gray-600 pt-2 flex justify-between font-semibold">
+                      <span>{{ tradeType === 'buy' ? 'Total Cost' : 'Total Value' }}:</span>
+                      <span>{{ formatPrice(parseFloat(amount) || 0) }}</span>
+                    </div>
                   </div>
                 </div>
 
                 <div class="space-y-4">
-                  <button :disabled="!amount" class="w-full py-4 rounded-lg font-semibold transition-all transform hover:scale-105 text-white" :style="{ backgroundColor: tradeType === 'buy' ? 'var(--accent-green)' : 'var(--accent-red)' }">{{ tradeType === 'buy' ? 'Buy' : 'Sell' }} {{ selectedCrypto.symbol }}</button>
-                  <button class="w-full py-3 border border-gray-600 rounded-lg text-gray-300 hover:bg-gray-700/50 transition-colors">Preview Transaction</button>
+                  <button 
+                    @click="handleTrade"
+                    :disabled="!amount || isTrading || !canTrade"
+                    class="w-full py-4 rounded-lg font-semibold transition-all transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none text-white" 
+                    :style="{ backgroundColor: tradeType === 'buy' ? 'var(--accent-green)' : 'var(--accent-red)' }"
+                  >
+                    {{ isTrading ? 'Processing...' : `${tradeType === 'buy' ? 'Buy' : 'Sell'} ${selectedCrypto?.symbol || ''}` }}
+                  </button>
+                </div>
+                
+                <!-- Error Message -->
+                <div v-if="tradeError" class="mt-4 p-3 bg-red-900/50 border border-red-700 rounded-lg">
+                  <div class="flex items-center justify-between">
+                    <span class="text-red-200 text-sm">{{ tradeError }}</span>
+                    <button @click="tradeError = ''" class="text-red-300 hover:text-red-100">
+                      <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                  </div>
+                </div>
+                
+                <!-- Success Message -->
+                <div v-if="tradeSuccess" class="mt-4 p-3 bg-green-900/50 border border-green-700 rounded-lg">
+                  <div class="flex items-center justify-between">
+                    <span class="text-green-200 text-sm">{{ tradeSuccess }}</span>
+                    <button @click="tradeSuccess = ''" class="text-green-300 hover:text-green-100">
+                      <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
@@ -203,12 +210,9 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, watch } from 'vue';
 import {
-  TrendingUp as TrendingUpIcon,
-  TrendingDown as TrendingDownIcon,
   Search as SearchIcon,
-  Star as StarIcon,
   Wallet as WalletIcon,
   Shield as ShieldIcon,
   Zap as ZapIcon,
@@ -216,12 +220,14 @@ import {
   EyeOff as EyeOffIcon
 } from 'lucide-vue-next';
 
-import CryptoChart from '../components/CryptoChart.vue';
+import ProfessionalTradingChart from '../components/ProfessionalTradingChart.vue';
 import FooterSection from '../components/sectionsLanding/FooterSection.vue';
 import { adminCryptos } from '../data/cryptoData';
 import { getCryptoIcon } from '../utils/cryptoIcons';
-import { getMarket, getMarketHistory } from '../services/api';
-import type { CryptoCurrency, CryptoPricePoint } from '../types';
+import { getMarket, getMarketHistory, buyCrypto, sellCrypto, getPortfolio } from '../services/api';
+import { useAuthStore } from '@/stores/auth';
+import { formatEUR } from '../utils/formatEUR';
+import type { CryptoCurrency, CryptoPricePoint, PortfolioResponse, PortfolioPosition } from '../types';
 
 type DisplayCrypto = CryptoCurrency & {
   change24h?: number;
@@ -245,25 +251,21 @@ const loading = ref(false);
 const historyLoading = ref(false);
 const errorMessage = ref('');
 
-const selectedFiat = ref('USD');
 const tradeType = ref<'buy' | 'sell'>('buy');
 const amount = ref('');
 const showBalance = ref(true);
+const isTrading = ref(false);
+const tradeError = ref('');
+const tradeSuccess = ref('');
+const portfolioData = ref<PortfolioResponse | null>(null);
+const isLoadingPortfolio = ref(false);
 
-const fiatCurrencies = ['USD', 'EUR', 'GBP', 'JPY', 'CAD'];
-const walletBalance = 25000;
-const fee = 0.1;
+const auth = useAuthStore();
 
 const filteredCryptos = computed(() => {
   const q = search.value.toLowerCase().trim();
   if (!q) return cryptocurrencies.value;
   return cryptocurrencies.value.filter((c) => c.name.toLowerCase().includes(q) || c.symbol.toLowerCase().includes(q));
-});
-
-const calculateTotal = computed(() => {
-  const amountValue = parseFloat(amount.value) || 0;
-  const feeAmount = amountValue * (fee / 100);
-  return amountValue + feeAmount;
 });
 
 const calculateQuantity = computed(() => {
@@ -273,15 +275,154 @@ const calculateQuantity = computed(() => {
   return amountValue / price;
 });
 
-const chartSeries = computed(() => {
-  if (history.value.length) return history.value;
-  const fallbackPrice = selectedCrypto.value?.price || 0;
-  return Array.from({ length: 30 }, () => fallbackPrice);
+const formattedBalance = computed(() => {
+  const balance = auth.user?.euro_balance ?? 0;
+  return formatEUR(balance);
 });
 
-const walletBalanceFormatted = computed(() => `$${walletBalance.toLocaleString()}`);
+// Get available quantity for selected crypto (for sell)
+const availableQuantity = computed(() => {
+  if (!portfolioData.value || !selectedCrypto.value) return null;
+  const position = portfolioData.value.portfolio.find(
+    (p: PortfolioPosition) => p.crypto?.symbol === selectedCrypto.value?.symbol
+  );
+  return position?.quantity ?? 0;
+});
+
+// Check if trade can be executed
+const canTrade = computed(() => {
+  if (!selectedCrypto.value || !amount.value) return false;
+  const amountValue = parseFloat(amount.value);
+  if (isNaN(amountValue) || amountValue <= 0) return false;
+  
+  if (tradeType.value === 'buy') {
+    const balance = auth.user?.euro_balance ?? 0;
+    return balance >= amountValue;
+  } else {
+    // For sell, check if user has enough quantity
+    const quantity = calculateQuantity.value;
+    return availableQuantity.value !== null && quantity > 0 && quantity <= (availableQuantity.value ?? 0);
+  }
+});
+
 
 const selectedStyle = { backgroundColor: 'var(--blue-dark)', borderColor: 'var(--blue)', opacity: 0.2 };
+
+// Format price in EUR
+function formatPrice(value: number): string {
+  return formatEUR(value);
+}
+
+async function loadPortfolio() {
+  if (isLoadingPortfolio.value) return;
+  isLoadingPortfolio.value = true;
+  try {
+    portfolioData.value = await getPortfolio();
+  } catch (error) {
+    console.error('Error loading portfolio:', error);
+  } finally {
+    isLoadingPortfolio.value = false;
+  }
+}
+
+async function handleTrade() {
+  if (isTrading.value || !canTrade.value || !selectedCrypto.value) return;
+  
+  tradeError.value = '';
+  tradeSuccess.value = '';
+  isTrading.value = true;
+  
+  try {
+    const amountValue = parseFloat(amount.value);
+    if (isNaN(amountValue) || amountValue <= 0) {
+      tradeError.value = 'Please enter a valid amount greater than 0';
+      return;
+    }
+    
+    const price = selectedCrypto.value.price || 0;
+    if (!price || price <= 0) {
+      tradeError.value = 'Invalid crypto price. Please refresh the market data.';
+      return;
+    }
+    
+    const quantity = amountValue / price;
+    
+    if (tradeType.value === 'buy') {
+      // Check balance
+      const balance = auth.user?.euro_balance ?? 0;
+      if (balance < amountValue) {
+        tradeError.value = `Insufficient balance. Available: ${formatEUR(balance)}`;
+        return;
+      }
+      
+      // Execute buy
+      const buyResponse = await buyCrypto({
+        symbol: selectedCrypto.value.symbol,
+        quantity: quantity
+      });
+      
+      // Update user balance from response
+      if (auth.user) {
+        auth.user.euro_balance = buyResponse.balance;
+        if (auth.persist) {
+          auth.persist();
+        }
+      }
+      
+      tradeSuccess.value = `Successfully purchased ${quantity.toFixed(8)} ${selectedCrypto.value.symbol}`;
+      amount.value = '';
+      
+      // Reload portfolio to update available quantities
+      await loadPortfolio();
+    } else {
+      // Sell
+      const availableQty = availableQuantity.value ?? 0;
+      if (quantity > availableQty) {
+        tradeError.value = `Insufficient quantity. Available: ${availableQty.toFixed(8)} ${selectedCrypto.value.symbol}`;
+        return;
+      }
+      
+      // Execute sell
+      const sellResponse = await sellCrypto({
+        symbol: selectedCrypto.value.symbol,
+        quantity: quantity
+      });
+      
+      // Update user balance from response
+      if (auth.user) {
+        auth.user.euro_balance = sellResponse.balance;
+        if (auth.persist) {
+          auth.persist();
+        }
+      }
+      
+      tradeSuccess.value = `Successfully sold ${quantity.toFixed(8)} ${selectedCrypto.value.symbol}`;
+      amount.value = '';
+      
+      // Reload portfolio to update available quantities
+      await loadPortfolio();
+    }
+    
+    // Auto-hide success message after 5 seconds
+    setTimeout(() => {
+      tradeSuccess.value = '';
+    }, 5000);
+    
+  } catch (error: any) {
+    console.error('Trade error:', error);
+    
+    // Extract error message
+    const errorMessage = error?.response?.data?.message || error?.message || 'An error occurred while processing your transaction';
+    tradeError.value = errorMessage;
+    
+    // Auto-hide error message after 7 seconds
+    setTimeout(() => {
+      tradeError.value = '';
+    }, 7000);
+  } finally {
+    isTrading.value = false;
+  }
+}
 
 async function loadMarket() {
   loading.value = true;
@@ -339,8 +480,25 @@ const selectCrypto = async (crypto: DisplayCrypto) => {
   await loadHistory(crypto.symbol);
 };
 
-onMounted(() => {
-  loadMarket();
+// Watch tradeType to clear errors and amount when switching
+watch(tradeType, () => {
+  tradeError.value = '';
+  tradeSuccess.value = '';
+  amount.value = '';
+});
+
+// Watch selectedCrypto to reload portfolio
+watch(() => selectedCrypto.value?.symbol, () => {
+  if (selectedCrypto.value) {
+    loadPortfolio();
+  }
+});
+
+onMounted(async () => {
+  if (!auth.user && auth.token) {
+    await auth.fetchCurrentUser();
+  }
+  await Promise.all([loadMarket(), loadPortfolio()]);
 });
 </script>
 

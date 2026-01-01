@@ -122,14 +122,14 @@ export async function getPortfolio(): Promise<PortfolioResponse> {
   return data;
 }
 
-export async function buyCrypto(payload: BuyPayload): Promise<Transaction> {
-  const { data } = await api.post<{ transaction: Transaction }>('/api/transaction/buy', payload);
-  return data.transaction;
+export async function buyCrypto(payload: BuyPayload): Promise<{ transaction: Transaction; balance: number }> {
+  const { data } = await api.post<{ transaction: Transaction; balance: number; message: string }>('/api/transaction/buy', payload);
+  return { transaction: data.transaction, balance: data.balance };
 }
 
-export async function sellCrypto(payload: SellPayload): Promise<Transaction> {
-  const { data } = await api.post<{ transaction: Transaction }>('/api/transaction/sell', payload);
-  return data.transaction;
+export async function sellCrypto(payload: SellPayload): Promise<{ transaction: Transaction; balance: number }> {
+  const { data } = await api.post<{ transaction: Transaction; balance: number; message: string }>('/api/transaction/sell', payload);
+  return { transaction: data.transaction, balance: data.balance };
 }
 
 export async function getTransactionHistory(params?: { page?: number; per_page?: number }): Promise<Paginated<Transaction>> {

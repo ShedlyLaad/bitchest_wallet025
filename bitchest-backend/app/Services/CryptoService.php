@@ -74,29 +74,12 @@ class CryptoService
     }
 
     /**
-     * Génère des prix aléatoires pour simuler le marché
-     * (utilisé par Admin)
+     * Génère des prix pour simuler le marché
+     * (utilisé par Admin) - Délègue à CotationGeneratorService
      */
     public function generateInitialPrices()
     {
-        $cryptos = CryptoCurrency::all();
-
-        foreach ($cryptos as $crypto) {
-
-            $base = rand(10, 30000); // prix initial aléatoire
-
-            for ($i = 30; $i >= 0; $i--) {
-
-                $price = round($base * (1 + rand(-5, 5) / 100), 2);
-
-                PriceHistory::create([
-                    'crypto_currency_id' => $crypto->id,
-                    'price' => $price,
-                    'recorded_at' => Carbon::now()->subDays($i),
-                ]);
-
-                $base = $price;
-            }
-        }
+        $cotationService = app(\App\Services\CotationGeneratorService::class);
+        $cotationService->generateHistory(30, true);
     }
 }

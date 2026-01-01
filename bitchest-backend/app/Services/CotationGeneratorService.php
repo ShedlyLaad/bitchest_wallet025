@@ -22,13 +22,17 @@ class CotationGeneratorService
                 PriceHistory::where('crypto_currency_id', $crypto->id)->delete();
             }
 
-            // Détermine un prix de base raisonnable selon le symbole (ou aléatoire)
-            $base = $this->basePriceForSymbol($crypto->symbol);
+            // Détermine un prix de base initial avec getFirstCotation
+            $base = $this->getFirstCotation($crypto->name ?? $crypto->symbol);
 
             // Génère $days points (1 par jour)
             for ($i = $days; $i >= 0; $i--) {
-                $date = Carbon::now()->subDays($i)->startOfDay()->addHours(rand(0, 23))->addMinutes(rand(0,59));
-                $price = $this->mutatePrice($base, $i);
+                $date = Carbon::now()->subDays($i)->startOfDay()->addHours(rand(0, 23))->addMinutes(rand(0, 59));
+                
+                // Applique la variation quotidienne
+                $variation = $this->getCotationFor($crypto->name ?? $crypto->symbol);
+                $price = $base + $variation;
+                
                 // s'assurer prix positif
                 $price = max(0.00000001, round($price, 8));
 
@@ -38,7 +42,7 @@ class CotationGeneratorService
                     'recorded_at' => $date,
                 ]);
 
-                // la valeur de base évolue doucement pour la journée suivante
+                // la valeur de base évolue pour la journée suivante
                 $base = $price;
             }
         }
@@ -56,8 +60,11 @@ class CotationGeneratorService
                 ->latest('recorded_at')
                 ->first();
 
-            $base = $last ? (float)$last->price : $this->basePriceForSymbol($crypto->symbol);
-            $price = $this->mutatePrice($base, 0);
+            $base = $last ? (float)$last->price : $this->getFirstCotation($crypto->name ?? $crypto->symbol);
+            
+            // Applique la variation quotidienne
+            $variation = $this->getCotationFor($crypto->name ?? $crypto->symbol);
+            $price = $base + $variation;
             $price = max(0.00000001, round($price, 8));
 
             PriceHistory::create([
@@ -69,37 +76,40 @@ class CotationGeneratorService
     }
 
     /**
-     * Retourne un "prix de base" heuristique par symbole (améliorable)
+     * Renvoie la valeur de mise sur le marché de la crypto monnaie
+     * Basé sur le premier caractère du nom de la crypto
+     * 
+     * @param string $cryptoname Le nom de la crypto monnaie
+     * @return float Prix initial de la crypto
      */
-    private function basePriceForSymbol(string $symbol): float
+    private function getFirstCotation(string $cryptoname): float
     {
-        $map = [
-            'BTC' => 30000,
-            'ETH' => 2000,
-            'XRP' => 0.5,
-            'BCH' => 250,
-            'ADA' => 0.8,
-            'LTC' => 80,
-            'XEM' => 0.1,
-            'XLM' => 0.1,
-            'MIOTA' => 0.3,
-            'DASH' => 60,
-        ];
-
-        return $map[$symbol] ?? rand(1, 1000);
+        if (empty($cryptoname)) {
+            return rand(1, 100);
+        }
+        
+        return ord(substr($cryptoname, 0, 1)) + rand(0, 10);
     }
 
     /**
-     * Applique une mutation aléatoire contrôlée au prix (variation journalière)
+     * Renvoie la variation de cotation de la crypto monnaie sur un jour
+     * 
+     * @param string $cryptoname Le nom de la crypto monnaie
+     * @return float Variation à appliquer au prix actuel (peut être positive ou négative)
      */
-    private function mutatePrice(float $base, int $dayIndex): float
+    private function getCotationFor(string $cryptoname): float
     {
-        // Variation +/- 0.5% à 8% selon volatilité aléatoire
-        $vol = rand(5, 80) / 1000; // 0.005 -> 0.08
-        $direction = rand(0, 1) ? 1 : -1;
-        $factor = 1 + ($direction * $vol);
-        // plus le dayIndex grand (plus ancien), plus on peut lisser
-        return (float)$base * $factor;
+        if (empty($cryptoname)) {
+            return (rand(0, 1) ? 1 : -1) * rand(1, 10) * 0.01;
+        }
+        
+        $direction = (rand(0, 99) > 40) ? 1 : -1;
+        $charValue = (rand(0, 99) > 49) 
+            ? ord(substr($cryptoname, 0, 1)) 
+            : ord(substr($cryptoname, -1));
+        $multiplier = rand(1, 10) * 0.01;
+        
+        return $direction * $charValue * $multiplier;
     }
 
     /**

@@ -41,7 +41,21 @@
                 @click="setSelectedCrypto(crypto)"
                 :class="['border-b border-gray-700 cursor-pointer transition-colors', selectedCrypto?.id === crypto.id ? 'bg-gray-700/50' : 'hover:bg-gray-700/30']"
               >
-                <td class="p-4 text-white font-medium">{{ crypto.symbol }}</td>
+                <td class="p-4">
+                  <div class="flex items-center gap-2">
+                    <div class="w-6 h-6 flex-shrink-0 bg-gray-700 rounded flex items-center justify-center overflow-hidden">
+                      <img 
+                        v-if="crypto.icon" 
+                        :src="crypto.icon" 
+                        :alt="crypto.symbol" 
+                        class="w-full h-full object-contain"
+                        @error="(e: any) => e.target.style.display = 'none'"
+                      />
+                      <span v-else class="text-white font-bold text-xs">{{ crypto.symbol.charAt(0) }}</span>
+                    </div>
+                    <span class="text-white font-medium">{{ crypto.symbol }}</span>
+                  </div>
+                </td>
                 <td class="p-4 text-gray-300">{{ crypto.name }}</td>
                 <td class="p-4 text-white text-right">{{ formatEUR(crypto.price) }}</td>
                 <td class="p-4 text-right">
@@ -58,11 +72,17 @@
       <div class="lg:col-span-2">
         <div class="bg-gray-800 rounded-xl p-4 sm:p-6 border border-gray-700">
           <div class="flex items-center space-x-4 mb-4" v-if="selectedCrypto">
-            <div class="w-10 h-10 sm:w-12 sm:h-12 flex-shrink-0">
-              <img v-if="selectedCrypto?.icon" :src="selectedCrypto.icon" :alt="selectedCrypto.name" class="w-full h-full object-contain" />
-              <div v-else class="w-full h-full bg-gray-700 rounded-lg flex items-center justify-center text-white font-bold">
+            <div class="w-10 h-10 sm:w-12 sm:h-12 flex-shrink-0 bg-gray-700 rounded-lg flex items-center justify-center overflow-hidden">
+              <img 
+                v-if="selectedCrypto?.icon" 
+                :src="selectedCrypto.icon" 
+                :alt="selectedCrypto.name" 
+                class="w-full h-full object-contain"
+                @error="(e: any) => e.target.style.display = 'none'"
+              />
+              <span v-else class="text-white font-bold text-xs sm:text-sm">
                 {{ selectedCrypto?.symbol }}
-              </div>
+              </span>
             </div>
             <div>
               <h3 class="text-xl sm:text-2xl font-bold">{{ selectedCrypto.name }}</h3>
@@ -98,6 +118,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { formatEUR } from '@/utils/format';
+import { getCryptoIcon } from '@/utils/cryptoIcons';
 import CryptoChart from '@/components/CryptoChart.vue';
 import { getAdminCryptoHistory, getAdminCryptos } from '@/services/api';
 import type { CryptoCurrency, CryptoPricePoint } from '@/types';
@@ -126,7 +147,12 @@ async function loadCryptos() {
   loading.value = true;
   errorMessage.value = '';
   try {
-    adminCryptosLocal.value = await getAdminCryptos();
+    const data = await getAdminCryptos();
+    // Map icons to each crypto based on symbol
+    adminCryptosLocal.value = data.map((crypto) => ({
+      ...crypto,
+      icon: getCryptoIcon(crypto.symbol),
+    }));
     if (adminCryptosLocal.value.length) {
       selectedCrypto.value = adminCryptosLocal.value[0];
       await loadHistory(selectedCrypto.value.symbol);

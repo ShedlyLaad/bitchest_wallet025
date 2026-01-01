@@ -50,8 +50,17 @@
               >
                 <div class="flex items-center justify-between">
                   <div class="flex items-center space-x-3">
-                    <div class="w-8 h-8 sm:w-10 sm:h-10 flex-shrink-0">
-                      <img :src="crypto.icon" :alt="crypto.name" class="w-full h-full object-contain" />
+                    <div class="w-8 h-8 sm:w-10 sm:h-10 flex-shrink-0 bg-gray-700 rounded-lg flex items-center justify-center overflow-hidden">
+                      <img 
+                        v-if="crypto.icon" 
+                        :src="crypto.icon" 
+                        :alt="crypto.name" 
+                        class="w-full h-full object-contain"
+                        @error="(e: any) => e.target.style.display = 'none'"
+                      />
+                      <span v-else class="text-white font-bold text-xs">
+                        {{ crypto.symbol }}
+                      </span>
                     </div>
                     <div>
                       <div class="font-semibold">{{ crypto.symbol }}</div>
@@ -77,8 +86,17 @@
           <div class="bg-gray-800 rounded-xl p-4 sm:p-6 border border-gray-700">
             <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
               <div class="flex items-center space-x-4">
-                <div class="w-10 h-10 sm:w-12 sm:h-12 flex-shrink-0">
-                  <img :src="selectedCrypto?.icon" :alt="selectedCrypto?.name" class="w-full h-full object-contain" />
+                <div class="w-10 h-10 sm:w-12 sm:h-12 flex-shrink-0 bg-gray-700 rounded-lg flex items-center justify-center overflow-hidden">
+                  <img 
+                    v-if="selectedCrypto?.icon" 
+                    :src="selectedCrypto.icon" 
+                    :alt="selectedCrypto?.name" 
+                    class="w-full h-full object-contain"
+                    @error="(e: any) => e.target.style.display = 'none'"
+                  />
+                  <span v-else class="text-white font-bold text-xs sm:text-sm">
+                    {{ selectedCrypto?.symbol }}
+                  </span>
                 </div>
                 <div>
                   <h2 class="text-xl sm:text-2xl font-bold">{{ selectedCrypto?.name }}</h2>
@@ -201,6 +219,7 @@ import {
 import CryptoChart from '../components/CryptoChart.vue';
 import FooterSection from '../components/sectionsLanding/FooterSection.vue';
 import { adminCryptos } from '../data/cryptoData';
+import { getCryptoIcon } from '../utils/cryptoIcons';
 import { getMarket, getMarketHistory } from '../services/api';
 import type { CryptoCurrency, CryptoPricePoint } from '../types';
 
@@ -212,6 +231,7 @@ type DisplayCrypto = CryptoCurrency & {
   id?: number | string;
 };
 
+// Fallback icon map from adminCryptos for change24h and other metadata
 const iconMap = adminCryptos.reduce<Record<string, (typeof adminCryptos)[number]>>((acc, c) => {
   acc[c.symbol] = c;
   return acc;
@@ -270,6 +290,8 @@ async function loadMarket() {
     const data = await getMarket();
     cryptocurrencies.value = data.map((item) => {
       const fallback = iconMap[item.symbol];
+      // Use getCryptoIcon for reliable icon mapping, fallback to adminCryptos icon if available
+      const icon = getCryptoIcon(item.symbol) || fallback?.icon;
       return {
         id: item.id ?? item.symbol,
         symbol: item.symbol,
@@ -278,7 +300,7 @@ async function loadMarket() {
         change24h: fallback?.change24h ?? 0,
         marketCap: fallback?.marketCap,
         volume24h: fallback?.volume24h,
-        icon: fallback?.icon
+        icon: icon
       };
     });
 

@@ -225,9 +225,30 @@ export async function generateAdminPrices() {
   return data;
 }
 
-export async function getAdminCryptoHistory(symbol: string) {
-  const { data } = await api.get<CryptoPricePoint[]>(`/api/admin/cryptos/${symbol}/history`);
+export async function getAdminCryptoHistory(symbol: string, timeframe?: string) {
+  const params = timeframe ? { timeframe } : {};
+  const { data } = await api.get<CryptoPricePoint[]>(`/api/admin/cryptos/${symbol}/history`, { params });
   return data;
+}
+
+export async function getAdminUserDetails(id: number) {
+  const { data } = await api.get(`/api/admin/users/${id}`);
+  return data as {
+    user: AuthUser;
+    balance: number;
+    portfolio: any[];
+    statistics: {
+      total_transactions: number;
+      buy_transactions: number;
+      sell_transactions: number;
+      total_volume: number;
+      total_portfolio_value: number;
+      total_invested: number;
+      total_gain_loss: number;
+      total_gain_loss_percent: number;
+    };
+    recent_transactions: Transaction[];
+  };
 }
 
 export async function getAdminDashboard(timeFilter?: string) {
@@ -277,6 +298,7 @@ export default {
   getAdminCryptos,
   generateAdminPrices,
   getAdminCryptoHistory,
-  getAdminDashboard
+  getAdminDashboard,
+  getAdminUserDetails
 };
 

@@ -41,57 +41,109 @@
       <div class="grid lg:grid-cols-3 gap-4 sm:gap-8">
         <!-- Crypto List -->
         <div class="lg:col-span-1 order-2 lg:order-1">
-          <div class="bg-gray-800 rounded-xl border border-gray-700">
-            <div class="p-4 sm:p-6 border-b border-gray-700">
+          <div class="bg-gradient-to-br from-gray-800 to-gray-900 rounded-xl border border-gray-700 shadow-lg overflow-hidden">
+            <div class="p-4 border-b border-gray-700 bg-gray-800/50">
+              <div class="flex items-center justify-between mb-3">
+                <div>
+                  <h3 class="text-lg font-semibold text-white">Cryptocurrencies</h3>
+                  <p class="text-xs text-gray-400 mt-1">{{ filteredCryptos.length }} assets</p>
+                </div>
+                <div class="px-2 py-1 bg-green-500/20 border border-green-500/30 rounded-lg">
+                  <span class="text-xs font-medium text-green-400">Live</span>
+                </div>
+              </div>
               <div class="relative">
                 <SearchIcon class="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
                 <input
                   v-model="search"
                   type="text"
                   placeholder="Search cryptocurrencies..."
-                  class="w-full bg-gray-700 border border-gray-600 rounded-lg pl-10 pr-4 py-2 sm:py-3 text-sm sm:text-base text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  class="w-full bg-gray-700/50 border border-gray-600/50 rounded-lg pl-10 pr-4 py-2.5 text-sm text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all"
                 />
               </div>
-              <div v-if="errorMessage" class="text-xs mt-2" style="color: #ff5964;">{{ errorMessage }}</div>
-              <div v-else-if="loading" class="text-xs text-gray-400 mt-2">Loading market data...</div>
+              <div v-if="errorMessage" class="text-xs mt-2 text-red-400">{{ errorMessage }}</div>
+              <div v-else-if="loading" class="text-xs text-gray-400 mt-2 flex items-center gap-2">
+                <div class="animate-spin rounded-full h-3 w-3 border-b-2 border-blue-500"></div>
+                <span>Loading market data...</span>
+              </div>
             </div>
 
-            <div class="divide-y divide-gray-700 max-h-[300px] sm:max-h-[500px] overflow-y-auto">
-              <button
-                v-for="crypto in filteredCryptos"
-                :key="crypto.id"
-                @click="selectCrypto(crypto)"
-                :class="['w-full p-4 text-left hover:bg-gray-700/50 transition-colors', selectedCrypto?.id === crypto.id ? 'border-r-2' : '']"
-                :style="selectedCrypto?.id === crypto.id ? selectedStyle : {}"
-              >
-                <div class="flex items-center justify-between">
-                  <div class="flex items-center space-x-3">
-                    <div class="w-8 h-8 sm:w-10 sm:h-10 flex-shrink-0 bg-gray-700 rounded-lg flex items-center justify-center overflow-hidden">
-                      <img 
-                        v-if="crypto.icon" 
-                        :src="crypto.icon" 
-                        :alt="crypto.name" 
-                        class="w-full h-full object-contain"
-                        @error="(e: any) => e.target.style.display = 'none'"
-                      />
-                      <span v-else class="text-white font-bold text-xs">
-                        {{ crypto.symbol }}
-                      </span>
+            <div class="overflow-x-auto max-h-[300px] sm:max-h-[500px] overflow-y-auto crypto-table-container">
+              <div class="p-2">
+                <div
+                  v-for="crypto in filteredCryptos"
+                  :key="crypto.id"
+                  @click="selectCrypto(crypto)"
+                  :class="[
+                    'group relative mb-2 rounded-lg border transition-all duration-300 cursor-pointer overflow-hidden',
+                    selectedCrypto?.id === crypto.id
+                      ? 'bg-gradient-to-r from-blue-600/20 to-blue-500/10 border-blue-500/50 shadow-lg shadow-blue-500/20 scale-[1.02]'
+                      : 'bg-gray-800/30 border-gray-700/50 hover:scale-105 hover:bg-gray-700/40 hover:border-blue-500/30 hover:shadow-xl hover:shadow-blue-500/10'
+                  ]"
+                >
+                  <!-- Gradient overlay on hover -->
+                  <div class="absolute inset-0 bg-gradient-to-r from-blue-500/0 to-purple-500/0 group-hover:from-blue-500/5 group-hover:to-purple-500/5 transition-all duration-300 pointer-events-none"></div>
+                  
+                  <div class="relative p-4 flex items-center justify-between">
+                    <!-- Left: Crypto Info -->
+                    <div class="flex items-center gap-3 flex-1 min-w-0">
+                      <!-- Icon Container -->
+                      <div class="relative flex-shrink-0">
+                        <div :class="[
+                          'w-12 h-12 rounded-xl flex items-center justify-center overflow-hidden border-2 transition-all duration-300',
+                          selectedCrypto?.id === crypto.id
+                            ? 'border-blue-500/50 bg-blue-500/10 scale-110'
+                            : 'border-gray-600/50 bg-gray-700/50 group-hover:border-blue-400/50 group-hover:scale-110 group-hover:bg-blue-500/10'
+                        ]">
+                          <img
+                            v-if="crypto.icon"
+                            :src="crypto.icon"
+                            :alt="crypto.symbol"
+                            class="w-full h-full object-contain p-1"
+                            @error="(e: any) => e.target.style.display = 'none'"
+                          />
+                          <span v-else class="text-white font-bold text-lg">{{ crypto.symbol.charAt(0) }}</span>
+                        </div>
+                        <!-- Active indicator -->
+                        <div v-if="selectedCrypto?.id === crypto.id" class="absolute -top-1 -right-1 w-3 h-3 bg-blue-500 rounded-full border-2 border-gray-900 animate-pulse"></div>
+                      </div>
+                      
+                      <!-- Crypto Details -->
+                      <div class="flex flex-col min-w-0 flex-1">
+                        <div class="flex items-center gap-2 mb-0.5">
+                          <span class="text-white font-bold text-base group-hover:text-blue-400 transition-colors">{{ crypto.symbol }}</span>
+                          <span v-if="selectedCrypto?.id === crypto.id" class="px-1.5 py-0.5 bg-blue-500/20 text-blue-400 text-xs font-medium rounded">Active</span>
+                        </div>
+                        <span class="text-gray-400 text-xs truncate">{{ crypto.name }}</span>
+                      </div>
                     </div>
-                    <div>
-                      <div class="font-semibold">{{ crypto.symbol }}</div>
-                      <div class="text-sm text-gray-400">{{ crypto.name }}</div>
-                    </div>
-                  </div>
 
-                  <div class="text-right">
-                    <div class="font-semibold">${{ (crypto.price || 0).toLocaleString() }}</div>
-                    <div :class="(crypto.change24h ?? 0) >= 0 ? 'PnL--pos text-sm' : 'PnL--neg text-sm'">
-                      {{ (crypto.change24h ?? 0) >= 0 ? '+' : '' }}{{ crypto.change24h ?? 0 }}%
+                    <!-- Right: Price and Change -->
+                    <div class="flex items-center gap-4 flex-shrink-0">
+                      <!-- Price -->
+                      <div class="text-right">
+                        <div class="text-white font-semibold text-sm group-hover:text-blue-300 transition-colors">
+                          {{ formatPrice(crypto.price || 0) }}
+                        </div>
+                      </div>
+                      
+                      <!-- 24h Change -->
+                      <div class="text-right">
+                        <div
+                          :class="[
+                            'inline-flex items-center gap-1 px-3 py-1.5 rounded-lg font-semibold text-sm transition-all duration-300',
+                            (crypto.change24h ?? 0) >= 0
+                              ? 'bg-green-500/20 text-green-400 border border-green-500/30 group-hover:bg-green-500/30 group-hover:shadow-lg group-hover:shadow-green-500/20'
+                              : 'bg-red-500/20 text-red-400 border border-red-500/30 group-hover:bg-red-500/30 group-hover:shadow-lg group-hover:shadow-red-500/20'
+                          ]"
+                        >
+                          <span>{{ (crypto.change24h ?? 0) >= 0 ? '+' : '' }}{{ (crypto.change24h ?? 0).toFixed(2) }}%</span>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>
-              </button>
+              </div>
             </div>
           </div>
         </div>
@@ -733,5 +785,45 @@ onMounted(async () => {
 .amount-input[type="number"] {
   -moz-appearance: textfield;
   appearance: textfield;
+}
+
+/* Custom scrollbar for crypto table */
+.crypto-table-container::-webkit-scrollbar {
+  width: 8px;
+}
+
+.crypto-table-container::-webkit-scrollbar-track {
+  background: rgba(31, 41, 55, 0.3);
+  border-radius: 4px;
+}
+
+.crypto-table-container::-webkit-scrollbar-thumb {
+  background: rgba(107, 114, 128, 0.5);
+  border-radius: 4px;
+  transition: background 0.2s;
+}
+
+.crypto-table-container::-webkit-scrollbar-thumb:hover {
+  background: rgba(59, 130, 246, 0.6);
+}
+
+/* Smooth animations */
+.crypto-table-container > div > div {
+  transform-origin: center;
+  will-change: transform;
+}
+
+/* Glow effect on selected */
+.group[class*="border-blue-500"] {
+  animation: selectedGlow 2s ease-in-out infinite;
+}
+
+@keyframes selectedGlow {
+  0%, 100% {
+    box-shadow: 0 0 20px rgba(59, 130, 246, 0.2);
+  }
+  50% {
+    box-shadow: 0 0 30px rgba(59, 130, 246, 0.3);
+  }
 }
 </style>

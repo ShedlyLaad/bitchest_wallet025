@@ -6,6 +6,7 @@ use App\Http\Requests\Admin\StoreUserRequest;
 use App\Services\UserService;
 use App\Models\User;
 use App\Models\Portfolio;
+use App\Models\Transaction;
 use Illuminate\Support\Facades\Mail;
 use App\Mail\VerifyEmailMailable;
 
@@ -28,7 +29,43 @@ class UserController extends Controller
 
     public function show($id)
     {
-        return response()->json(\App\Models\User::findOrFail($id));
+        $user = \App\Models\User::findOrFail($id);
+        
+        // Get portfolio with PortfolioService
+        $portfolioService = app(\App\Services\PortfolioService::class);
+        $portfolios = $portfolioService->getUserPortfolio($user);
+        
+        // Get transaction statistics with relations
+        $transactions = Transaction::whereHas('portfolio', function ($q) use ($user) {
+            $q->where('user_id', $user->id);
+        })->with(['portfolio.crypto'])->get();
+        
+        $totalTransactions = $transactions->count();
+        $buyTransactions = $transactions->where('type', 'buy')->count();
+        $sellTransactions = $transactions->where('type', 'sell')->count();
+        $totalVolume = $transactions->sum('total_price');
+        
+        // Calculate total portfolio value
+        $totalPortfolioValue = $portfolios->sum('current_value');
+        $totalInvested = $portfolios->sum('invested_value');
+        $totalGainLoss = $totalPortfolioValue - $totalInvested;
+        
+        return response()->json([
+            'user' => $user,
+            'balance' => (float) ($user->euro_balance ?? 0.0),
+            'portfolio' => $portfolios,
+            'statistics' => [
+                'total_transactions' => $totalTransactions,
+                'buy_transactions' => $buyTransactions,
+                'sell_transactions' => $sellTransactions,
+                'total_volume' => round($totalVolume, 2),
+                'total_portfolio_value' => round($totalPortfolioValue, 2),
+                'total_invested' => round($totalInvested, 2),
+                'total_gain_loss' => round($totalGainLoss, 2),
+                'total_gain_loss_percent' => $totalInvested > 0 ? round(($totalGainLoss / $totalInvested) * 100, 2) : 0
+            ],
+            'recent_transactions' => $transactions->sortByDesc('created_at')->take(10)->values()
+        ]);
     }
 
     public function destroy($id)

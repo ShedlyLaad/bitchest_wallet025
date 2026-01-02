@@ -205,7 +205,7 @@ const timeframes = [
   { label: '60d', value: '60d' }
 ];
 
-const selectedTimeframe = ref('1h');
+const selectedTimeframe = ref('30d');
 const selectedChartType = ref<'line' | 'area'>('line');
 const isLoading = ref(false);
 const error = ref('');

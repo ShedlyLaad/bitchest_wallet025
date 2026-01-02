@@ -81,11 +81,29 @@
             >
               <td class="p-4">
                 <div class="flex items-center gap-3">
-                  <div class="w-10 h-10 bg-gradient-to-br from-blue-500/20 to-blue-600/20 rounded-lg flex items-center justify-center border border-blue-500/30">
-                    <span class="text-blue-400 font-bold text-sm">{{ user.email.charAt(0).toUpperCase() }}</span>
+                  <div class="relative w-10 h-10 flex-shrink-0">
+                    <div class="w-10 h-10 rounded-lg overflow-hidden border-2 border-blue-500/30 bg-gradient-to-br from-blue-500/20 to-blue-600/20 flex items-center justify-center group-hover:border-blue-400/50 transition-colors">
+                      <template v-if="getProfilePictureUrl(user.profile_picture)">
+                        <img
+                          :src="getProfilePictureUrl(user.profile_picture)!"
+                          :alt="user.name || user.email"
+                          class="w-full h-full object-cover"
+                          @error="(e: any) => { e.target.style.display = 'none'; }"
+                        />
+                      </template>
+                      <span v-else class="text-blue-400 font-bold text-sm">
+                        {{ user.email.charAt(0).toUpperCase() }}
+                      </span>
+                    </div>
+                    <!-- Status indicator -->
+                    <div 
+                      v-if="user.status === 'active'" 
+                      class="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-green-500 rounded-full border-2 border-gray-900 animate-pulse"
+                      title="Active user"
+                    ></div>
                   </div>
                   <div>
-                    <div class="text-white font-medium">{{ user.email }}</div>
+                    <div class="text-white font-medium group-hover:text-blue-300 transition-colors">{{ user.email }}</div>
                     <div v-if="user.name" class="text-gray-400 text-xs">{{ user.name }}</div>
                   </div>
                 </div>
@@ -144,12 +162,34 @@
       <div class="bg-gradient-to-br from-gray-800 to-gray-900 rounded-xl border border-gray-700 max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col shadow-2xl">
         <!-- Header -->
         <div class="p-6 border-b border-gray-700 bg-gray-800/50 flex items-center justify-between">
-          <div>
-            <h2 class="text-2xl font-bold text-white flex items-center gap-2">
-              <Activity class="h-6 w-6 text-blue-400" />
-              User Details
-            </h2>
-            <p v-if="selectedUserDetails" class="text-sm text-gray-400 mt-1">{{ selectedUserDetails.user.email }}</p>
+          <div class="flex items-center gap-4">
+            <div class="relative w-16 h-16 flex-shrink-0">
+              <div class="w-16 h-16 rounded-xl overflow-hidden border-2 border-blue-500/30 bg-gradient-to-br from-blue-500/20 to-blue-600/20 flex items-center justify-center">
+                <img
+                  v-if="selectedUserDetails && getProfilePictureUrl(selectedUserDetails.user.profile_picture)"
+                  :src="getProfilePictureUrl(selectedUserDetails.user.profile_picture)!"
+                  :alt="selectedUserDetails.user.name || selectedUserDetails.user.email"
+                  class="w-full h-full object-cover"
+                  @error="(e: any) => { e.target.style.display = 'none'; }"
+                />
+                <span v-else class="text-blue-400 font-bold text-2xl">
+                  {{ selectedUserDetails?.user.email?.charAt(0).toUpperCase() || 'U' }}
+                </span>
+              </div>
+              <div 
+                v-if="selectedUserDetails?.user.status === 'active'" 
+                class="absolute -bottom-1 -right-1 w-4 h-4 bg-green-500 rounded-full border-2 border-gray-900"
+                title="Active user"
+              ></div>
+            </div>
+            <div>
+              <h2 class="text-2xl font-bold text-white flex items-center gap-2">
+                <Activity class="h-6 w-6 text-blue-400" />
+                User Details
+              </h2>
+              <p v-if="selectedUserDetails" class="text-sm text-gray-400 mt-1">{{ selectedUserDetails.user.email }}</p>
+              <p v-if="selectedUserDetails?.user.name" class="text-sm text-gray-300 mt-0.5">{{ selectedUserDetails.user.name }}</p>
+            </div>
           </div>
           <button @click="closeUserDetailsModal" class="p-2 hover:bg-gray-700 rounded-lg transition-colors">
             <X class="h-5 w-5 text-gray-400" />
@@ -539,6 +579,21 @@ function statusStyle(status: AuthUser['status']) {
 function formatDate(value?: string) {
   if (!value) return '';
   return value.split('T')[0] ?? value;
+}
+
+function isValidImagePath(path: string | null | undefined): boolean {
+  if (!path) return false;
+  const value = String(path);
+  const trimmed = value.trim();
+  if (trimmed === '' || trimmed === 'null' || trimmed === 'undefined' || trimmed === 'NULL' || trimmed === 'UNDEFINED') return false;
+  return true;
+}
+
+function getProfilePictureUrl(profilePicture: string | null | undefined): string | null {
+  if (!isValidImagePath(profilePicture)) return null;
+  const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
+  const path = (profilePicture as string).replace(/\\/g, '/');
+  return `${baseUrl}/storage/${path}`;
 }
 
 async function openUserDetails(userId: number) {

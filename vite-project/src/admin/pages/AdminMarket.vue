@@ -61,7 +61,10 @@
                   'group relative mb-2 rounded-lg border transition-all duration-300 cursor-pointer overflow-hidden',
                   selectedCrypto?.id === crypto.id
                     ? 'bg-gradient-to-r from-blue-600/20 to-blue-500/10 border-blue-500/50 shadow-lg shadow-blue-500/20 scale-[1.02]'
-                    : 'bg-gray-800/30 border-gray-700/50 hover:scale-105 hover:bg-gray-700/40 hover:border-blue-500/30 hover:shadow-xl hover:shadow-blue-500/10'
+                    : 'bg-gray-800/30 border-gray-700/50 hover:scale-105 hover:bg-gray-700/40 hover:border-blue-500/30 hover:shadow-xl hover:shadow-blue-500/10',
+                  crypto.isUpdating && crypto.animationClass === 'price-up' ? 'animate-bounce-up bg-green-500/10 border-green-500/50' : '',
+                  crypto.isUpdating && crypto.animationClass === 'price-down' ? 'animate-bounce-down bg-red-500/10 border-red-500/50' : '',
+                  crypto.isUpdating && crypto.animationClass === 'change-up' ? 'animate-pulse-change bg-yellow-500/10 border-yellow-500/50' : ''
                 ]"
               >
                 <!-- Gradient overlay on hover -->
@@ -105,8 +108,25 @@
                   <div class="flex items-center gap-4 flex-shrink-0">
                     <!-- Price -->
                     <div class="text-right">
-                      <div class="text-white font-semibold text-sm group-hover:text-blue-300 transition-colors">
+                      <div 
+                        :class="[
+                          'text-white font-semibold text-sm group-hover:text-blue-300 transition-all duration-300',
+                          crypto.isUpdating && crypto.animationClass === 'price-up' ? 'text-green-400 animate-pulse' : ''
+                        ]"
+                      >
                         {{ formatEUR(crypto.price) }}
+                        <span 
+                          v-if="crypto.previousPrice && crypto.price && crypto.price > crypto.previousPrice"
+                          class="ml-1 text-green-400 text-xs animate-fade-in"
+                        >
+                          ↑
+                        </span>
+                        <span 
+                          v-else-if="crypto.previousPrice && crypto.price && crypto.price < crypto.previousPrice"
+                          class="ml-1 text-red-400 text-xs animate-fade-in"
+                        >
+                          ↓
+                        </span>
                       </div>
                     </div>
                     
@@ -114,13 +134,23 @@
                     <div class="text-right">
                       <div
                         :class="[
-                          'inline-flex items-center gap-1 px-3 py-1.5 rounded-lg font-semibold text-sm transition-all duration-300',
+                          'inline-flex items-center gap-1 px-3 py-1.5 rounded-lg font-semibold text-sm transition-all duration-300 relative',
                           (crypto.change24h ?? 0) >= 0
                             ? 'bg-green-500/20 text-green-400 border border-green-500/30 group-hover:bg-green-500/30 group-hover:shadow-lg group-hover:shadow-green-500/20'
-                            : 'bg-red-500/20 text-red-400 border border-red-500/30 group-hover:bg-red-500/30 group-hover:shadow-lg group-hover:shadow-red-500/20'
+                            : 'bg-red-500/20 text-red-400 border border-red-500/30 group-hover:bg-red-500/30 group-hover:shadow-lg group-hover:shadow-red-500/20',
+                          crypto.isUpdating && crypto.animationClass === 'change-up' ? 'animate-pulse-change scale-110' : ''
                         ]"
                       >
                         <span>{{ (crypto.change24h ?? 0) >= 0 ? '+' : '' }}{{ (crypto.change24h ?? 0).toFixed(2) }}%</span>
+                        <!-- Indicateur de changement -->
+                        <span 
+                          v-if="crypto.previousChange24h !== undefined && crypto.change24h !== undefined && 
+                                Math.abs(crypto.change24h) > Math.abs(crypto.previousChange24h)"
+                          :class="[
+                            'absolute -top-1 -right-1 w-2 h-2 rounded-full animate-ping',
+                            crypto.change24h >= 0 ? 'bg-green-400' : 'bg-red-400'
+                          ]"
+                        ></span>
                       </div>
                     </div>
                   </div>
@@ -138,11 +168,13 @@
           <ProfessionalTradingChart
             :symbol="selectedCrypto.symbol"
             :crypto-name="selectedCrypto.name"
-            :price-data="priceSeries"
+            :price-data-with-dates="history"
             :current-price="selectedCrypto.price ?? 0"
             :change24h="selectedCrypto.change24h ?? 0"
             :crypto-icon="selectedCrypto.icon"
-            :market-cap="selectedCrypto.marketCap ? parseFloat(selectedCrypto.marketCap) : undefined"
+            :market-cap="selectedCrypto.marketCap ? Number(selectedCrypto.marketCap) : undefined"
+            :timeframe="timeframe"
+            @timeframe-changed="handleTimeframeChange"
             currency="EUR"
             :height="450"
           />
@@ -169,10 +201,11 @@ import { getAdminCryptoHistory, getAdminCryptos } from '@/services/api';
 import type { CryptoCurrency, CryptoPricePoint } from '@/types';
 
 type AdminCryptoUI = CryptoCurrency & {
-  change24h?: number;
-  marketCap?: string;
-  volume24h?: string;
   icon?: string;
+  previousPrice?: number;
+  previousChange24h?: number;
+  isUpdating?: boolean;
+  animationClass?: string;
 };
 
 const adminCryptosLocal = ref<AdminCryptoUI[]>([]);
@@ -190,10 +223,66 @@ async function loadCryptos() {
   errorMessage.value = '';
   try {
     const data = await getAdminCryptos();
-    adminCryptosLocal.value = data.map((crypto) => ({
-      ...crypto,
-      icon: getCryptoIcon(crypto.symbol),
-    }));
+    
+    // Stocker les prix précédents pour détecter les changements
+    const previousPrices = new Map(
+      adminCryptosLocal.value.map(c => [c.symbol, { price: c.price, change24h: c.change24h }])
+    );
+    
+    adminCryptosLocal.value = data.map((crypto) => {
+      const prev = previousPrices.get(crypto.symbol);
+      const isPriceIncreased = prev && crypto.price && prev.price && crypto.price > prev.price;
+      const isPriceDecreased = prev && crypto.price && prev.price && crypto.price < prev.price;
+      const isChangeIncreased = prev && crypto.change24h !== undefined && prev.change24h !== undefined && 
+                                Math.abs(crypto.change24h) > Math.abs(prev.change24h ?? 0);
+      
+      return {
+        ...crypto,
+        icon: getCryptoIcon(crypto.symbol),
+        previousPrice: prev?.price,
+        previousChange24h: prev?.change24h,
+        isUpdating: false,
+        animationClass: isPriceIncreased ? 'price-up' : isPriceDecreased ? 'price-down' : isChangeIncreased ? 'change-up' : '',
+      };
+    });
+    
+    // Animer les changements
+    adminCryptosLocal.value.forEach((crypto) => {
+      if (crypto.animationClass) {
+        crypto.isUpdating = true;
+        setTimeout(() => {
+          crypto.isUpdating = false;
+          crypto.animationClass = '';
+        }, 1500);
+      }
+    });
+    
+    // Trier par change24h (croissant pour mettre les valeurs en baisse en haut, puis les hausses)
+    // Les valeurs négatives (baisse) en haut, les positives (hausse) en bas
+    adminCryptosLocal.value.sort((a, b) => {
+      const changeA = a.change24h ?? 0;
+      const changeB = b.change24h ?? 0;
+      
+      // Si les deux sont négatifs, trier du plus négatif au moins négatif
+      if (changeA < 0 && changeB < 0) {
+        return changeA - changeB;
+      }
+      // Si les deux sont positifs, trier du plus positif au moins positif
+      if (changeA >= 0 && changeB >= 0) {
+        return changeB - changeA;
+      }
+      // Les négatifs avant les positifs
+      return changeA < 0 ? -1 : 1;
+    });
+    
+    // Mettre à jour la crypto sélectionnée si elle existe toujours
+    if (selectedCrypto.value) {
+      const updated = adminCryptosLocal.value.find(c => c.symbol === selectedCrypto.value?.symbol);
+      if (updated) {
+        selectedCrypto.value = updated;
+      }
+    }
+    
     if (adminCryptosLocal.value.length && !selectedCrypto.value) {
       selectedCrypto.value = adminCryptosLocal.value[0];
       await loadHistory(selectedCrypto.value.symbol);
@@ -222,13 +311,13 @@ async function setSelectedCrypto(c: AdminCryptoUI) {
   await loadHistory(c.symbol);
 }
 
-const priceSeries = computed(() => {
-  if (history.value.length) {
-    return history.value.map((p) => Number(p.price));
+async function handleTimeframeChange(newTimeframe: string) {
+  timeframe.value = newTimeframe;
+  if (selectedCrypto.value) {
+    await loadHistory(selectedCrypto.value.symbol);
   }
-  const price = selectedCrypto.value?.price ?? 0;
-  return Array.from({ length: 30 }, () => price);
-});
+}
+
 
 const lastUpdatedLabel = computed(() => {
   if (!lastUpdated.value) return '—';
@@ -237,6 +326,7 @@ const lastUpdatedLabel = computed(() => {
 
 onMounted(() => {
   loadCryptos();
+  // Refresh toutes les 30 secondes pour des données live
   refreshTimer = setInterval(loadCryptos, 30000);
 });
 
@@ -284,5 +374,62 @@ onUnmounted(() => {
   50% {
     box-shadow: 0 0 30px rgba(59, 130, 246, 0.3);
   }
+}
+
+/* Animations pour les changements de prix */
+@keyframes bounce-up {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-8px);
+  }
+}
+
+@keyframes bounce-down {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(8px);
+  }
+}
+
+.animate-bounce-down {
+  animation: bounce-down 0.6s ease-in-out;
+}
+
+@keyframes pulse-change {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.05);
+    opacity: 0.9;
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-bounce-up {
+  animation: bounce-up 0.6s ease-in-out;
+}
+
+.animate-pulse-change {
+  animation: pulse-change 0.8s ease-in-out;
+}
+
+.animate-fade-in {
+  animation: fade-in 0.3s ease-out;
 }
 </style>

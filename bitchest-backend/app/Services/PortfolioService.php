@@ -62,34 +62,104 @@ class PortfolioService
 
         // Enrichir chaque portfolio avec quantité détenue, prix courant, valeur courante, gain/perte
         return $portfolios->map(function ($portfolio) {
-            $totalBuyQuantity = \App\Models\Transaction::where('portfolio_id', $portfolio->id)
+            // Récupérer toutes les transactions d'achat
+            $buyTransactions = \App\Models\Transaction::where('portfolio_id', $portfolio->id)
                 ->where('type', 'buy')
-                ->sum('quantity');
-            $totalSellQuantity = \App\Models\Transaction::where('portfolio_id', $portfolio->id)
+                ->orderBy('created_at')
+                ->get();
+            
+            // Calculer le coût total des achats (selon cahier des charges)
+            $totalCost = $buyTransactions->sum(function ($tx) {
+                return (float) $tx->quantity * (float) $tx->price_at_transaction;
+            });
+            
+            // Calculer la quantité totale achetée
+            $totalBuyQuantity = (float) $buyTransactions->sum('quantity');
+            
+            // Calculer la quantité totale vendue
+            $totalSellQuantity = (float) \App\Models\Transaction::where('portfolio_id', $portfolio->id)
                 ->where('type', 'sell')
                 ->sum('quantity');
-
-            $quantity = (float) $totalBuyQuantity - (float) $totalSellQuantity;
-
-            // récupérer le prix courant via CryptoService (fallbacks inside)
-            $currentPrice = $this->cryptoService->getCurrentPrice(
-                \App\Models\CryptoCurrency::find($portfolio->crypto_currency_id)->symbol
-            ) ?? 0.0;
+            
+            // Quantité actuellement possédée
+            $quantity = $totalBuyQuantity - $totalSellQuantity;
+            
+            // Récupérer le prix courant via CryptoService (avec CoinGecko)
+            $crypto = \App\Models\CryptoCurrency::find($portfolio->crypto_currency_id);
+            $currentPrice = $this->cryptoService->getCurrentPrice($crypto->symbol) ?? 0.0;
+            
+            // Valeur totale au cours actuel (selon cahier des charges)
             $currentValue = $quantity * $currentPrice;
-
-            $investedValue = (float) $portfolio->total_crypto_value;
-            $gainLoss = $currentValue - $investedValue;
-            $gainLossPercent = $investedValue > 0 ? ($gainLoss / $investedValue) * 100 : null;
+            
+            // Valeur d'achat moyenne d'une unité (selon cahier des charges)
+            // Coût total / Quantité possédée
+            $averagePurchasePrice = $quantity > 0 ? ($totalCost / $quantity) : 0;
+            
+            // Coût total actuel (valeur investie pour la quantité possédée)
+            // C'est la valeur d'achat de toute la quantité possédée
+            $totalInvestedValue = $averagePurchasePrice * $quantity;
+            
+            // Plus-value actuelle (selon cahier des charges)
+            // Valeur totale au cours actuel - Coût total investi
+            $gainLoss = $currentValue - $totalInvestedValue;
+            
+            // Pourcentage de gain/perte
+            $gainLossPercent = $totalInvestedValue > 0 
+                ? ($gainLoss / $totalInvestedValue) * 100 
+                : null;
 
             // Append computed fields
-            $portfolio->quantity = $quantity;
-            $portfolio->current_price = $currentPrice;
+            $portfolio->quantity = round($quantity, 8);
+            $portfolio->current_price = round($currentPrice, 8);
             $portfolio->current_value = round($currentValue, 8);
-            $portfolio->invested_value = round($investedValue, 8);
+            $portfolio->average_purchase_price = round($averagePurchasePrice, 8);
+            $portfolio->total_invested_value = round($totalInvestedValue, 8);
+            $portfolio->total_cost = round($totalCost, 8);
             $portfolio->gain_loss = round($gainLoss, 8);
             $portfolio->gain_loss_percent = $gainLossPercent !== null ? round($gainLossPercent, 2) : null;
+            
+            // Informations sur les transactions
+            $portfolio->buy_transactions_count = $buyTransactions->count();
+            $portfolio->total_buy_quantity = $totalBuyQuantity;
+            $portfolio->total_sell_quantity = $totalSellQuantity;
 
             return $portfolio;
+        })->filter(function ($portfolio) {
+            // Ne retourner que les portfolios avec une quantité > 0
+            return $portfolio->quantity > 0;
         })->values();
+    }
+    
+    /**
+     * Récupère les détails des transactions d'achat pour une crypto
+     * Retourne la liste des achats avec date, quantité et cours
+     */
+    public function getPurchaseDetails(User $user, int $cryptoCurrencyId)
+    {
+        $portfolio = \App\Models\Portfolio::where('user_id', $user->id)
+            ->where('crypto_currency_id', $cryptoCurrencyId)
+            ->first();
+        
+        if (!$portfolio) {
+            return collect([]);
+        }
+        
+        // Récupérer toutes les transactions d'achat avec leurs détails
+        $buyTransactions = \App\Models\Transaction::where('portfolio_id', $portfolio->id)
+            ->where('type', 'buy')
+            ->orderBy('created_at')
+            ->get()
+            ->map(function ($tx) {
+                return [
+                    'id' => $tx->id,
+                    'date' => $tx->created_at->format('Y-m-d'),
+                    'datetime' => $tx->created_at->toIso8601String(),
+                    'quantity' => (float) $tx->quantity,
+                    'price' => (float) $tx->price_at_transaction,
+                    'total_cost' => (float) $tx->quantity * (float) $tx->price_at_transaction,
+                ];
+            });
+        
+        return $buyTransactions;
     }
 }

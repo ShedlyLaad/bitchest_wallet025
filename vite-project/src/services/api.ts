@@ -122,6 +122,11 @@ export async function getPortfolio(): Promise<PortfolioResponse> {
   return data;
 }
 
+export async function getPurchaseDetails(cryptoCurrencyId: number) {
+  const { data } = await api.get<{ purchases: Array<{ id: number; date: string; datetime: string; quantity: number; price: number; total_cost: number }> }>(`/api/portfolio/crypto/${cryptoCurrencyId}/purchases`);
+  return data;
+}
+
 export async function buyCrypto(payload: BuyPayload): Promise<{ transaction: Transaction; balance: number }> {
   const { data } = await api.post<{ transaction: Transaction; balance: number; message: string }>('/api/transaction/buy', payload);
   return { transaction: data.transaction, balance: data.balance };
@@ -299,6 +304,7 @@ export default {
   generateAdminPrices,
   getAdminCryptoHistory,
   getAdminDashboard,
-  getAdminUserDetails
+  getAdminUserDetails,
+  getPurchaseDetails
 };
 

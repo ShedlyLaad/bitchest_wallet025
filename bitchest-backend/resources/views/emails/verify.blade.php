@@ -13,12 +13,12 @@
 </head>
 <body>
   @php
-    $logoCid = isset($message) ? $message->embed(public_path('images/logomail.png')) : (config('app.url') . '/images/logomail.png');
-    $displayName = $name ?? ($user->name ?? 'User');
+    $logoCid = isset($message) ? $message->embed(public_path('images/bitchest_Footer.png')) : (config('app.url') . '/images/bitchest_Footer.png');
+    $displayName = $name ?? ($user->name ?? ($user->first_name && $user->last_name ? $user->first_name . ' ' . $user->last_name : $user->email ?? 'User'));
   @endphp
   <div class="card">
     <div class="brand">
-      <img src="{{ $logoCid }}" alt="Bit-Chest Wallet" style="height:72px;" />
+      <img src="{{ $logoCid }}" alt="Bit-Chest Wallet" style="height:90px;" />
     </div>
 
     <h2 style="margin:18px 0 8px; color:#fff;">Welcome to Bit-Chest</h2>

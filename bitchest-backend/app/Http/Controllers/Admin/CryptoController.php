@@ -21,12 +21,11 @@ class CryptoController extends Controller
 
     public function history($symbol, Request $request, CryptoService $cryptoService)
     {
-        // Support timeframe: 4h, 1d, 7d, 30d (default: 30d)
+        // Support timeframe: 1d, 7d, 30d, 90d (default: 30d)
         $timeframe = $request->query('timeframe', '30d');
         
         // Convert timeframe to days
         $daysMap = [
-            '4h' => 1, // Last 24 hours, but we'll sample 4h intervals
             '1d' => 1,
             '7d' => 7,
             '30d' => 30,
@@ -34,6 +33,17 @@ class CryptoController extends Controller
         ];
         
         $days = $daysMap[$timeframe] ?? 30;
-        return response()->json($cryptoService->getHistoricalPrices($symbol, $days));
+        $prices = $cryptoService->getHistoricalPrices($symbol, $days);
+        
+        // Ensure we return data in the expected format with recorded_at
+        return response()->json($prices->map(function ($price) {
+            return [
+                'crypto_currency_id' => $price->crypto_currency_id ?? 0,
+                'price' => (float) $price->price,
+                'recorded_at' => $price->recorded_at instanceof \Carbon\Carbon 
+                    ? $price->recorded_at->toIso8601String() 
+                    : (string) $price->recorded_at,
+            ];
+        })->values());
     }
 }

@@ -159,14 +159,21 @@
 
       <!-- Chart -->
       <ApexChart
-        v-else-if="chartOptions && chartSeries"
+        v-else-if="chartOptions && chartSeries && chartSeries.length > 0 && chartSeries[0].data && chartSeries[0].data.length > 0"
+        :key="`chart-${selectedTimeframe}-${selectedChartType}-${symbol}-${chartSeries[0].data.length}`"
         :options="chartOptions"
         :series="chartSeries"
         :type="selectedChartType"
         :height="typeof height === 'number' ? height : undefined"
         width="100%"
-        class="relative z-0"
+        class="relative z-0 chart-wrapper"
       />
+      <!-- No data message -->
+      <div v-else-if="!isLoading && !error" class="absolute inset-0 flex items-center justify-center bg-gray-900/80 z-20">
+        <div class="text-center text-gray-400">
+          <p class="text-sm">No chart data available</p>
+        </div>
+      </div>
     </div>
   </div>
 </template>
@@ -176,18 +183,25 @@ import { ref, computed, watch } from 'vue';
 import ApexChart from 'vue3-apexcharts';
 import type { ApexOptions } from 'apexcharts';
 import { TrendingUp, TrendingDown, Activity } from 'lucide-vue-next';
+import type { CryptoPricePoint } from '@/types';
 
 interface Props {
   symbol: string;
   cryptoName?: string;
   priceData?: number[];
+  priceDataWithDates?: CryptoPricePoint[];
   currentPrice?: number;
   change24h?: number;
   height?: number | string;
   currency?: 'USD' | 'EUR';
   cryptoIcon?: string;
   marketCap?: number;
+  timeframe?: string;
 }
+
+const emit = defineEmits<{
+  timeframeChanged: [timeframe: string];
+}>();
 
 const props = withDefaults(defineProps<Props>(), {
   height: 500,
@@ -197,41 +211,48 @@ const props = withDefaults(defineProps<Props>(), {
 });
 
 const timeframes = [
-  { label: '1h', value: '1h' },
-  { label: '4h', value: '4h' },
   { label: '1d', value: '1d' },
   { label: '7d', value: '7d' },
   { label: '30d', value: '30d' },
-  { label: '60d', value: '60d' }
+  { label: '90d', value: '90d' }
 ];
 
-const selectedTimeframe = ref('30d');
+const selectedTimeframe = ref(props.timeframe || '30d');
 const selectedChartType = ref<'line' | 'area'>('line');
 const isLoading = ref(false);
 const error = ref('');
 
 // Calculate market data from price history
 const marketData = computed(() => {
-  if (!props.priceData || props.priceData.length === 0) {
-    return {
-      open: props.currentPrice,
-      high: props.currentPrice,
-      low: props.currentPrice,
-      close: props.currentPrice,
-      volume: 0
-    };
+  // Use priceDataWithDates if available
+  if (props.priceDataWithDates && props.priceDataWithDates.length > 0) {
+    const prices = props.priceDataWithDates.map(p => Number(p.price));
+    const open = prices[0] || props.currentPrice;
+    const close = prices[prices.length - 1] || props.currentPrice;
+    const high = Math.max(...prices, props.currentPrice);
+    const low = Math.min(...prices, props.currentPrice);
+    const volume = prices.length * 1000000;
+    return { open, high, low, close, volume };
+  }
+  
+  // Fallback to priceData array
+  if (props.priceData && props.priceData.length > 0) {
+    const prices = props.priceData.map(p => Number(p));
+    const open = prices[0] || props.currentPrice;
+    const close = prices[prices.length - 1] || props.currentPrice;
+    const high = Math.max(...prices, props.currentPrice);
+    const low = Math.min(...prices, props.currentPrice);
+    const volume = prices.length * 1000000;
+    return { open, high, low, close, volume };
   }
 
-  const prices = props.priceData;
-  const open = prices[0] || props.currentPrice;
-  const close = prices[prices.length - 1] || props.currentPrice;
-  const high = Math.max(...prices, props.currentPrice);
-  const low = Math.min(...prices, props.currentPrice);
-  
-  // Simulate volume based on price movement
-  const volume = prices.length * 1000000 * (1 + Math.random() * 2);
-
-  return { open, high, low, close, volume };
+  return {
+    open: props.currentPrice,
+    high: props.currentPrice,
+    low: props.currentPrice,
+    close: props.currentPrice,
+    volume: 0
+  };
 });
 
 const currentPrice = computed(() => props.currentPrice || marketData.value.close);
@@ -256,80 +277,120 @@ const priceChangePercent = computed(() => {
   return ((currentPrice.value - openPrice.value) / openPrice.value) * 100;
 });
 
-// Generate labels for chart based on timeframe
-const generateLabels = (count: number, timeframe: string): string[] => {
-  const labels: string[] = [];
-  const now = new Date();
-  
-  const timeMap: Record<string, number> = {
-    '1h': 3600000,
-    '4h': 14400000,
-    '1d': 86400000,
-    '7d': 604800000,
-    '30d': 2592000000,
-    '60d': 5184000000
-  };
-  
-  const interval = timeMap[timeframe] || 3600000; // Default to 1h
-  
-  // Start from the past and go to now
-  for (let i = count - 1; i >= 0; i--) {
-    const date = new Date(now.getTime() - (i * interval));
-    let label = '';
-    
-    if (timeframe === '60d' || timeframe === '30d' || timeframe === '7d') {
-      label = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-    } else if (timeframe === '1d') {
-      label = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-    } else if (timeframe === '4h' || timeframe === '1h') {
-      // For 1h and 4h, use time format (HH:MM)
-      label = date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false });
-    } else {
-      label = date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false });
-    }
-    
-    labels.push(label);
+// Format date label based on timeframe
+const formatDateLabel = (date: Date, timeframe: string): string => {
+  if (timeframe === '90d' || timeframe === '30d') {
+    // For longer periods, show month and day
+    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  } else if (timeframe === '7d') {
+    // For 7 days, show day of week and date
+    return date.toLocaleDateString('en-US', { weekday: 'short', day: 'numeric' });
+  } else if (timeframe === '1d') {
+    // For 1 day, show time
+    return date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false });
   }
-  
-  return labels;
+  // Default: show date
+  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 };
 
 const chartSeries = computed(() => {
-  // For line and area charts, use price data directly
-  if (!props.priceData || props.priceData.length === 0) {
-    // Generate fallback data based on timeframe
-    const fallbackPrice = props.currentPrice || 100;
-    const timeframePoints: Record<string, number> = {
-      '1h': 60,
-      '4h': 48,
-      '1d': 24,
-      '7d': 84,
-      '30d': 90,
-      '60d': 120
-    };
-    const pointCount = timeframePoints[selectedTimeframe.value] || 50;
-    const fallbackData = Array.from({ length: pointCount }, (_, i) => {
-      const variation = Math.sin(i / pointCount * Math.PI * 4) * 0.05;
-      return fallbackPrice * (1 + variation);
-    });
-    const labels = generateLabels(fallbackData.length, selectedTimeframe.value);
+  // If we have data with dates, use them directly
+  if (props.priceDataWithDates && props.priceDataWithDates.length > 0) {
+    // Sort by date first, then map to chart format
+    const sortedData = [...props.priceDataWithDates]
+      .sort((a, b) => new Date(a.recorded_at).getTime() - new Date(b.recorded_at).getTime())
+      .map((point) => {
+        const date = new Date(point.recorded_at);
+        const price = Number(point.price);
+        // Ensure price is a valid number
+        if (isNaN(price) || price <= 0) {
+          return null;
+        }
+        return {
+          x: date.getTime(), // Use timestamp for proper ordering
+          y: price
+        };
+      })
+      .filter((point): point is { x: number; y: number } => point !== null);
+    
+    if (sortedData.length === 0) {
+      return [];
+    }
+    
     return [{
       name: props.symbol,
-      data: fallbackData.map((price, index) => ({
-        x: labels[index] || index.toString(),
-        y: price
-      }))
+      data: sortedData
     }];
   }
   
-  // Use actual price data
-  const labels = generateLabels(props.priceData.length, selectedTimeframe.value);
+  // Fallback: use priceData array if available
+  if (props.priceData && props.priceData.length > 0) {
+    const now = new Date();
+    const timeMap: Record<string, number> = {
+      '1d': 86400000, // 1 day in ms
+      '7d': 604800000, // 7 days in ms
+      '30d': 2592000000, // 30 days in ms
+      '90d': 7776000000 // 90 days in ms
+    };
+    
+    const totalTime = timeMap[selectedTimeframe.value] || 2592000000;
+    const interval = totalTime / props.priceData.length;
+    const startTime = now.getTime() - totalTime;
+    
+    const chartData = props.priceData
+      .map((price, index) => {
+        const priceNum = Number(price);
+        if (isNaN(priceNum) || priceNum <= 0) {
+          return null;
+        }
+        return {
+          x: startTime + (index * interval),
+          y: priceNum
+        };
+      })
+      .filter((point): point is { x: number; y: number } => point !== null);
+    
+    if (chartData.length === 0) {
+      return [];
+    }
+    
+    return [{
+      name: props.symbol,
+      data: chartData
+    }];
+  }
+  
+  // Last resort: generate minimal fallback data with multiple points for visibility
+  const fallbackPrice = props.currentPrice || 100;
+  if (fallbackPrice <= 0) {
+    return [];
+  }
+  
+  const now = new Date();
+  const points: Array<{ x: number; y: number }> = [];
+  const timeMap: Record<string, number> = {
+    '1d': 86400000,
+    '7d': 604800000,
+    '30d': 2592000000,
+    '90d': 7776000000
+  };
+  const totalTime = timeMap[selectedTimeframe.value] || 2592000000;
+  const pointCount = 30; // Generate 30 points
+  const interval = totalTime / pointCount;
+  
+  // Generate points with slight variation
+  for (let i = 0; i < pointCount; i++) {
+    const timestamp = now.getTime() - (totalTime - (i * interval));
+    const variation = Math.sin((i / pointCount) * Math.PI * 4) * 0.05;
+    points.push({
+      x: timestamp,
+      y: fallbackPrice * (1 + variation)
+    });
+  }
+  
   return [{
     name: props.symbol,
-    data: props.priceData.map((price, index) => ({
-      x: labels[index] || index.toString(),
-      y: price
-    }))
+    data: points
   }];
 });
 
@@ -362,9 +423,9 @@ const formatVolume = (value: number): string => {
 const chartOptions = computed<ApexOptions>(() => {
   const baseOptions: ApexOptions = {
     chart: {
-      type: selectedChartType.value,
       height: typeof props.height === 'number' ? props.height : undefined,
       background: 'transparent', // Professional dark background
+      id: `chart-${props.symbol}-${selectedTimeframe.value}`,
       toolbar: {
         show: true,
         tools: {
@@ -401,7 +462,7 @@ const chartOptions = computed<ApexOptions>(() => {
       mode: 'dark'
     },
     xaxis: {
-      type: 'category',
+      type: 'datetime',
       labels: {
         style: {
           colors: '#6b7280',
@@ -409,11 +470,19 @@ const chartOptions = computed<ApexOptions>(() => {
           fontFamily: 'monospace',
           fontWeight: 400
         },
-        rotate: selectedTimeframe.value === '1h' || selectedTimeframe.value === '4h' ? 0 : -45,
+        rotate: selectedTimeframe.value === '1d' ? 0 : -45,
         rotateAlways: false,
         hideOverlappingLabels: true,
         showDuplicates: false,
-        offsetY: 5
+        offsetY: 5,
+        datetimeUTC: false,
+        format: selectedTimeframe.value === '1d' 
+          ? 'HH:mm' 
+          : selectedTimeframe.value === '7d'
+          ? 'ddd dd'
+          : selectedTimeframe.value === '30d' || selectedTimeframe.value === '90d'
+          ? 'MMM dd'
+          : 'MMM dd'
       },
       axisBorder: {
         show: true,
@@ -473,23 +542,25 @@ const chartOptions = computed<ApexOptions>(() => {
       }
     },
     grid: {
-      borderColor: '#1f2937',
+      borderColor: '#374151',
       strokeDashArray: 0,
       xaxis: {
         lines: {
-          show: true
+          show: true,
+          color: '#1f2937'
         }
       },
       yaxis: {
         lines: {
-          show: true
+          show: true,
+          color: '#1f2937'
         }
       },
       padding: {
-        top: 5,
-        right: 5,
-        bottom: 5,
-        left: 5
+        top: 10,
+        right: 10,
+        bottom: 10,
+        left: 10
       }
     },
     tooltip: {
@@ -502,23 +573,38 @@ const chartOptions = computed<ApexOptions>(() => {
         fontFamily: 'monospace'
       },
       custom: ({ seriesIndex, dataPointIndex, w }) => {
-        const data = w.globals.initialSeries[seriesIndex].data[dataPointIndex];
-        const label = w.globals.categoryLabels[dataPointIndex];
-        const value = typeof data.y === 'number' ? data.y : data.y;
+        const series = w.globals.initialSeries[seriesIndex];
+        const dataPoint = series.data[dataPointIndex];
+        const timestamp = typeof dataPoint.x === 'number' ? dataPoint.x : new Date(dataPoint.x).getTime();
+        const date = new Date(timestamp);
+        const value = typeof dataPoint.y === 'number' ? dataPoint.y : Number(dataPoint.y);
+        
+        const dateLabel = formatDateLabel(date, selectedTimeframe.value);
         
         return `
           <div class="px-2 py-1.5 bg-gray-800 border border-gray-600 rounded text-xs">
-            <div class="text-gray-400 mb-1">${label}</div>
+            <div class="text-gray-400 mb-1">${dateLabel}</div>
             <div class="text-white font-semibold">${formatPrice(value)}</div>
           </div>
         `;
+      },
+      x: {
+        format: 'dd MMM yyyy HH:mm'
       }
     },
     stroke: {
-      width: selectedChartType.value === 'line' ? 3 : 2,
+      width: selectedChartType.value === 'line' ? 4 : 2,
       curve: 'smooth',
-      colors: selectedChartType.value === 'line' ? ['#3b82f6'] : ['#10b981'],
-      lineCap: 'round'
+      colors: selectedChartType.value === 'line' ? ['#60a5fa'] : ['#10b981'],
+      lineCap: 'round',
+      show: true,
+      dashArray: 0
+    },
+    markers: {
+      size: 0,
+      hover: {
+        size: 5
+      }
     },
     fill: {
       type: selectedChartType.value === 'area' ? 'gradient' : 'solid',
@@ -531,10 +617,20 @@ const chartOptions = computed<ApexOptions>(() => {
         opacityTo: 0.05,
         stops: [0, 100]
       } : undefined,
-      colors: selectedChartType.value === 'area' ? ['#10b981'] : ['transparent']
+      colors: selectedChartType.value === 'area' ? ['#10b981'] : ['transparent'],
+      opacity: selectedChartType.value === 'area' ? 1 : 0
     },
     dataLabels: {
       enabled: false
+    },
+    noData: {
+      text: 'No data available',
+      align: 'center',
+      verticalAlign: 'middle',
+      style: {
+        color: '#6b7280',
+        fontSize: '14px'
+      }
     }
   };
   
@@ -542,9 +638,25 @@ const chartOptions = computed<ApexOptions>(() => {
 });
 
 // Watch for timeframe changes
-watch(selectedTimeframe, () => {
-  // In a real implementation, you would fetch data for the selected timeframe
-  console.log('Timeframe changed to:', selectedTimeframe.value);
+watch(selectedTimeframe, (newTimeframe) => {
+  emit('timeframeChanged', newTimeframe);
+});
+
+// Watch for prop changes
+watch(() => props.timeframe, (newTimeframe) => {
+  if (newTimeframe && newTimeframe !== selectedTimeframe.value) {
+    selectedTimeframe.value = newTimeframe;
+  }
+});
+
+// Watch for data changes to ensure chart updates
+watch(() => [props.priceDataWithDates, props.priceData, props.currentPrice], () => {
+  // Force chart re-render when data changes
+}, { deep: true });
+
+// Watch chart type changes
+watch(selectedChartType, () => {
+  // Chart will update automatically via :key binding
 });
 
 </script>
@@ -569,5 +681,21 @@ watch(selectedTimeframe, () => {
     linear-gradient(rgba(156, 163, 175, 0.05) 1px, transparent 1px),
     linear-gradient(90deg, rgba(156, 163, 175, 0.05) 1px, transparent 1px);
   background-size: 50px 50px; /* Grille fine et discrète */
+}
+
+/* Assurer la visibilité des lignes du chart */
+.chart-wrapper :deep(.apexcharts-line-series path) {
+  stroke-width: 4px !important;
+  stroke: #60a5fa !important;
+  filter: drop-shadow(0 0 2px rgba(96, 165, 250, 0.5));
+}
+
+.chart-wrapper :deep(.apexcharts-area-series path) {
+  stroke-width: 2px !important;
+  stroke: #10b981 !important;
+}
+
+.chart-wrapper :deep(.apexcharts-line-series .apexcharts-line) {
+  stroke-width: 4px !important;
 }
 </style>

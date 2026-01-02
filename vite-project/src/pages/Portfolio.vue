@@ -429,22 +429,74 @@
                 <span class="ml-2 font-semibold text-white font-mono">{{ selectedHolding.quantity.toFixed(8) }}</span>
               </div>
               <div>
-                <span class="text-gray-400">Average Price:</span>
+                <span class="text-gray-400">Average Purchase Price:</span>
                 <span class="ml-2 font-semibold text-white font-mono">{{ formatEUR(selectedHolding.avgPrice) }}</span>
               </div>
               <div>
+                <span class="text-gray-400">Current Price:</span>
+                <span class="ml-2 font-semibold text-white font-mono">{{ formatEUR(selectedHolding.currentPrice) }}</span>
+              </div>
+              <div>
                 <span class="text-gray-400">Total Invested:</span>
-                <span class="ml-2 font-semibold text-white font-mono">{{ formatEUR(selectedHolding.avgPrice * selectedHolding.quantity) }}</span>
+                <span class="ml-2 font-semibold text-white font-mono">{{ formatEUR(selectedHolding.totalInvestedValue || (selectedHolding.avgPrice * selectedHolding.quantity)) }}</span>
               </div>
               <div>
                 <span class="text-gray-400">Current Value:</span>
                 <span class="ml-2 font-semibold text-white font-mono">{{ formatEUR(selectedHolding.value) }}</span>
               </div>
+              <div>
+                <span class="text-gray-400">Gain/Loss:</span>
+                <span :class="['ml-2 font-semibold font-mono', selectedHolding.gainLoss >= 0 ? 'text-green-400' : 'text-red-400']">
+                  {{ selectedHolding.gainLoss >= 0 ? '+' : '' }}{{ formatEUR(selectedHolding.gainLoss) }}
+                  ({{ selectedHolding.gainLossPercent >= 0 ? '+' : '' }}{{ selectedHolding.gainLossPercent.toFixed(2) }}%)
+                </span>
+              </div>
             </div>
           </div>
-          <p class="text-sm text-gray-400 mb-4">Purchase history is calculated based on your average purchase price and total holdings.</p>
-          <div class="bg-gray-700/20 rounded-lg p-4 text-center text-gray-400">
-            <p>Detailed purchase history will be available in a future update.</p>
+          <div v-if="isLoadingPurchaseDetails" class="flex justify-center items-center py-8">
+            <div class="h-8 w-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+          </div>
+          <div v-else-if="purchaseDetails.length > 0" class="space-y-3">
+            <div class="text-sm font-semibold text-gray-300 mb-3">Purchase History</div>
+            <div class="overflow-x-auto">
+              <table class="w-full text-sm">
+                <thead>
+                  <tr class="border-b border-gray-700">
+                    <th class="text-left py-2 px-3 text-gray-400 font-semibold">Date</th>
+                    <th class="text-right py-2 px-3 text-gray-400 font-semibold">Quantity</th>
+                    <th class="text-right py-2 px-3 text-gray-400 font-semibold">Price</th>
+                    <th class="text-right py-2 px-3 text-gray-400 font-semibold">Total Cost</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-for="purchase in purchaseDetails" :key="purchase.id" class="border-b border-gray-700/50 hover:bg-gray-700/20">
+                    <td class="py-2 px-3 text-gray-300">{{ new Date(purchase.datetime).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' }) }}</td>
+                    <td class="py-2 px-3 text-right text-white font-mono">{{ purchase.quantity.toFixed(8) }}</td>
+                    <td class="py-2 px-3 text-right text-white font-mono">{{ formatEUR(purchase.price) }}</td>
+                    <td class="py-2 px-3 text-right text-white font-mono font-semibold">{{ formatEUR(purchase.total_cost) }}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="bg-gray-700/30 rounded-lg p-4 mt-4">
+              <div class="grid grid-cols-2 gap-4 text-sm">
+                <div>
+                  <span class="text-gray-400">Total Purchases:</span>
+                  <span class="ml-2 font-semibold text-white">{{ purchaseDetails.length }}</span>
+                </div>
+                <div>
+                  <span class="text-gray-400">Total Quantity Bought:</span>
+                  <span class="ml-2 font-semibold text-white font-mono">{{ purchaseDetails.reduce((sum, p) => sum + p.quantity, 0).toFixed(8) }}</span>
+                </div>
+                <div class="col-span-2">
+                  <span class="text-gray-400">Total Cost:</span>
+                  <span class="ml-2 font-semibold text-white font-mono">{{ formatEUR(purchaseDetails.reduce((sum, p) => sum + p.total_cost, 0)) }}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div v-else class="bg-gray-700/20 rounded-lg p-4 text-center text-gray-400">
+            <p>No purchase history available.</p>
           </div>
         </div>
       </div>
@@ -456,11 +508,11 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { Wallet, X, TrendingUp, TrendingDown, Activity } from 'lucide-vue-next';
 import { formatEUR } from '../utils/formatEUR';
 import { useAuthStore } from '@/stores/auth';
-import { getPortfolio, sellCrypto } from '../services/api';
+import { getPortfolio, sellCrypto, getPurchaseDetails } from '../services/api';
 import { getCryptoIcon } from '../utils/cryptoIcons';
 import FooterSection from '../components/sectionsLanding/FooterSection.vue';
 import type { PortfolioResponse } from '../types';
@@ -472,6 +524,7 @@ const showSellModal = ref(false);
 const isPurchaseDetailsOpen = ref(false);
 const selectedHolding = ref<{
   id: number;
+  cryptoCurrencyId?: number;
   symbol: string;
   name: string;
   quantity: number;
@@ -482,11 +535,18 @@ const selectedHolding = ref<{
   gainLossPercent: number;
   portfolioPercent: number;
   priceChange: number;
+  totalInvestedValue?: number;
+  totalCost?: number;
+  buyTransactionsCount?: number;
 } | null>(null);
+
+const purchaseDetails = ref<Array<{ id: number; date: string; datetime: string; quantity: number; price: number; total_cost: number }>>([]);
+const isLoadingPurchaseDetails = ref(false);
 const sellQuantity = ref('');
 const isSelling = ref(false);
 const sellError = ref('');
 const sellSuccess = ref('');
+let portfolioRefreshTimer: ReturnType<typeof setInterval> | null = null;
 
 // Portfolio holdings for table
 const portfolioHoldings = computed(() => {
@@ -505,27 +565,32 @@ const portfolioHoldings = computed(() => {
     .map(pos => {
       const quantity = pos.quantity || 0;
       const currentPrice = pos.current_price || 0;
-      const investedValue = pos.invested_value || 0;
-      const avgPrice = quantity > 0 ? investedValue / quantity : 0;
-      const value = quantity * currentPrice;
-      const gainLoss = value - investedValue;
-      const gainLossPercent = investedValue > 0 ? (gainLoss / investedValue) * 100 : 0;
+      // Utiliser les valeurs calculées par le backend selon le cahier des charges
+      const averagePurchasePrice = pos.average_purchase_price || 0;
+      const totalInvestedValue = pos.total_invested_value || 0;
+      const value = pos.current_value || (quantity * currentPrice);
+      const gainLoss = pos.gain_loss || 0;
+      const gainLossPercent = pos.gain_loss_percent || 0;
       const portfolioPercent = totalValue > 0 ? (value / totalValue) * 100 : 0;
-      // Calculate price change (simplified - using gain/loss as proxy)
-      const priceChange = avgPrice > 0 ? ((currentPrice - avgPrice) / avgPrice) * 100 : 0;
+      const priceChange = averagePurchasePrice > 0 ? ((currentPrice - averagePurchasePrice) / averagePurchasePrice) * 100 : 0;
+      const cryptoCurrencyId = pos.crypto_currency_id;
 
       return {
         id: pos.id,
+        cryptoCurrencyId,
         symbol: pos.crypto?.symbol || 'N/A',
         name: pos.crypto?.name || 'Unknown',
         quantity,
-        avgPrice,
+        avgPrice: averagePurchasePrice,
         currentPrice,
         value,
         gainLoss,
         gainLossPercent,
         portfolioPercent,
-        priceChange
+        priceChange,
+        totalInvestedValue,
+        totalCost: pos.total_cost || 0,
+        buyTransactionsCount: pos.buy_transactions_count || 0
       };
     })
     .sort((a, b) => b.value - a.value); // Sort by value descending
@@ -536,9 +601,9 @@ const totalPortfolioValue = computed(() => {
   return portfolioHoldings.value.reduce((sum, holding) => sum + holding.value, 0);
 });
 
-// Total invested value
+// Total invested value (selon cahier des charges: coût total investi)
 const totalInvested = computed(() => {
-  return portfolioHoldings.value.reduce((sum, holding) => sum + (holding.avgPrice * holding.quantity), 0);
+  return portfolioHoldings.value.reduce((sum, holding) => sum + (holding.totalInvestedValue || 0), 0);
 });
 
 // Total portfolio gain/loss
@@ -658,14 +723,31 @@ function closeSellModal() {
   sellSuccess.value = '';
 }
 
-function showPurchaseDetails(holding: typeof portfolioHoldings.value[0]) {
+async function showPurchaseDetails(holding: typeof portfolioHoldings.value[0]) {
   selectedHolding.value = holding;
   isPurchaseDetailsOpen.value = true;
+  
+  // Charger les détails des achats
+  if (holding.cryptoCurrencyId) {
+    isLoadingPurchaseDetails.value = true;
+    try {
+      const response = await getPurchaseDetails(holding.cryptoCurrencyId);
+      purchaseDetails.value = response.purchases || [];
+    } catch (error) {
+      console.error('Error loading purchase details:', error);
+      purchaseDetails.value = [];
+    } finally {
+      isLoadingPurchaseDetails.value = false;
+    }
+  } else {
+    purchaseDetails.value = [];
+  }
 }
 
 function closePurchaseDetails() {
   isPurchaseDetailsOpen.value = false;
   selectedHolding.value = null;
+  purchaseDetails.value = [];
 }
 
 async function handleSell() {
@@ -726,6 +808,26 @@ onMounted(async () => {
     await auth.fetchCurrentUser();
   }
   await loadPortfolio();
+  
+  // Rafraîchir le portfolio toutes les 30 secondes pour mettre à jour les prix en temps réel
+  portfolioRefreshTimer = setInterval(async () => {
+    await loadPortfolio();
+    // Mettre à jour les détails des achats si la modal est ouverte
+    if (isPurchaseDetailsOpen.value && selectedHolding.value?.cryptoCurrencyId) {
+      try {
+        const response = await getPurchaseDetails(selectedHolding.value.cryptoCurrencyId);
+        purchaseDetails.value = response.purchases || [];
+      } catch (error) {
+        console.error('Error refreshing purchase details:', error);
+      }
+    }
+  }, 30000); // 30 secondes
+});
+
+onUnmounted(() => {
+  if (portfolioRefreshTimer) {
+    clearInterval(portfolioRefreshTimer);
+  }
 });
 </script>
 

@@ -42,6 +42,9 @@ export interface CryptoCurrency {
   name: string;
   symbol: string;
   price?: number;
+  change24h?: number;
+  marketCap?: number;
+  volume24h?: number;
 }
 
 export interface CryptoPricePoint {
@@ -59,8 +62,14 @@ export interface PortfolioPosition {
   current_price?: number;
   current_value?: number;
   invested_value?: number;
+  average_purchase_price?: number;
+  total_invested_value?: number;
+  total_cost?: number;
   gain_loss?: number;
   gain_loss_percent?: number | null;
+  buy_transactions_count?: number;
+  total_buy_quantity?: number;
+  total_sell_quantity?: number;
   crypto?: CryptoCurrency;
 }
 

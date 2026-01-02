@@ -9,15 +9,45 @@ use Carbon\Carbon;
 
 class CryptoService
 {
+    private CoinGeckoService $coinGeckoService;
+
+    public function __construct(CoinGeckoService $coinGeckoService)
+    {
+        $this->coinGeckoService = $coinGeckoService;
+    }
+
     /**
-     * Retourne les prix actuels des 10 cryptos
+     * Retourne les prix actuels des 10 cryptos avec données live depuis CoinGecko
      */
     public function getCurrentPrices()
     {
         $cryptos = CryptoCurrency::all();
+        $symbols = $cryptos->pluck('symbol')->toArray();
 
-        return $cryptos->map(function ($crypto) {
-            // Try CryptoPrice table first, then PriceHistory
+        // Récupérer toutes les données depuis CoinGecko en une seule requête
+        $liveData = $this->coinGeckoService->getMultipleCryptoData($symbols);
+
+        return $cryptos->map(function ($crypto) use ($liveData) {
+            $symbol = $crypto->symbol;
+            $upperSymbol = strtoupper($symbol);
+            
+            // Chercher les données live pour ce symbole (essayer le symbole exact et sa version uppercase)
+            $data = $liveData[$upperSymbol] ?? $liveData[$symbol] ?? null;
+
+            if ($data) {
+                // Données live depuis CoinGecko
+                return [
+                    'id' => $crypto->id,
+                    'symbol' => $crypto->symbol,
+                    'name' => $crypto->name,
+                    'price' => $data['price'],
+                    'change24h' => $data['change24h'],
+                    'marketCap' => $data['marketCap'],
+                    'volume24h' => $data['volume24h'],
+                ];
+            }
+
+            // Fallback: utiliser les données de la base de données si CoinGecko échoue
             $price = CryptoPrice::where('crypto_currency_id', $crypto->id)
                 ->latest('recorded_at')
                 ->value('price');
@@ -29,18 +59,29 @@ class CryptoService
             }
 
             return [
+                'id' => $crypto->id,
                 'symbol' => $crypto->symbol,
                 'name' => $crypto->name,
                 'price' => $price !== null ? (float) $price : 0.0,
+                'change24h' => 0.0,
+                'marketCap' => 0.0,
+                'volume24h' => 0.0,
             ];
         });
     }
 
     /**
-     * Retourne le prix actuel d'une crypto
+     * Retourne le prix actuel d'une crypto avec données live
      */
     public function getCurrentPrice(string $symbol)
     {
+        // Essayer CoinGecko d'abord
+        $data = $this->coinGeckoService->getCryptoData($symbol);
+        if ($data && isset($data['price'])) {
+            return $data['price'];
+        }
+
+        // Fallback vers la base de données
         $crypto = CryptoCurrency::where('symbol', $symbol)->first();
 
         if (!$crypto) {

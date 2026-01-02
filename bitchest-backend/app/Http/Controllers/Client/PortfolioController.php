@@ -20,4 +20,17 @@ class PortfolioController extends Controller
             'portfolio' => $portfolios
         ]);
     }
+    
+    /**
+     * Récupère les détails des achats pour une crypto spécifique
+     */
+    public function purchaseDetails($cryptoCurrencyId)
+    {
+        $user = auth()->user();
+        $details = $this->portfolioService->getPurchaseDetails($user, $cryptoCurrencyId);
+        
+        return response()->json([
+            'purchases' => $details
+        ]);
+    }
 }

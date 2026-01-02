@@ -43,6 +43,7 @@ Route::middleware(['auth:sanctum','account.status'])->group(function () {
 
         // Portfolio
         Route::get('/portfolio', [PortfolioController::class, 'index']);
+        Route::get('/portfolio/crypto/{cryptoCurrencyId}/purchases', [PortfolioController::class, 'purchaseDetails']);
         Route::put('/profile', [ProfileController::class, 'update']);
         
         // Profile picture and banner uploads

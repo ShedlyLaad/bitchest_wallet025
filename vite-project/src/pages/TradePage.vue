@@ -93,7 +93,8 @@
                           'w-12 h-12 rounded-xl flex items-center justify-center overflow-hidden border-2 transition-all duration-300',
                           selectedCrypto?.id === crypto.id
                             ? 'border-blue-500/50 bg-blue-500/10 scale-110'
-                            : 'border-gray-600/50 bg-gray-700/50 group-hover:border-blue-400/50 group-hover:scale-110 group-hover:bg-blue-500/10'
+                            : 'border-gray-600/50 bg-gray-700/50 group-hover:border-blue-400/50 group-hover:scale-110 group-hover:bg-blue-500/10',
+                          (crypto as any).isUpdating && (crypto as any).previousPrice && crypto.price && crypto.price > (crypto as any).previousPrice ? 'animate-pulse-price-up' : ''
                         ]">
                           <img
                             v-if="crypto.icon"
@@ -122,8 +123,26 @@
                     <div class="flex items-center gap-4 flex-shrink-0">
                       <!-- Price -->
                       <div class="text-right">
-                        <div class="text-white font-semibold text-sm group-hover:text-blue-300 transition-colors">
+                        <div 
+                          :class="[
+                            'text-white font-semibold text-sm group-hover:text-blue-300 transition-all duration-300',
+                            (crypto as any).isUpdating && (crypto as any).previousPrice && crypto.price && crypto.price > (crypto as any).previousPrice ? 'text-green-400 animate-pulse' : '',
+                            (crypto as any).isUpdating && (crypto as any).previousPrice && crypto.price && crypto.price < (crypto as any).previousPrice ? 'text-red-400 animate-pulse' : ''
+                          ]"
+                        >
                           {{ formatPrice(crypto.price || 0) }}
+                          <span 
+                            v-if="(crypto as any).previousPrice && crypto.price && crypto.price > (crypto as any).previousPrice"
+                            class="ml-1 text-green-400 text-xs animate-fade-in"
+                          >
+                            ↑
+                          </span>
+                          <span 
+                            v-else-if="(crypto as any).previousPrice && crypto.price && crypto.price < (crypto as any).previousPrice"
+                            class="ml-1 text-red-400 text-xs animate-fade-in"
+                          >
+                            ↓
+                          </span>
                         </div>
                       </div>
                       
@@ -131,13 +150,23 @@
                       <div class="text-right">
                         <div
                           :class="[
-                            'inline-flex items-center gap-1 px-3 py-1.5 rounded-lg font-semibold text-sm transition-all duration-300',
+                            'inline-flex items-center gap-1 px-3 py-1.5 rounded-lg font-semibold text-sm transition-all duration-300 relative',
                             (crypto.change24h ?? 0) >= 0
                               ? 'bg-green-500/20 text-green-400 border border-green-500/30 group-hover:bg-green-500/30 group-hover:shadow-lg group-hover:shadow-green-500/20'
-                              : 'bg-red-500/20 text-red-400 border border-red-500/30 group-hover:bg-red-500/30 group-hover:shadow-lg group-hover:shadow-red-500/20'
+                              : 'bg-red-500/20 text-red-400 border border-red-500/30 group-hover:bg-red-500/30 group-hover:shadow-lg group-hover:shadow-red-500/20',
+                            (crypto as any).isUpdating && (crypto as any).previousChange24h !== undefined && crypto.change24h !== undefined && 
+                            Math.abs(crypto.change24h) > Math.abs((crypto as any).previousChange24h) ? 'animate-pulse-change scale-110' : ''
                           ]"
                         >
                           <span>{{ (crypto.change24h ?? 0) >= 0 ? '+' : '' }}{{ (crypto.change24h ?? 0).toFixed(2) }}%</span>
+                          <span 
+                            v-if="(crypto as any).previousChange24h !== undefined && crypto.change24h !== undefined && 
+                                  Math.abs(crypto.change24h) > Math.abs((crypto as any).previousChange24h)"
+                            :class="[
+                              'absolute -top-1 -right-1 w-2 h-2 rounded-full animate-ping',
+                              crypto.change24h >= 0 ? 'bg-green-400' : 'bg-red-400'
+                            ]"
+                          ></span>
                         </div>
                       </div>
                     </div>
@@ -155,7 +184,7 @@
             <ProfessionalTradingChart
               :symbol="selectedCrypto?.symbol || ''"
               :crypto-name="selectedCrypto?.name || ''"
-              :price-data="history"
+              :price-data-with-dates="history"
               :current-price="selectedCrypto?.price || 0"
               :change24h="selectedCrypto?.change24h || 0"
               :crypto-icon="selectedCrypto?.icon"
@@ -362,7 +391,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, watch } from 'vue';
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
 import {
   Search as SearchIcon,
   Eye as EyeIcon,
@@ -396,7 +425,7 @@ const iconMap = adminCryptos.reduce<Record<string, (typeof adminCryptos)[number]
 
 const cryptocurrencies = ref<DisplayCrypto[]>([...adminCryptos]);
 const selectedCrypto = ref<DisplayCrypto>(cryptocurrencies.value[0]);
-const history = ref<number[]>([]);
+const history = ref<CryptoPricePoint[]>([]);
 const search = ref('');
 const loading = ref(false);
 const historyLoading = ref(false);
@@ -446,11 +475,18 @@ const isAmountExceedingBalance = computed(() => {
   return finalAmount > balance;
 });
 
-// Calculate total gain/loss from portfolio
+// Calculate total gain/loss from portfolio dynamically
 const totalGainLoss = computed(() => {
-  if (!portfolioData.value) return 0;
+  if (!portfolioData.value || !portfolioData.value.portfolio) return 0;
   return portfolioData.value.portfolio.reduce((sum, position) => {
-    return sum + (position.gain_loss || 0);
+    // Use gain_loss from backend if available, otherwise calculate it
+    if (position.gain_loss !== undefined && position.gain_loss !== null) {
+      return sum + Number(position.gain_loss);
+    }
+    // Fallback calculation if gain_loss is not provided
+    const currentValue = (position.current_value || 0);
+    const investedValue = (position.total_invested_value || position.invested_value || 0);
+    return sum + (currentValue - investedValue);
   }, 0);
 });
 
@@ -609,7 +645,7 @@ async function handleTrade() {
       amount.value = '';
       quantity.value = '';
       
-      // Reload portfolio to update available quantities
+      // Reload portfolio to update available quantities and profit/loss
       await loadPortfolio();
     } else {
       // Sell - Validate quantity against portfolio
@@ -647,7 +683,7 @@ async function handleTrade() {
       amount.value = '';
       quantity.value = '';
       
-      // Reload portfolio to update available quantities
+      // Reload portfolio to update available quantities and profit/loss
       await loadPortfolio();
     }
     
@@ -672,24 +708,38 @@ async function handleTrade() {
   }
 }
 
+// Store previous prices for animation
+const previousPrices = ref<Map<string, { price: number; change24h: number }>>(new Map());
+
 async function loadMarket() {
   loading.value = true;
   errorMessage.value = '';
   try {
     const data = await getMarket();
+    
+    // Store previous prices before updating
+    const prevPrices = new Map(
+      cryptocurrencies.value.map(c => [c.symbol, { price: c.price || 0, change24h: c.change24h || 0 }])
+    );
+    
     cryptocurrencies.value = data.map((item) => {
       const fallback = iconMap[item.symbol];
       // Use getCryptoIcon for reliable icon mapping, fallback to adminCryptos icon if available
       const icon = getCryptoIcon(item.symbol) || fallback?.icon;
+      const prev = prevPrices.get(item.symbol);
+      
       return {
         id: item.id ?? item.symbol,
         symbol: item.symbol,
         name: item.name,
         price: item.price ?? fallback?.price ?? 0,
-        change24h: fallback?.change24h ?? 0,
+        change24h: item.change24h ?? fallback?.change24h ?? 0,
         marketCap: fallback?.marketCap,
         volume24h: fallback?.volume24h,
-        icon: icon
+        icon: icon,
+        previousPrice: prev?.price,
+        previousChange24h: prev?.change24h,
+        isUpdating: false
       };
     });
 
@@ -697,10 +747,22 @@ async function loadMarket() {
       cryptocurrencies.value = [...adminCryptos];
     }
 
-    selectedCrypto.value = cryptocurrencies.value[0];
+    // Update selected crypto if it exists
+    if (selectedCrypto.value) {
+      const updated = cryptocurrencies.value.find(c => c.symbol === selectedCrypto.value?.symbol);
+      if (updated) {
+        selectedCrypto.value = updated;
+      }
+    } else {
+      selectedCrypto.value = cryptocurrencies.value[0];
+    }
+    
     if (selectedCrypto.value) {
       await loadHistory(selectedCrypto.value.symbol);
     }
+    
+    // Update previous prices
+    previousPrices.value = prevPrices;
   } catch (e: any) {
     errorMessage.value = e?.response?.data?.message || 'Impossible de charger le marché';
     cryptocurrencies.value = [...adminCryptos];
@@ -715,7 +777,7 @@ async function loadHistory(symbol: string) {
   historyLoading.value = true;
   try {
     const data = await getMarketHistory(symbol);
-    history.value = (data as CryptoPricePoint[]).map((p) => Number(p.price));
+    history.value = data as CryptoPricePoint[];
   } catch {
     history.value = [];
   } finally {
@@ -743,11 +805,30 @@ watch(() => selectedCrypto.value?.symbol, () => {
   }
 });
 
+// Auto-refresh market data and portfolio
+let marketRefreshTimer: ReturnType<typeof setInterval> | null = null;
+let portfolioRefreshTimer: ReturnType<typeof setInterval> | null = null;
+
 onMounted(async () => {
   if (!auth.user && auth.token) {
     await auth.fetchCurrentUser();
   }
   await Promise.all([loadMarket(), loadPortfolio()]);
+  
+  // Refresh market data every 30 seconds
+  marketRefreshTimer = setInterval(() => {
+    loadMarket();
+  }, 30000);
+  
+  // Refresh portfolio every 15 seconds to update profit/loss
+  portfolioRefreshTimer = setInterval(() => {
+    loadPortfolio();
+  }, 15000);
+});
+
+onUnmounted(() => {
+  if (marketRefreshTimer) clearInterval(marketRefreshTimer);
+  if (portfolioRefreshTimer) clearInterval(portfolioRefreshTimer);
 });
 </script>
 
@@ -825,5 +906,50 @@ onMounted(async () => {
   50% {
     box-shadow: 0 0 30px rgba(59, 130, 246, 0.3);
   }
+}
+
+@keyframes pulse-price-up {
+  0%, 100% {
+    background-color: rgba(34, 197, 94, 0.1);
+    border-color: rgba(34, 197, 94, 0.3);
+  }
+  50% {
+    background-color: rgba(34, 197, 94, 0.2);
+    border-color: rgba(34, 197, 94, 0.5);
+  }
+}
+
+@keyframes pulse-change {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.05);
+    opacity: 0.9;
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-pulse-price-up {
+  animation: pulse-price-up 0.8s ease-in-out;
+}
+
+.animate-pulse-change {
+  animation: pulse-change 0.8s ease-in-out;
+}
+
+.animate-fade-in {
+  animation: fade-in 0.3s ease-out;
 }
 </style>

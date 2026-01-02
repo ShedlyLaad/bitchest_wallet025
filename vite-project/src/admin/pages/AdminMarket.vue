@@ -257,22 +257,13 @@ async function loadCryptos() {
       }
     });
     
-    // Trier par change24h (croissant pour mettre les valeurs en baisse en haut, puis les hausses)
-    // Les valeurs négatives (baisse) en haut, les positives (hausse) en bas
+    // Trier par change24h - plus grand pourcentage en haut (décroissant)
     adminCryptosLocal.value.sort((a, b) => {
       const changeA = a.change24h ?? 0;
       const changeB = b.change24h ?? 0;
       
-      // Si les deux sont négatifs, trier du plus négatif au moins négatif
-      if (changeA < 0 && changeB < 0) {
-        return changeA - changeB;
-      }
-      // Si les deux sont positifs, trier du plus positif au moins positif
-      if (changeA >= 0 && changeB >= 0) {
-        return changeB - changeA;
-      }
-      // Les négatifs avant les positifs
-      return changeA < 0 ? -1 : 1;
+      // Trier par valeur absolue décroissante (plus grand pourcentage en haut)
+      return Math.abs(changeB) - Math.abs(changeA);
     });
     
     // Mettre à jour la crypto sélectionnée si elle existe toujours
@@ -326,8 +317,8 @@ const lastUpdatedLabel = computed(() => {
 
 onMounted(() => {
   loadCryptos();
-  // Refresh toutes les 30 secondes pour des données live
-  refreshTimer = setInterval(loadCryptos, 30000);
+  // Refresh une seule fois dans les 24h (86400000 ms)
+  refreshTimer = setInterval(loadCryptos, 86400000);
 });
 
 onUnmounted(() => {

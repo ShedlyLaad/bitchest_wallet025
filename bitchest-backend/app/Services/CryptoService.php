@@ -58,12 +58,25 @@ class CryptoService
                     ->value('price');
             }
 
+            // Calculer change24h depuis l'historique si disponible
+            $change24h = 0.0;
+            if ($price !== null) {
+                $price24hAgo = PriceHistory::where('crypto_currency_id', $crypto->id)
+                    ->where('recorded_at', '<=', Carbon::now()->subHours(24))
+                    ->latest('recorded_at')
+                    ->value('price');
+                
+                if ($price24hAgo !== null && $price24hAgo > 0) {
+                    $change24h = (($price - $price24hAgo) / $price24hAgo) * 100;
+                }
+            }
+
             return [
                 'id' => $crypto->id,
                 'symbol' => $crypto->symbol,
                 'name' => $crypto->name,
                 'price' => $price !== null ? (float) $price : 0.0,
-                'change24h' => 0.0,
+                'change24h' => round($change24h, 2),
                 'marketCap' => 0.0,
                 'volume24h' => 0.0,
             ];

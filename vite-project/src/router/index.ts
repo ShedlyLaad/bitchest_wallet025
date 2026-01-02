@@ -16,6 +16,7 @@ const AdminHome = () => import('../admin/pages/AdminHome.vue');
 const AdminUsers = () => import('../admin/pages/AdminUsers.vue');
 const AdminMarket = () => import('../admin/pages/AdminMarket.vue');
 const AdminProfile = () => import('../admin/pages/AdminProfile.vue');
+const AdminTransactions = () => import('../admin/pages/AdminTransactions.vue');
 
 const LandingPage = () => import('../pages/LandingPage.vue');
 const UserDashboard = () => import('../pages/UserDashboard.vue');
@@ -37,7 +38,8 @@ const routes = [
       { path: '', name: 'AdminHome', component: AdminHome },
       { path: 'users', name: 'AdminUsers', component: AdminUsers },
       { path: 'market', name: 'AdminMarket', component: AdminMarket },
-      { path: 'profile', name: 'AdminProfile', component: AdminProfile }
+      { path: 'profile', name: 'AdminProfile', component: AdminProfile },
+      { path: 'transactions', name: 'AdminTransactions', component: AdminTransactions }
     ]
   },
 

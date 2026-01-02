@@ -11,15 +11,58 @@
 
       <!-- Stats Cards -->
       <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
-        <div v-for="(stat, i) in stats" :key="i" class="bg-gray-800 rounded-xl p-6 border border-gray-700 hover:border-gray-600 transition-all">
-          <div class="flex items-center justify-between mb-4">
-            <div class="text-gray-400">
-              <component :is="stat.icon" class="h-6 w-6" />
+        <div
+          v-for="(stat, i) in stats"
+          :key="i"
+          class="stat-card group relative overflow-hidden"
+        >
+          <!-- Animated background gradient on hover -->
+          <div class="absolute inset-0 bg-gradient-to-br from-blue-500/0 via-blue-500/0 to-blue-500/0 group-hover:from-blue-500/10 group-hover:via-blue-500/5 group-hover:to-transparent transition-all duration-500"></div>
+          
+          <!-- Border glow effect on hover -->
+          <div class="absolute inset-0 rounded-xl border-2 border-transparent group-hover:border-blue-400/50 transition-all duration-500 opacity-0 group-hover:opacity-100"></div>
+          
+          <div class="relative bg-gradient-to-br from-gray-800 to-gray-900 rounded-xl p-6 border border-gray-700 transition-all duration-500 transform group-hover:scale-105 group-hover:shadow-2xl group-hover:shadow-blue-500/20">
+            <div class="flex items-center justify-between mb-4">
+              <!-- Icon with color variation -->
+              <div 
+                class="p-3 rounded-xl transition-all duration-500 group-hover:scale-110 group-hover:rotate-6"
+                :style="getIconStyle(stat)"
+              >
+                <component :is="stat.icon" class="h-6 w-6" :style="{ color: getIconColor(stat) }" />
+              </div>
+              
+              <!-- Change badge for Profit/Loss -->
+              <div
+                v-if="stat.title === 'Profit/Loss' && stat.value !== '€0.00'"
+                :class="[
+                  'text-xs font-medium px-2 py-1 rounded flex items-center gap-1',
+                  parseFloat(stat.value.replace('€', '').replace(',', '')) >= 0 
+                    ? 'bg-green-500/20 text-green-400 border border-green-500/30' 
+                    : 'bg-red-500/20 text-red-400 border border-red-500/30'
+                ]"
+              >
+                <component 
+                  :is="parseFloat(stat.value.replace('€', '').replace(',', '')) >= 0 ? TrendingUp : TrendingDown" 
+                  class="h-3 w-3" 
+                />
+                <span>{{ parseFloat(stat.value.replace('€', '').replace(',', '')) >= 0 ? '+' : '' }}</span>
+              </div>
             </div>
-          </div>
-          <div class="space-y-1">
-            <div class="text-2xl font-bold">{{ stat.value }}</div>
-            <div class="text-gray-400 text-sm">{{ stat.title }}</div>
+            
+            <div class="space-y-2">
+              <div class="text-3xl sm:text-4xl font-bold text-white transition-all duration-300 group-hover:text-blue-300">
+                {{ stat.value }}
+              </div>
+              <div class="text-gray-400 text-sm font-medium group-hover:text-gray-300 transition-colors duration-300">
+                {{ stat.title }}
+              </div>
+            </div>
+            
+            <!-- Decorative element -->
+            <div class="absolute bottom-0 right-0 w-20 h-20 opacity-5 group-hover:opacity-10 transition-opacity duration-500">
+              <component :is="stat.icon" class="w-full h-full" :style="{ color: getIconColor(stat) }" />
+            </div>
           </div>
         </div>
       </div>
@@ -577,8 +620,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue';
-import { Wallet, TrendingUp, TrendingDown, DollarSign, Activity, User, Shield, CreditCard, History, Plus, Calendar } from 'lucide-vue-next';
+import { ref, computed, onMounted, onUnmounted } from 'vue';
+import { Wallet, TrendingUp, TrendingDown, Activity, User, Shield, CreditCard, History, Plus, Calendar, Euro } from 'lucide-vue-next';
 import FooterSection from '../components/sectionsLanding/FooterSection.vue';
 import { formatEUR } from '../utils/formatEUR';
 import { useAuthStore } from '@/stores/auth';
@@ -740,17 +783,46 @@ const paymentHistory = computed(() => {
   return history.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 });
 
+// Get icon color based on card type
+function getIconColor(stat: any): string {
+  if (stat.title === 'Balance' || stat.title === 'Portfolio Value') return '#3b82f6';
+  if (stat.title === 'Profit/Loss') {
+    const value = parseFloat(stat.value.replace('€', '').replace(',', '')) || 0;
+    return value >= 0 ? '#01ff19' : '#ff5964';
+  }
+  if (stat.title === 'Total Trades') return '#10b981';
+  return '#9ca3af';
+}
+
+// Get icon background style
+function getIconStyle(stat: any) {
+  const color = getIconColor(stat);
+  return {
+    backgroundColor: `${color}20`,
+    border: `1px solid ${color}40`,
+  };
+}
+
 // Stats computed from real data
 const stats = computed(() => {
   const balance = auth.user?.euro_balance ?? 0;
   const portfolioValue = portfolioData.value?.portfolio.reduce((sum, pos) => sum + (pos.current_value || 0), 0) ?? 0;
   const totalTrades = pagination.value.total || transactions.value.length;
-  const totalPL = portfolioData.value?.portfolio.reduce((sum, pos) => sum + (pos.gain_loss || 0), 0) ?? 0;
+  const totalPL = portfolioData.value?.portfolio.reduce((sum, pos) => {
+    // Use gain_loss from backend if available, otherwise calculate it
+    if (pos.gain_loss !== undefined && pos.gain_loss !== null) {
+      return sum + Number(pos.gain_loss);
+    }
+    // Fallback calculation
+    const currentValue = (pos.current_value || 0);
+    const investedValue = (pos.total_invested_value || pos.invested_value || 0);
+    return sum + (currentValue - investedValue);
+  }, 0);
 
   return [
     { title: 'Balance', value: formatEUR(balance), icon: Wallet },
     { title: 'Total Trades', value: totalTrades.toString(), icon: TrendingUp },
-    { title: 'Profit/Loss', value: formatEUR(totalPL), icon: DollarSign },
+    { title: 'Profit/Loss', value: formatEUR(totalPL), icon: Euro },
     { title: 'Portfolio Value', value: formatEUR(portfolioValue), icon: Activity },
   ];
 });
@@ -769,11 +841,19 @@ const portfolioHoldings = computed(() => {
     .map(pos => {
       const quantity = pos.quantity || 0;
       const currentPrice = pos.current_price || 0;
-      const investedValue = pos.invested_value || 0;
-      const avgPrice = quantity > 0 ? investedValue / quantity : 0;
-      const value = quantity * currentPrice;
-      const gainLoss = value - investedValue;
-      const gainLossPercent = investedValue > 0 ? (gainLoss / investedValue) * 100 : 0;
+      const currentValue = pos.current_value || (quantity * currentPrice);
+      const totalInvestedValue = pos.total_invested_value || pos.invested_value || 0;
+      const avgPrice = pos.average_purchase_price || (quantity > 0 ? totalInvestedValue / quantity : 0);
+      
+      // Use gain_loss from backend if available, otherwise calculate it
+      const gainLoss = pos.gain_loss !== undefined && pos.gain_loss !== null 
+        ? Number(pos.gain_loss)
+        : currentValue - totalInvestedValue;
+      
+      // Use gain_loss_percent from backend if available, otherwise calculate it
+      const gainLossPercent = pos.gain_loss_percent !== undefined && pos.gain_loss_percent !== null
+        ? Number(pos.gain_loss_percent)
+        : totalInvestedValue > 0 ? (gainLoss / totalInvestedValue) * 100 : 0;
 
       return {
         id: pos.id,
@@ -782,7 +862,7 @@ const portfolioHoldings = computed(() => {
         quantity,
         avgPrice,
         currentPrice,
-        value,
+        value: currentValue,
         gainLoss,
         gainLossPercent
       };
@@ -895,11 +975,23 @@ async function loadTransactions(page = 1) {
   }
 }
 
+// Auto-refresh portfolio and transactions
+let portfolioRefreshTimer: ReturnType<typeof setInterval> | null = null;
+
 onMounted(async () => {
   if (!auth.user && auth.token) {
     await auth.fetchCurrentUser();
   }
   await Promise.all([loadPortfolio(), loadTransactions()]);
+  
+  // Refresh portfolio once per 24 hours to update profit/loss (86400000 ms)
+  portfolioRefreshTimer = setInterval(() => {
+    loadPortfolio();
+  }, 86400000);
+});
+
+onUnmounted(() => {
+  if (portfolioRefreshTimer) clearInterval(portfolioRefreshTimer);
 });
 </script>
 
@@ -916,5 +1008,10 @@ onMounted(async () => {
 .slide-fade-leave-to {
   transform: translateY(-10px);
   opacity: 0;
+}
+
+/* Stat Card Styles */
+.stat-card {
+  cursor: pointer;
 }
 </style>

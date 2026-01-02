@@ -313,31 +313,94 @@
         </div>
       </div>
 
-      <!-- Recent Activity -->
+      <!-- Recent Transactions -->
       <div class="bg-gradient-to-br from-gray-800 to-gray-900 rounded-xl border border-gray-700 shadow-lg overflow-hidden">
         <div class="p-4 sm:p-6 border-b border-gray-700 bg-gray-800/50">
-          <div>
-            <h3 class="text-lg sm:text-xl font-semibold text-white">Recent Activity</h3>
-            <p class="text-xs text-gray-400 mt-1">Latest transactions and actions</p>
+          <div class="flex items-center justify-between">
+            <div>
+              <h3 class="text-lg sm:text-xl font-semibold text-white">Recent Transactions</h3>
+              <p class="text-xs text-gray-400 mt-1">Last 5 transactions</p>
+            </div>
+            <router-link
+              to="/admin/transactions"
+              class="group relative px-4 py-2.5 bg-gradient-to-r from-blue-600/20 to-blue-500/20 hover:from-blue-600/30 hover:to-blue-500/30 text-blue-400 hover:text-blue-300 rounded-lg border border-blue-500/40 hover:border-blue-400/60 transition-all duration-300 text-sm font-semibold flex items-center gap-2 shadow-lg shadow-blue-500/10 hover:shadow-blue-500/20 hover:scale-105"
+            >
+              <span class="relative z-10 flex items-center gap-2">
+                View All Transactions
+                <TrendingUp class="h-4 w-4 transition-transform duration-300 group-hover:translate-x-1" />
+              </span>
+              <div class="absolute inset-0 bg-gradient-to-r from-blue-500/0 to-blue-400/0 group-hover:from-blue-500/10 group-hover:to-blue-400/10 rounded-lg transition-all duration-300"></div>
+            </router-link>
           </div>
         </div>
         <div class="divide-y divide-gray-700 max-h-[500px] overflow-y-auto">
-          <div v-if="recentActivities.length === 0 && !loading" class="p-6 text-center text-gray-400">
-            No recent activities
+          <div v-if="recentTransactions.length === 0 && !loading" class="p-6 text-center text-gray-400">
+            No recent transactions
           </div>
           <div
-            v-for="activity in recentActivities"
-            :key="activity.id"
-            class="p-4 sm:p-6 hover:bg-gray-700/30 transition-colors border-l-4 border-transparent hover:border-blue-500"
+            v-for="transaction in recentTransactions"
+            :key="transaction.id"
+            @click="openTransactionDetails(transaction)"
+            class="p-4 sm:p-6 hover:bg-gray-700/30 transition-all cursor-pointer border-l-4 border-transparent hover:border-blue-500 group"
           >
-            <div class="flex items-start justify-between">
-              <div class="space-y-1 flex-1">
-                <div class="font-semibold text-sm text-white">{{ activity.user }}</div>
-                <div class="text-gray-300 text-sm">{{ activity.action }}</div>
-                <div class="text-xs text-gray-500 mt-1">{{ formatDate(activity.time) }}</div>
+            <div class="flex items-start justify-between gap-4">
+              <div class="flex-1 space-y-2">
+                <div class="flex items-center gap-3">
+                  <div
+                    :class="[
+                      'px-3 py-1.5 rounded-lg font-semibold text-xs uppercase',
+                      transaction.type === 'buy'
+                        ? 'bg-green-500/20 text-green-400 border border-green-500/30'
+                        : 'bg-red-500/20 text-red-400 border border-red-500/30'
+                    ]"
+                  >
+                    {{ transaction.type }}
+                  </div>
+                  <div class="relative w-10 h-10 rounded-xl bg-gray-700/50 flex items-center justify-center border border-gray-600/50 overflow-hidden group-hover:border-blue-500/50 transition-all">
+                    <img
+                      v-if="getCryptoIcon(transaction.portfolio?.crypto?.symbol || '')"
+                      :src="getCryptoIcon(transaction.portfolio?.crypto?.symbol || '')"
+                      :alt="transaction.portfolio?.crypto?.symbol || 'N/A'"
+                      class="w-full h-full object-contain p-1.5"
+                      @error="(e: any) => e.target.style.display = 'none'"
+                    />
+                    <span v-else class="text-xs font-bold text-white">
+                      {{ transaction.portfolio?.crypto?.symbol?.charAt(0) || '?' }}
+                    </span>
+                  </div>
+                  <div>
+                    <div class="font-semibold text-sm text-white">
+                      {{ transaction.portfolio?.crypto?.symbol || 'N/A' }}
+                    </div>
+                    <div class="text-gray-400 text-xs">
+                      {{ transaction.portfolio?.crypto?.name || '' }}
+                    </div>
+                  </div>
+                </div>
+                <div class="grid grid-cols-2 gap-3 text-sm">
+                  <div>
+                    <span class="text-gray-400">User:</span>
+                    <span class="text-white ml-2 font-medium">{{ transaction.portfolio?.user?.name || 'Unknown' }}</span>
+                  </div>
+                  <div>
+                    <span class="text-gray-400">Amount:</span>
+                    <span class="text-white ml-2 font-medium">{{ formatCurrency(transaction.euro_amount) }}</span>
+                  </div>
+                  <div>
+                    <span class="text-gray-400">Quantity:</span>
+                    <span class="text-white ml-2 font-medium">{{ formatNumber(transaction.quantity) }}</span>
+                  </div>
+                  <div>
+                    <span class="text-gray-400">Price:</span>
+                    <span class="text-white ml-2 font-medium">{{ formatCurrency(transaction.price_at_transaction) }}</span>
+                  </div>
+                </div>
+                <div class="text-xs text-gray-500 mt-1">
+                  {{ formatDateTime(transaction.created_at) }}
+                </div>
               </div>
-              <button class="p-1 text-gray-400 hover:text-white hover:bg-gray-700/50 rounded transition-colors">
-                <MoreVertical class="h-4 w-4" />
+              <button class="p-2 text-gray-400 hover:text-white hover:bg-gray-700/50 rounded transition-colors opacity-0 group-hover:opacity-100">
+                <Eye class="h-4 w-4" />
               </button>
             </div>
           </div>
@@ -354,19 +417,22 @@ import {
   Eye,
   CheckCircle,
   XCircle,
-  MoreVertical,
   Users,
   TrendingUp,
   AlertCircle,
   Coins,
 } from 'lucide-vue-next';
+import { useRouter } from 'vue-router';
+import type { Transaction } from '@/types';
 import ApexChart from 'vue3-apexcharts';
 import type { ApexOptions } from 'apexcharts';
 import AnimatedCounter from '@/components/AnimatedCounter.vue';
-import api from '@/services/api';
+import { getAdminDashboard, getAdminTransactions } from '@/services/api';
 import { useAuthStore } from '@/stores/auth';
+import { getCryptoIcon } from '@/utils/cryptoIcons';
 
 const auth = useAuthStore();
+const router = useRouter();
 const timeFilter = ref('30d'); // Default to 30 days
 const searchTerm = ref('');
 const loading = ref(false);
@@ -385,7 +451,8 @@ const totals = ref<Totals | null>(null);
 const revenueSeries = ref<number[]>([]);
 const tradesSeries = ref<number[]>([]);
 const pendingKycUsers = ref<{ id: number; name: string; email: string; submitDate: string }[]>([]);
-const recentActivities = ref<{ id: number; user: string; action: string; time: string }[]>([]);
+const recentTransactions = ref<Transaction[]>([]);
+const selectedTransaction = ref<Transaction | null>(null);
 
 const isAdmin = computed(() => auth.user?.role === 'admin');
 
@@ -734,6 +801,18 @@ function formatDate(date: string | Date) {
   return d.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
 }
 
+function formatDateTime(date: string | Date) {
+  if (!date) return '';
+  const d = typeof date === 'string' ? new Date(date) : date;
+  return d.toLocaleString('en-US', { 
+    year: 'numeric', 
+    month: 'short', 
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  });
+}
+
 function formatCurrency(value: number) {
   return new Intl.NumberFormat('en-GB', {
     style: 'currency',
@@ -741,6 +820,22 @@ function formatCurrency(value: number) {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   }).format(value);
+}
+
+function formatNumber(value: number, decimals: number = 8) {
+  return new Intl.NumberFormat('en-US', {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: decimals,
+  }).format(value);
+}
+
+function openTransactionDetails(transaction: Transaction) {
+  selectedTransaction.value = transaction;
+  // Navigate to transactions page with the transaction ID
+  router.push({ 
+    name: 'AdminTransactions', 
+    query: { transactionId: transaction.id.toString() } 
+  });
 }
 
 function getAverage(series: number[]) {
@@ -756,7 +851,7 @@ async function loadData() {
   loading.value = true;
   errorMessage.value = '';
   try {
-    const data = await api.getAdminDashboard(timeFilter.value);
+    const data = await getAdminDashboard(timeFilter.value);
     totals.value = data.totals ?? null;
     
     revenueSeries.value = Array.isArray(data.revenue_series) 
@@ -767,7 +862,15 @@ async function loadData() {
       : [];
     
     pendingKycUsers.value = data.pending_users || [];
-    recentActivities.value = data.recent_activities || [];
+    
+    // Fetch the last 5 transactions with full details
+    try {
+      const txData = await getAdminTransactions({ per_page: 5, page: 1 });
+      recentTransactions.value = txData.data || [];
+    } catch (e) {
+      console.error('Error fetching recent transactions:', e);
+      recentTransactions.value = [];
+    }
   } catch (e: any) {
     errorMessage.value = e?.response?.data?.message || 'Unable to load admin data';
     console.error('Error loading dashboard data:', e);

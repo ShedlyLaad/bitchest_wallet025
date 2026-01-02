@@ -28,7 +28,7 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import { useRoute, RouterLink } from 'vue-router';
-import { LayoutDashboard, Users, TrendingUp } from 'lucide-vue-next';
+import { LayoutDashboard, Users, TrendingUp, FileText } from 'lucide-vue-next';
 import AdminLogo from '../../assets/ADMIN.png';
 
 interface SidebarItem {
@@ -43,6 +43,7 @@ const sidebarItems: SidebarItem[] = [
   { path: '/admin', label: 'Dashboard', icon: LayoutDashboard },
   { path: '/admin/users', label: 'Users', icon: Users },
   { path: '/admin/market', label: 'Market', icon: TrendingUp },
+  { path: '/admin/transactions', label: 'Transactions', icon: FileText },
 ];
 
 function isActive(path: string) {

@@ -6,6 +6,7 @@ use App\Http\Controllers\Client\TransactionController;
 use App\Http\Controllers\Client\PortfolioController;
 use App\Http\Controllers\Client\CryptoMarketController;
 use App\Http\Controllers\Client\ProfileController;
+use App\Http\Controllers\Client\NotificationController;
 use App\Http\Controllers\Admin\UserController as AdminUserController;
 use App\Http\Controllers\Admin\CryptoController as AdminCryptoController;
 use App\Http\Controllers\Admin\AdminProfileController;
@@ -61,6 +62,13 @@ Route::middleware(['auth:sanctum','account.status'])->group(function () {
         // Marché crypto
         Route::get('/market', [CryptoMarketController::class, 'index']);
         Route::get('/market/history/{crypto_currency_id}', [CryptoMarketController::class, 'history']);
+
+        // Notifications
+        Route::get('/notifications', [NotificationController::class, 'index']);
+        Route::get('/notifications/unread-count', [NotificationController::class, 'unreadCount']);
+        Route::post('/notifications/{id}/read', [NotificationController::class, 'markAsRead']);
+        Route::post('/notifications/read-all', [NotificationController::class, 'markAllAsRead']);
+        Route::delete('/notifications/{id}', [NotificationController::class, 'destroy']);
     });
 
     /*

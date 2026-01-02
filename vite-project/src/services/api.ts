@@ -142,6 +142,32 @@ export async function getTransactionHistory(params?: { page?: number; per_page?:
   return data;
 }
 
+// NOTIFICATIONS
+export async function getNotifications(params?: { page?: number; per_page?: number; unread_only?: boolean }) {
+  const { data } = await api.get<Paginated<any>>('/api/notifications', { params });
+  return data;
+}
+
+export async function getUnreadNotificationsCount() {
+  const { data } = await api.get<{ count: number }>('/api/notifications/unread-count');
+  return data;
+}
+
+export async function markNotificationAsRead(id: number) {
+  const { data } = await api.post<{ message: string }>(`/api/notifications/${id}/read`);
+  return data;
+}
+
+export async function markAllNotificationsAsRead() {
+  const { data } = await api.post<{ message: string; count: number }>('/api/notifications/read-all');
+  return data;
+}
+
+export async function deleteNotification(id: number) {
+  const { data } = await api.delete<{ message: string }>(`/api/notifications/${id}`);
+  return data;
+}
+
 export async function getMarket() {
   const { data } = await api.get<CryptoCurrency[]>('/api/market');
   return data;

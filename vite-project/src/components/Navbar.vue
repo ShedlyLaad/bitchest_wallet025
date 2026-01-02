@@ -32,16 +32,8 @@
 
           <!-- Auth state with Avatar Dropdown (Absolute Right for Desktop) -->
           <div v-if="auth.isAuthenticated" class="hidden md:flex absolute right-0 items-center space-x-3">
-            <!-- Notifications Icon -->
-            <div class="relative">
-              <button 
-                class="relative p-2 rounded-full text-white hover:bg-white/10 transition-all focus:outline-none focus:ring-2 focus:ring-blue-500"
-                title="Notifications"
-              >
-                <Bell class="h-5 w-5" />
-                <span class="absolute top-0 right-0 w-2 h-2 bg-red-500 rounded-full border-2 border-gray-900"></span>
-              </button>
-            </div>
+            <!-- Notifications -->
+            <NotificationDropdown v-if="auth.user?.role === 'client'" ref="notificationDropdownRef" />
 
             <!-- Balance Chip for Client Users -->
             <div
@@ -152,13 +144,7 @@
         <!-- Mobile Menu Button (Absolute Right) -->
         <div v-if="auth.isAuthenticated" class="md:hidden absolute right-12 flex items-center space-x-2">
           <!-- Mobile Notifications -->
-          <button 
-            class="relative p-2 rounded-full text-white hover:bg-white/10 transition-all"
-            title="Notifications"
-          >
-            <Bell class="h-5 w-5" />
-            <span class="absolute top-0 right-0 w-2 h-2 bg-red-500 rounded-full border-2 border-gray-900"></span>
-          </button>
+          <NotificationDropdown v-if="auth.user?.role === 'client'" />
         </div>
         <div class="md:hidden absolute right-0">
           <button @click="toggleMenu" class="p-2 rounded-full text-white hover:bg-white/10 hover:scale-105 transition">
@@ -247,10 +233,11 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { User, Shield, TrendingUp, HelpCircle, Menu, X, ChevronDown, Wallet, LogOut, Bell } from 'lucide-vue-next';
+import { User, Shield, TrendingUp, HelpCircle, Menu, X, ChevronDown, Wallet, LogOut } from 'lucide-vue-next';
 import BitchestLogo from '../assets/bitchest_logo.png';
 import { formatEUR } from '../utils/formatEUR';
 import { useAuthStore } from '@/stores/auth';
+import NotificationDropdown from './NotificationDropdown.vue';
 
 const route = useRoute();
 const router = useRouter();

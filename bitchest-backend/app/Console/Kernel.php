@@ -9,10 +9,15 @@ class Kernel extends ConsoleKernel
 {
     protected function schedule(Schedule $schedule)
     {
-        // schedule a daily generation (example)
-      $schedule->call(function (\App\Services\CotationGeneratorService $service) {
-    $service->generateDaily();
-})->hourly();
+        // Generate crypto prices hourly
+        $schedule->call(function (\App\Services\CotationGeneratorService $service) {
+            $service->generateDaily();
+        })->hourly();
+
+        // Check portfolio notifications every 5 minutes
+        $schedule->command('notifications:check-portfolio')
+            ->everyFiveMinutes()
+            ->withoutOverlapping();
     }
 
     protected function commands()

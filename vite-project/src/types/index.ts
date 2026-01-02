@@ -120,3 +120,24 @@ export interface AdminCreateUserResponse {
   user: AuthUser;
   temporary_password: string;
 }
+
+export interface Notification {
+  id: number;
+  user_id: number;
+  portfolio_id?: number;
+  crypto_currency_id?: number;
+  type: 'profit' | 'loss' | 'price_alert' | 'portfolio_update';
+  title: string;
+  message: string;
+  crypto_symbol?: string;
+  gain_loss?: number;
+  gain_loss_percent?: number;
+  current_price?: number;
+  previous_price?: number;
+  is_read: boolean;
+  read_at?: string;
+  created_at: string;
+  updated_at: string;
+  crypto?: CryptoCurrency;
+  portfolio?: PortfolioPosition;
+}

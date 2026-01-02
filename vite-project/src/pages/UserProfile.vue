@@ -2,23 +2,23 @@
   <div class="min-h-screen bg-gray-900 text-white">
     <div class="max-w-6xl mx-auto p-3 sm:p-6 space-y-4 sm:space-y-8">
       <!-- Profile Banner -->
-      <div class="relative bg-gray-800 rounded-xl overflow-hidden border border-gray-700 h-48 sm:h-64">
+      <div class="relative bg-gradient-to-br from-gray-800 via-gray-800 to-gray-900 rounded-2xl overflow-hidden border border-white/10 h-48 sm:h-64 backdrop-blur-sm">
         <div 
           v-if="profileBannerUrl" 
           class="absolute inset-0 w-full h-full bg-cover bg-center"
           :style="{ backgroundImage: `url(${profileBannerUrl})` }"
         >
-          <div class="absolute inset-0 bg-black/30"></div>
+          <div class="absolute inset-0 bg-black/40 backdrop-blur-sm"></div>
         </div>
-        <div v-else class="absolute inset-0 w-full h-full bg-gradient-to-r from-blue-600 to-purple-600"></div>
+        <div v-else class="absolute inset-0 w-full h-full bg-gradient-to-br from-blue-600/20 via-purple-600/20 to-pink-600/20"></div>
         
         <!-- Banner Upload Button -->
         <div class="absolute top-4 right-4 flex items-center gap-2 z-20">
           <label 
-            class="cursor-pointer bg-black/50 hover:bg-black/70 rounded-full p-2 transition-colors backdrop-blur-sm disabled:opacity-50 disabled:cursor-not-allowed"
+            class="cursor-pointer bg-white/10 hover:bg-white/20 rounded-lg p-2 transition-all backdrop-blur-md border border-white/20 disabled:opacity-50 disabled:cursor-not-allowed"
             :class="{ 'opacity-50 cursor-not-allowed': uploadingBanner }"
           >
-            <CameraIcon v-if="!uploadingBanner" class="h-4 w-4" />
+            <CameraIcon v-if="!uploadingBanner" class="h-4 w-4 text-white" />
             <div v-else class="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
             <input 
               type="file" 
@@ -31,23 +31,23 @@
           <button 
             v-if="hasProfileBanner && !uploadingBanner && isEditing"
             @click.prevent.stop="handleDeleteBanner"
-            class="bg-red-600/50 hover:bg-red-600/70 rounded-full p-2 transition-colors backdrop-blur-sm"
+            class="bg-red-500/20 hover:bg-red-500/30 rounded-lg p-2 transition-all backdrop-blur-md border border-red-500/30"
             :disabled="uploadingBanner"
             title="Supprimer la bannière"
           >
-            <XIcon class="h-4 w-4" />
+            <XIcon class="h-4 w-4 text-red-300" />
           </button>
         </div>
       </div>
 
       <!-- Header -->
-      <div class="bg-gray-800 rounded-xl p-4 sm:p-8 border border-gray-700 -mt-20 sm:-mt-24 relative z-10">
+      <div class="bg-white/5 backdrop-blur-xl rounded-2xl p-4 sm:p-8 border border-white/10 -mt-20 sm:-mt-24 relative z-10 shadow-2xl">
         <div class="flex flex-col sm:flex-row items-start justify-between gap-4 sm:gap-6">
           <div class="flex flex-col sm:flex-row items-start gap-4 sm:gap-6 w-full sm:w-auto">
             <div class="relative">
               <div 
                 v-if="hasProfilePicture && !uploadingPicture"
-                class="w-16 sm:w-20 h-16 sm:h-20 rounded-full border-4 border-gray-800 overflow-hidden bg-gray-700"
+                class="w-20 sm:w-24 h-20 sm:h-24 rounded-2xl border-2 border-white/20 overflow-hidden bg-white/5 backdrop-blur-sm shadow-xl"
               >
                 <img 
                   :src="profilePictureUrl || undefined" 
@@ -59,22 +59,22 @@
               </div>
               <div 
                 v-else-if="uploadingPicture"
-                class="w-16 sm:w-20 h-16 sm:h-20 rounded-full border-4 border-gray-800 overflow-hidden bg-gray-700 flex items-center justify-center"
+                class="w-20 sm:w-24 h-20 sm:h-24 rounded-2xl border-2 border-white/20 overflow-hidden bg-white/5 backdrop-blur-sm flex items-center justify-center"
               >
-                <div class="h-6 w-6 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+                <div class="h-6 w-6 border-2 border-blue-400 border-t-transparent rounded-full animate-spin"></div>
               </div>
               <div 
                 v-else
-                class="w-16 sm:w-20 h-16 sm:h-20 bg-gradient-to-br from-blue-500 to-purple-500 rounded-full flex items-center justify-center text-xl sm:text-2xl font-bold border-4 border-gray-800"
+                class="w-20 sm:w-24 h-20 sm:h-24 bg-gradient-to-br from-blue-500/80 to-purple-500/80 rounded-2xl flex items-center justify-center text-2xl sm:text-3xl font-bold border-2 border-white/20 backdrop-blur-sm shadow-xl"
               >
                 {{ currentUser.name.charAt(0) }}
               </div>
               <label 
-                class="absolute -bottom-1 -right-1 bg-blue-600 hover:bg-blue-700 rounded-full p-2 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                class="absolute -bottom-2 -right-2 bg-white/10 hover:bg-white/20 backdrop-blur-md rounded-lg p-2 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed border border-white/20 shadow-lg"
                 :class="{ 'opacity-50 cursor-not-allowed': uploadingPicture }"
               >
-                <CameraIcon v-if="!uploadingPicture" class="h-3 w-3" />
-                <div v-else class="h-3 w-3 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                <CameraIcon v-if="!uploadingPicture" class="h-3.5 w-3.5 text-white" />
+                <div v-else class="h-3.5 w-3.5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
                 <input 
                   type="file" 
                   accept="image/*" 
@@ -86,36 +86,44 @@
               <button 
                 v-if="hasProfilePicture && !uploadingPicture && isEditing"
                 @click.prevent.stop="handleDeletePicture"
-                class="absolute -top-1 -right-1 bg-red-600 hover:bg-red-700 rounded-full p-1 transition-colors z-10"
+                class="absolute -top-2 -right-2 bg-red-500/20 hover:bg-red-500/30 backdrop-blur-md rounded-lg p-1.5 transition-all z-10 border border-red-500/30 shadow-lg"
                 :disabled="uploadingPicture"
                 title="Supprimer la photo"
               >
-                <XIcon class="h-2.5 w-2.5" />
+                <XIcon class="h-3 w-3 text-red-300" />
               </button>
             </div>
 
             <div class="space-y-2">
               <div class="flex flex-wrap items-center gap-2 sm:gap-3">
-                <h1 class="text-xl sm:text-2xl font-bold">{{ currentUser.name }}</h1>
-                <div v-if="auth.user?.status === 'active'" class="flex items-center space-x-1 px-2 py-1 rounded-full text-xs sm:text-sm PnL--pos" :style="{ backgroundColor: 'var(--accent-green)', opacity: 0.2 }">
-                  <CheckIcon class="h-3 w-3" />
-                  <span>Verified</span>
+                <h1 class="text-2xl sm:text-3xl font-bold text-white">{{ currentUser.name }}</h1>
+                <!-- Verified Badge -->
+                <div 
+                  v-if="auth.user?.status === 'active'" 
+                  class="flex items-center gap-1.5 px-2.5 py-1 bg-green-500/20 border border-green-500/30 rounded-lg backdrop-blur-sm"
+                  title="Verified Account"
+                >
+                  <CheckIcon class="h-3.5 w-3.5 text-green-400" />
+                  <span class="text-xs font-medium text-green-400">Verified</span>
                 </div>
               </div>
-              <p class="text-gray-400 text-sm sm:text-base">{{ currentUser.email }}</p>
-              <p class="text-xs sm:text-sm text-gray-500">Member since {{ memberSince }}</p>
+              <p class="text-gray-300 text-sm sm:text-base">{{ currentUser.email }}</p>
+              <p class="text-xs sm:text-sm text-gray-400">Member since {{ memberSince }}</p>
             </div>
           </div>
 
           <div class="flex flex-col sm:flex-row gap-2 sm:gap-3 w-full sm:w-auto">
-            <RouterLink to="/app/portfolio" class="w-full sm:w-auto flex items-center justify-center space-x-2 bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded-lg transition-colors">
-              <WalletIcon class="h-4 w-4" />
-              <span>View portfolio</span>
+            <RouterLink 
+              to="/app/portfolio" 
+              class="group w-full sm:w-auto flex items-center justify-center gap-2 bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-700 hover:to-blue-600 px-5 py-2.5 rounded-lg transition-all duration-300 shadow-lg shadow-blue-500/20 hover:shadow-blue-500/30 hover:scale-105 font-medium"
+            >
+              <WalletIcon class="h-4 w-4 transition-transform group-hover:scale-110" />
+              <span>View Portfolio</span>
             </RouterLink>
             <button
               @click="isEditing ? handleSaveProfile() : (isEditing = true)"
               :disabled="savingProfile"
-              class="w-full sm:w-auto flex items-center justify-center space-x-2 bg-gray-700 hover:bg-gray-600 px-4 py-2 rounded-lg transition-colors disabled:opacity-60"
+              class="w-full sm:w-auto flex items-center justify-center gap-2 bg-gradient-to-r from-gray-700 to-gray-600 hover:from-gray-600 hover:to-gray-500 px-5 py-2.5 rounded-lg transition-all duration-300 shadow-lg shadow-gray-700/20 hover:shadow-gray-600/30 hover:scale-105 disabled:opacity-60 disabled:hover:scale-100 font-medium"
             >
               <Edit3Icon class="h-4 w-4" />
               <span>
@@ -127,85 +135,95 @@
 
         <!-- Messages Section -->
         <div class="mt-4 space-y-2">
-          <div v-if="profileMessage" class="p-3 rounded-lg bg-emerald-900/50 border border-emerald-700 text-emerald-200 text-sm flex items-center justify-between">
-            <span>{{ profileMessage }}</span>
-            <button @click="profileMessage = ''" class="text-emerald-300 hover:text-emerald-100 ml-2">
-              <XIcon class="h-4 w-4" />
-            </button>
-          </div>
-          <div v-if="profileError" class="p-3 rounded-lg bg-red-900/50 border border-red-700 text-red-200 text-sm flex items-center justify-between">
-            <span>{{ profileError }}</span>
-            <button @click="profileError = ''" class="text-red-300 hover:text-red-100 ml-2">
-              <XIcon class="h-4 w-4" />
-            </button>
-          </div>
-          <div v-if="uploadMessage" class="p-3 rounded-lg bg-blue-900/50 border border-blue-700 text-blue-200 text-sm flex items-center justify-between">
-            <span>{{ uploadMessage }}</span>
-            <button @click="uploadMessage = ''" class="text-blue-300 hover:text-blue-100 ml-2">
-              <XIcon class="h-4 w-4" />
-            </button>
-          </div>
-          <div v-if="uploadError" class="p-3 rounded-lg bg-red-900/50 border border-red-700 text-red-200 text-sm flex items-center justify-between">
-            <span>{{ uploadError }}</span>
-            <button @click="uploadError = ''" class="text-red-300 hover:text-red-100 ml-2">
-              <XIcon class="h-4 w-4" />
-            </button>
-          </div>
+          <Transition name="fade">
+            <div v-if="profileMessage" class="p-3 rounded-xl bg-green-500/20 border border-green-500/30 text-green-300 text-sm flex items-center justify-between backdrop-blur-sm">
+              <span>{{ profileMessage }}</span>
+              <button @click="profileMessage = ''" class="text-green-400 hover:text-green-200 ml-2 transition-colors">
+                <XIcon class="h-4 w-4" />
+              </button>
+            </div>
+          </Transition>
+          <Transition name="fade">
+            <div v-if="profileError" class="p-3 rounded-xl bg-red-500/20 border border-red-500/30 text-red-300 text-sm flex items-center justify-between backdrop-blur-sm">
+              <span>{{ profileError }}</span>
+              <button @click="profileError = ''" class="text-red-400 hover:text-red-200 ml-2 transition-colors">
+                <XIcon class="h-4 w-4" />
+              </button>
+            </div>
+          </Transition>
+          <Transition name="fade">
+            <div v-if="uploadMessage" class="p-3 rounded-xl bg-blue-500/20 border border-blue-500/30 text-blue-300 text-sm flex items-center justify-between backdrop-blur-sm">
+              <span>{{ uploadMessage }}</span>
+              <button @click="uploadMessage = ''" class="text-blue-400 hover:text-blue-200 ml-2 transition-colors">
+                <XIcon class="h-4 w-4" />
+              </button>
+            </div>
+          </Transition>
+          <Transition name="fade">
+            <div v-if="uploadError" class="p-3 rounded-xl bg-red-500/20 border border-red-500/30 text-red-300 text-sm flex items-center justify-between backdrop-blur-sm">
+              <span>{{ uploadError }}</span>
+              <button @click="uploadError = ''" class="text-red-400 hover:text-red-200 ml-2 transition-colors">
+                <XIcon class="h-4 w-4" />
+              </button>
+            </div>
+          </Transition>
         </div>
 
         <div class="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <label class="block text-sm text-gray-300 mb-1">First name</label>
+          <div class="space-y-1">
+            <label class="block text-xs font-medium text-gray-400 uppercase tracking-wider">First name</label>
             <input
               v-model="profileForm.first_name"
               :disabled="!isEditing"
-              class="w-full bg-gray-900 border border-gray-700 rounded-lg px-4 py-2 text-white disabled:opacity-60"
+              class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-500 disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all backdrop-blur-sm"
+              placeholder="Enter first name"
             />
           </div>
-          <div>
-            <label class="block text-sm text-gray-300 mb-1">Last name</label>
+          <div class="space-y-1">
+            <label class="block text-xs font-medium text-gray-400 uppercase tracking-wider">Last name</label>
             <input
               v-model="profileForm.last_name"
               :disabled="!isEditing"
-              class="w-full bg-gray-900 border border-gray-700 rounded-lg px-4 py-2 text-white disabled:opacity-60"
+              class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-500 disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all backdrop-blur-sm"
+              placeholder="Enter last name"
             />
           </div>
-          <div>
-            <label class="block text-sm text-gray-300 mb-1">Phone</label>
+          <div class="space-y-1">
+            <label class="block text-xs font-medium text-gray-400 uppercase tracking-wider">Phone</label>
             <input
               v-model="profileForm.phone"
               :disabled="!isEditing"
-              class="w-full bg-gray-900 border border-gray-700 rounded-lg px-4 py-2 text-white disabled:opacity-60"
+              class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-500 disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all backdrop-blur-sm"
               placeholder="+33123456789"
             />
           </div>
-          <div>
-            <label class="block text-sm text-gray-300 mb-1">Email (read only)</label>
+          <div class="space-y-1">
+            <label class="block text-xs font-medium text-gray-400 uppercase tracking-wider">Email</label>
             <input
               :value="currentUser.email"
               disabled
-              class="w-full bg-gray-900 border border-gray-700 rounded-lg px-4 py-2 text-gray-400"
+              class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-gray-400 cursor-not-allowed backdrop-blur-sm"
             />
           </div>
         </div>
 
-        <div class="mt-6 sm:mt-8 grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-6">
-          <div class="bg-gray-700/30 rounded-lg p-4">
-            <div v-if="isBalanceLoading" class="text-2xl font-bold PnL--pos">
-              <div class="w-32 h-8 bg-gray-600/50 rounded animate-pulse"></div>
-            </div>
-            <div v-else class="text-2xl font-bold PnL--pos">{{ formattedBalance }}</div>
-            <div class="text-gray-400 text-sm">Account Balance</div>
+        <div class="mt-6 sm:mt-8 grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div class="bg-white/5 backdrop-blur-sm rounded-xl p-5 border border-white/10 hover:border-white/20 transition-all group">
+            <div class="text-xs font-medium text-gray-400 uppercase tracking-wider mb-2">Account Balance</div>
+            <div v-if="isBalanceLoading" class="h-8 w-32 bg-white/10 rounded-lg animate-pulse"></div>
+            <div v-else class="text-3xl font-bold text-green-400 group-hover:scale-105 transition-transform">{{ formattedBalance }}</div>
           </div>
 
-          <div class="bg-gray-700/30 rounded-lg p-4">
-            <div class="text-2xl font-bold text-app-secondary">0</div>
-            <div class="text-gray-400 text-sm">Total Transactions</div>
+          <div class="bg-white/5 backdrop-blur-sm rounded-xl p-5 border border-white/10 hover:border-white/20 transition-all group">
+            <div class="text-xs font-medium text-gray-400 uppercase tracking-wider mb-2">Total Transactions</div>
+            <div v-if="isTransactionsLoading" class="h-8 w-24 bg-white/10 rounded-lg animate-pulse"></div>
+            <div v-else class="text-3xl font-bold text-blue-400 group-hover:scale-105 transition-transform">{{ totalTransactions }}</div>
           </div>
 
-          <div class="bg-gray-700/30 rounded-lg p-4">
-            <div class="text-2xl font-bold text-purple-400">Level 2</div>
-            <div class="text-gray-400 text-sm">Verification Level</div>
+          <div class="bg-white/5 backdrop-blur-sm rounded-xl p-5 border border-white/10 hover:border-white/20 transition-all group">
+            <div class="text-xs font-medium text-gray-400 uppercase tracking-wider mb-2">Verification Level</div>
+            <div v-if="isTransactionsLoading" class="h-8 w-20 bg-white/10 rounded-lg animate-pulse"></div>
+            <div v-else class="text-3xl font-bold text-purple-400 group-hover:scale-105 transition-transform">{{ userLevel }}</div>
           </div>
         </div>
       </div>
@@ -231,6 +249,7 @@ import FooterSection from '../components/sectionsLanding/FooterSection.vue';
 import { formatEUR } from '../utils/formatEUR';
 import { useAuthStore } from '@/stores/auth';
 import api from '@/services/api';
+import { getTransactionHistory } from '@/services/api';
 
 const isEditing = ref(false);
 const savingProfile = ref(false);
@@ -241,6 +260,8 @@ const uploadError = ref('');
 const uploadingPicture = ref(false);
 const uploadingBanner = ref(false);
 const isBalanceLoading = ref(true);
+const isTransactionsLoading = ref(true);
+const totalTransactions = ref(0);
 const auth = useAuthStore();
 const profileForm = ref({
   first_name: '',
@@ -253,6 +274,7 @@ onMounted(async () => {
     await auth.fetchCurrentUser();
   }
   hydrateProfileForm();
+  await loadTransactionsCount();
   const timer = setTimeout(() => {
     isBalanceLoading.value = false;
     clearTimeout(timer);
@@ -272,6 +294,35 @@ const memberSince = computed(() => {
   const date = auth.user?.created_at;
   return date ? new Date(date).toLocaleDateString() : '';
 });
+
+// Calculate user level based on transactions
+const userLevel = computed(() => {
+  const count = totalTransactions.value;
+  if (count < 5) return 'Level 2';
+  if (count < 10) return 'Level 3';
+  if (count < 20) return 'Level 4';
+  if (count < 30) return 'Level 5';
+  if (count < 40) return 'Level 6';
+  if (count < 50) return 'Level 7';
+  if (count < 60) return 'Level 8';
+  if (count < 70) return 'Level 9';
+  if (count < 80) return 'Level 10';
+  // Continue pattern: every 10 transactions = +1 level after level 5
+  return `Level ${Math.min(10 + Math.floor((count - 80) / 10), 20)}`;
+});
+
+async function loadTransactionsCount() {
+  isTransactionsLoading.value = true;
+  try {
+    const data = await getTransactionHistory({ per_page: 1, page: 1 });
+    totalTransactions.value = data.total || 0;
+  } catch (e) {
+    console.error('Error loading transactions count:', e);
+    totalTransactions.value = 0;
+  } finally {
+    isTransactionsLoading.value = false;
+  }
+}
 
 // Helper function to check if a value is a valid image path
 function isValidImagePath(value: any): boolean {
@@ -634,5 +685,15 @@ function handleImageLoad() {
 </script>
 
 <style scoped>
-/* layout & colors managed by Tailwind */
+/* Fade transition for messages */
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+  transform: translateY(-10px);
+}
 </style>

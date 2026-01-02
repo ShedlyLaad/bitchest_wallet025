@@ -230,8 +230,9 @@ export async function getAdminCryptoHistory(symbol: string) {
   return data;
 }
 
-export async function getAdminDashboard() {
-  const { data } = await api.get('/api/admin/dashboard');
+export async function getAdminDashboard(timeFilter?: string) {
+  const params = timeFilter ? { time_filter: timeFilter } : {};
+  const { data } = await api.get('/api/admin/dashboard', { params });
   return data as {
     totals: {
       total_users: number;

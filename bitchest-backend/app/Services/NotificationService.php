@@ -45,13 +45,25 @@ class NotificationService
     public function checkLevelUp(User $user): void
     {
         try {
+            // Recharger l'utilisateur pour avoir les valeurs à jour
+            $user->refresh();
+            
+            $oldLevel = (int) ($user->level ?? 1);
+            $oldXp = (int) ($user->experience_points ?? 0);
+            
+            // Calculer les nouveaux points d'expérience et niveau
             $result = $this->levelService->updateUserLevel($user);
             
-            if ($result['level_up']) {
-                $newLevel = $result['new_level'];
+            // Recharger l'utilisateur après la mise à jour
+            $user->refresh();
+            
+            $newLevel = $result['new_level'];
+            $newXp = $result['new_xp'];
+            
+            // Vérifier si le niveau a vraiment augmenté
+            if ($result['level_up'] && $newLevel > $oldLevel) {
                 $levelName = $this->levelService->getLevelName($newLevel);
                 $xpForNext = $result['xp_for_next_level'];
-                $currentXp = $result['new_xp'];
                 
                 // Vérifier si on a déjà notifié ce niveau récemment (dans les 5 dernières minutes)
                 $recentNotification = Notification::where('user_id', $user->id)
@@ -61,11 +73,11 @@ class NotificationService
                     ->first();
                 
                 if (!$recentNotification) {
-                    $this->createLevelUpNotification($user, $newLevel, $levelName, $currentXp, $xpForNext);
+                    $this->createLevelUpNotification($user, $newLevel, $levelName, $newXp, $xpForNext);
                 }
             }
         } catch (\Exception $e) {
-            Log::error('Error checking level up: ' . $e->getMessage());
+            Log::error('Error checking level up: ' . $e->getMessage() . ' - Trace: ' . $e->getTraceAsString());
         }
     }
     

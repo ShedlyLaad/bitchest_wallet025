@@ -37,15 +37,21 @@ class NotificationController extends Controller
 
         // Normaliser les données pour garantir la cohérence des types
         $notifications->getCollection()->transform(function ($notification) {
+            // Récupérer le symbole crypto depuis la relation ou le champ direct
+            $cryptoSymbol = $notification->crypto_symbol;
+            if (!$cryptoSymbol && $notification->crypto) {
+                $cryptoSymbol = $notification->crypto->symbol;
+            }
+            
             return [
                 'id' => $notification->id,
                 'user_id' => $notification->user_id,
                 'portfolio_id' => $notification->portfolio_id,
                 'crypto_currency_id' => $notification->crypto_currency_id,
                 'type' => $notification->type,
-                'title' => $notification->title,
-                'message' => $notification->message,
-                'crypto_symbol' => $notification->crypto_symbol,
+                'title' => $notification->title ?? 'Notification',
+                'message' => $notification->message ?? '',
+                'crypto_symbol' => $cryptoSymbol,
                 'gain_loss' => $notification->gain_loss !== null ? (float) $notification->gain_loss : null,
                 'gain_loss_percent' => $notification->gain_loss_percent !== null ? (float) $notification->gain_loss_percent : null,
                 'current_price' => $notification->current_price !== null ? (float) $notification->current_price : null,

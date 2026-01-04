@@ -75,9 +75,24 @@ class LevelService
      */
     public function getXpForNextLevel(int $currentLevel): int
     {
-        // XP nécessaire = (niveau^2) * 100
+        // XP nécessaire pour le niveau suivant
+        // Formule: level = floor(sqrt(xp / 100)) + 1
+        // Pour niveau N: xp >= (N-1)^2 * 100
         $nextLevel = $currentLevel + 1;
         return (int) (pow($nextLevel - 1, 2) * 100);
+    }
+    
+    /**
+     * Calcule les XP nécessaires pour le niveau actuel
+     * 
+     * @param int $currentLevel
+     * @return int XP minimum pour le niveau actuel
+     */
+    public function getXpForCurrentLevel(int $currentLevel): int
+    {
+        // XP minimum pour le niveau actuel
+        if ($currentLevel <= 1) return 0;
+        return (int) (pow($currentLevel - 1, 2) * 100);
     }
     
     /**
@@ -89,6 +104,9 @@ class LevelService
      */
     public function updateUserLevel(User $user): array
     {
+        // Recharger l'utilisateur pour avoir les valeurs à jour
+        $user->refresh();
+        
         $oldLevel = (int) ($user->level ?? 1);
         $oldXp = (int) ($user->experience_points ?? 0);
         
@@ -98,13 +116,15 @@ class LevelService
         // Calculer le nouveau niveau
         $newLevel = $this->calculateLevel($newXp);
         
-        // Mettre à jour l'utilisateur
-        $user->experience_points = $newXp;
-        $user->level = $newLevel;
-        $user->save();
-        
-        // Vérifier si le niveau a augmenté
+        // Vérifier si le niveau a augmenté AVANT de mettre à jour
         $levelUp = $newLevel > $oldLevel;
+        
+        // Mettre à jour l'utilisateur seulement si les valeurs ont changé
+        if ($newXp != $oldXp || $newLevel != $oldLevel) {
+            $user->experience_points = $newXp;
+            $user->level = $newLevel;
+            $user->save();
+        }
         
         return [
             'level_up' => $levelUp,

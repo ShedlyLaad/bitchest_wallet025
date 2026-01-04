@@ -136,7 +136,7 @@
                       <X class="h-3.5 w-3.5" />
                     </button>
                   </div>
-                  <p class="text-xs text-gray-300 mb-3 line-clamp-2 leading-relaxed">{{ notification.message }}</p>
+                  <p class="text-xs text-gray-300 mb-3 line-clamp-2 leading-relaxed">{{ notification.message || 'No message' }}</p>
                   
                   <!-- Level Up Info -->
                   <div v-if="notification.type === 'level_up' && notification.level" class="mb-3">
@@ -154,7 +154,7 @@
                   </div>
                   
                   <!-- Gain/Loss Info -->
-                  <div v-if="notification.gain_loss !== undefined && notification.gain_loss !== null" class="flex items-center gap-2 flex-wrap">
+                  <div v-if="notification.gain_loss !== undefined && notification.gain_loss !== null && notification.type !== 'level_up'" class="flex items-center gap-2 flex-wrap mb-2">
                     <span
                       :class="[
                         'text-xs font-semibold px-2 py-0.5 rounded-md backdrop-blur-sm',
@@ -180,7 +180,7 @@
 
                   <div class="flex items-center gap-2 mt-2">
                     <span class="text-xs text-gray-500 font-medium">{{ formatTime(notification.created_at) }}</span>
-                    <span v-if="notification.crypto_symbol" class="text-xs px-2 py-0.5 rounded-md bg-white/5 text-gray-400 border border-white/10 font-mono">
+                    <span v-if="notification.crypto_symbol && notification.type !== 'level_up'" class="text-xs px-2 py-0.5 rounded-md bg-white/5 text-gray-400 border border-white/10 font-mono">
                       {{ notification.crypto_symbol }}
                     </span>
                   </div>
@@ -267,15 +267,27 @@ async function loadNotifications(page: number = 1, append: boolean = false) {
   loading.value = true;
   try {
     const data = await getNotifications({ page, per_page: 10 });
-    if (append) {
-      notifications.value = [...notifications.value, ...data.data];
+    
+    // Vérifier que data.data existe et est un tableau
+    if (data && data.data && Array.isArray(data.data)) {
+      if (append) {
+        notifications.value = [...notifications.value, ...data.data];
+      } else {
+        notifications.value = data.data;
+      }
+      pagination.value = data;
+      currentPage.value = page;
     } else {
-      notifications.value = data.data;
+      console.warn('Notifications data format incorrect:', data);
+      if (!append) {
+        notifications.value = [];
+      }
     }
-    pagination.value = data;
-    currentPage.value = page;
   } catch (e) {
     console.error('Error loading notifications:', e);
+    if (!append) {
+      notifications.value = [];
+    }
   } finally {
     loading.value = false;
   }
@@ -334,8 +346,11 @@ async function deleteNotification(id: number) {
 
 function toggleDropdown() {
   isOpen.value = !isOpen.value;
-  if (isOpen.value && notifications.value.length === 0) {
+  if (isOpen.value) {
+    // Toujours recharger les notifications quand on ouvre le dropdown
     loadNotifications(1);
+    // Recharger aussi le compteur de non lues
+    loadUnreadCount();
   }
 }
 
@@ -365,6 +380,10 @@ onMounted(() => {
   // Refresh unread count every 30 seconds
   refreshInterval = setInterval(() => {
     loadUnreadCount();
+    // Si le dropdown est ouvert, recharger aussi les notifications
+    if (isOpen.value) {
+      loadNotifications(currentPage.value);
+    }
   }, 30000);
 });
 

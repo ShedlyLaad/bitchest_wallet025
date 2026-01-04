@@ -56,7 +56,7 @@ class CreateTestLevelUpNotification extends Command
             'user_id' => $user->id,
             'type' => 'level_up',
             'title' => '🎉 Level Up!',
-            'message' => "Félicitations! Vous avez atteint le niveau {$newLevel} - {$levelName}! Continuez à trader pour monter encore plus haut.",
+            'message' => "Congratulations! You have reached level {$newLevel} - {$levelName}! Keep trading to level up even higher.",
             'level' => $newLevel,
             'level_name' => $levelName,
             'is_read' => false,

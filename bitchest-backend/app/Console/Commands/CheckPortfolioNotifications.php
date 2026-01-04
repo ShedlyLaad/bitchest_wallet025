@@ -2,14 +2,14 @@
 
 namespace App\Console\Commands;
 
-use Illuminate\Console\Command;
 use App\Models\User;
 use App\Services\NotificationService;
+use Illuminate\Console\Command;
 
 class CheckPortfolioNotifications extends Command
 {
     protected $signature = 'notifications:check-portfolio';
-    protected $description = 'Check and create notifications for portfolio profit/loss changes';
+    protected $description = 'Vérifie les portfolios et génère des notifications de profit/loss automatiquement';
 
     private NotificationService $notificationService;
 
@@ -21,24 +21,25 @@ class CheckPortfolioNotifications extends Command
 
     public function handle()
     {
-        $this->info('Checking portfolio notifications...');
-
+        $this->info('🔔 Vérification des portfolios pour générer des notifications...');
+        
         $users = User::where('role', 'client')
             ->where('status', 'active')
             ->get();
-
-        $count = 0;
+        
+        $totalNotifications = 0;
+        
         foreach ($users as $user) {
             try {
                 $this->notificationService->checkAndCreatePortfolioNotifications($user);
-                $count++;
+                $totalNotifications++;
             } catch (\Exception $e) {
-                $this->error("Error checking notifications for user {$user->id}: " . $e->getMessage());
+                $this->error("Erreur pour l'utilisateur {$user->email}: " . $e->getMessage());
             }
         }
-
-        $this->info("Checked notifications for {$count} users.");
+        
+        $this->info("✅ Vérification terminée pour {$users->count()} utilisateurs");
+        
         return 0;
     }
 }
-

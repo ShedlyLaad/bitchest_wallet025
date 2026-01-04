@@ -38,15 +38,27 @@
             <button
               v-if="unreadCount > 0"
               @click="markAllAsRead"
-              class="px-3 py-1.5 text-xs font-semibold text-blue-400 hover:text-blue-300 bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/30 rounded-lg transition-all duration-200 backdrop-blur-sm"
+              :disabled="loading"
+              class="relative px-3 py-1.5 text-xs font-semibold text-blue-400 hover:text-blue-300 bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/30 rounded-lg transition-all duration-200 backdrop-blur-sm active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed group overflow-hidden"
             >
-              Mark all read
+              <span class="relative z-10 flex items-center gap-1.5">
+                <span v-if="!loading">Mark all read</span>
+                <span v-else class="flex items-center gap-1.5">
+                  <svg class="animate-spin h-3 w-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  Marking...
+                </span>
+              </span>
+              <span class="absolute inset-0 bg-gradient-to-r from-blue-500/20 to-purple-500/20 opacity-0 group-hover:opacity-100 transition-opacity duration-200"></span>
             </button>
             <button
               @click="closeDropdown"
-              class="p-2 text-gray-400 hover:text-white transition-all rounded-lg hover:bg-white/10 border border-transparent hover:border-white/20"
+              class="relative p-2 text-gray-400 hover:text-white transition-all duration-200 rounded-lg hover:bg-white/10 active:scale-90 border border-transparent hover:border-white/20 group overflow-hidden"
             >
-              <X class="h-4 w-4" />
+              <X class="h-4 w-4 relative z-10 transition-transform duration-200 group-hover:rotate-90" />
+              <span class="absolute inset-0 bg-white/5 opacity-0 group-hover:opacity-100 transition-opacity duration-200 rounded-lg"></span>
             </button>
           </div>
         </div>
@@ -71,7 +83,7 @@
 
           <div v-else class="divide-y divide-white/5">
             <div
-              v-for="notification in notifications"
+              v-for="notification in displayedNotifications"
               :key="notification.id"
               @click="handleNotificationClick(notification)"
               :class="[
@@ -130,10 +142,11 @@
                     <h4 class="text-sm font-bold text-white tracking-tight">{{ notification.title }}</h4>
                     <button
                       @click.stop="deleteNotification(notification.id)"
-                      class="p-1.5 text-gray-400 hover:text-red-400 hover:bg-red-500/10 transition-all rounded-lg opacity-0 group-hover:opacity-100 border border-transparent hover:border-red-500/30"
+                      class="relative p-1.5 text-gray-400 hover:text-red-400 hover:bg-red-500/10 transition-all duration-200 rounded-lg opacity-0 group-hover:opacity-100 active:scale-90 border border-transparent hover:border-red-500/30 overflow-hidden"
                       title="Delete"
                     >
-                      <X class="h-3.5 w-3.5" />
+                      <X class="h-3.5 w-3.5 relative z-10 transition-transform duration-200 group-hover:rotate-90" />
+                      <span class="absolute inset-0 bg-red-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-200 rounded-lg"></span>
                     </button>
                   </div>
                   <p class="text-xs text-gray-300 mb-3 line-clamp-2 leading-relaxed">{{ notification.message || 'No message' }}</p>
@@ -147,7 +160,7 @@
                         </div>
                         <div>
                           <div class="text-xs font-bold text-purple-300">{{ notification.level_name || 'Level Up' }}</div>
-                          <div class="text-xs text-purple-400/80">Niveau atteint!</div>
+                          <div class="text-xs text-purple-400/80">Level reached!</div>
                         </div>
                       </div>
                     </div>
@@ -193,17 +206,49 @@
                 </div>
               </div>
             </div>
+            
+            <!-- Indicateur de notifications supplémentaires -->
+            <button
+              v-if="remainingNotificationsCount > 0"
+              @click="loadMore"
+              :disabled="loading || !!(pagination && pagination.current_page >= pagination.last_page)"
+              class="w-full p-4 text-center bg-gradient-to-r from-blue-500/10 via-purple-500/5 to-blue-500/10 border-t border-white/10 hover:from-blue-500/15 hover:via-purple-500/10 hover:to-blue-500/15 transition-all duration-200 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed group"
+            >
+              <div class="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-500/20 border border-blue-500/30 backdrop-blur-sm group-hover:bg-blue-500/30 group-hover:border-blue-500/50 group-hover:shadow-lg group-hover:shadow-blue-500/20 transition-all duration-200">
+                <span class="text-sm font-semibold text-blue-300 group-hover:text-blue-200 transition-colors">+{{ remainingNotificationsCount }}</span>
+                <span class="text-xs text-blue-400 group-hover:text-blue-300 transition-colors">
+                  {{ loading ? 'Loading...' : `more notification${remainingNotificationsCount > 1 ? 's' : ''}` }}
+                </span>
+                <svg v-if="!loading" class="h-3 w-3 text-blue-400 group-hover:text-blue-300 group-hover:translate-x-0.5 transition-all duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                </svg>
+                <svg v-else class="animate-spin h-3 w-3 text-blue-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                  <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+              </div>
+            </button>
           </div>
         </div>
 
         <!-- Footer avec design amélioré -->
-        <div v-if="pagination && pagination.last_page > 1" class="px-5 py-4 border-t border-white/10 bg-gradient-to-r from-gray-800/50 to-gray-900/50 backdrop-blur-sm flex items-center justify-between">
+        <div v-if="pagination && pagination.last_page > 1 && remainingNotificationsCount === 0" class="px-5 py-4 border-t border-white/10 bg-gradient-to-r from-gray-800/50 to-gray-900/50 backdrop-blur-sm flex items-center justify-between">
           <button
             @click="loadMore"
             :disabled="loading || pagination.current_page >= pagination.last_page"
-            class="px-4 py-2 text-xs font-semibold text-blue-400 hover:text-blue-300 bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/30 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 backdrop-blur-sm disabled:hover:bg-blue-500/10"
+            class="relative px-4 py-2 text-xs font-semibold text-blue-400 hover:text-blue-300 bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/30 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 backdrop-blur-sm disabled:hover:bg-blue-500/10 active:scale-95 group overflow-hidden"
           >
-            {{ loading ? 'Loading...' : 'Load more' }}
+            <span class="relative z-10 flex items-center gap-2">
+              <span>{{ loading ? 'Loading...' : 'Load more' }}</span>
+              <svg v-if="!loading" class="h-3 w-3 group-hover:translate-x-0.5 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+              </svg>
+              <svg v-else class="animate-spin h-3 w-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+            </span>
+            <span class="absolute inset-0 bg-gradient-to-r from-blue-500/20 to-purple-500/20 opacity-0 group-hover:opacity-100 transition-opacity duration-200"></span>
           </button>
           <span class="text-xs text-gray-400 font-medium">
             Page {{ pagination.current_page }} / {{ pagination.last_page }}
@@ -215,7 +260,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue';
+import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { Bell, TrendingUp, TrendingDown, X } from 'lucide-vue-next';
 import { 
   getNotifications, 
@@ -227,6 +272,8 @@ import {
 import type { Notification, Paginated } from '@/types';
 import { formatEUR } from '@/utils/formatEUR';
 
+const MAX_DISPLAYED_NOTIFICATIONS = 5; // Maximum de notifications affichées
+
 const isOpen = ref(false);
 const loading = ref(false);
 const notifications = ref<Notification[]>([]);
@@ -234,6 +281,17 @@ const unreadCount = ref(0);
 const pagination = ref<Paginated<Notification> | null>(null);
 const dropdownRef = ref<HTMLElement | null>(null);
 const currentPage = ref(1);
+
+// Notifications affichées (limitées au maximum)
+const displayedNotifications = computed(() => {
+  return notifications.value.slice(0, MAX_DISPLAYED_NOTIFICATIONS);
+});
+
+// Nombre de notifications supplémentaires
+const remainingNotificationsCount = computed(() => {
+  const remaining = notifications.value.length - MAX_DISPLAYED_NOTIFICATIONS;
+  return remaining > 0 ? remaining : 0;
+});
 
 function formatCurrency(value: number | string | null | undefined) {
   if (value === null || value === undefined) return formatEUR(0);
@@ -318,6 +376,8 @@ async function handleNotificationClick(notification: Notification) {
 }
 
 async function markAllAsRead() {
+  if (loading.value) return;
+  loading.value = true;
   try {
     await markAllNotificationsAsRead();
     notifications.value.forEach(n => {
@@ -327,20 +387,33 @@ async function markAllAsRead() {
     unreadCount.value = 0;
   } catch (e) {
     console.error('Error marking all as read:', e);
+  } finally {
+    loading.value = false;
   }
 }
 
 async function deleteNotification(id: number) {
+  // Optimistic update - remove immediately for better UX
+  const notificationToDelete = notifications.value.find(n => n.id === id);
+  const wasUnread = notificationToDelete && !notificationToDelete.is_read;
+  
+  notifications.value = notifications.value.filter(n => n.id !== id);
+  if (wasUnread && unreadCount.value > 0) {
+    unreadCount.value--;
+  }
+  
   try {
     await deleteNotificationApi(id);
-    notifications.value = notifications.value.filter(n => n.id !== id);
-    if (notifications.value.find(n => n.id === id && !n.is_read)) {
-      if (unreadCount.value > 0) {
-        unreadCount.value--;
-      }
-    }
   } catch (e) {
     console.error('Error deleting notification:', e);
+    // Re-add the notification if deletion failed
+    if (notificationToDelete) {
+      notifications.value.push(notificationToDelete);
+      notifications.value.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+      if (wasUnread) {
+        unreadCount.value++;
+      }
+    }
   }
 }
 

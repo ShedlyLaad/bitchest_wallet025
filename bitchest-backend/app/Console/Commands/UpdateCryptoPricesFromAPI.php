@@ -60,6 +60,13 @@ class UpdateCryptoPricesFromAPI extends Command
                     'price' => $apiData['price'],
                     'recorded_at' => $now,
                 ]);
+                
+                // Aussi enregistrer dans PriceHistory pour le calcul de change24h
+                \App\Models\PriceHistory::create([
+                    'crypto_currency_id' => $crypto->id,
+                    'price' => $apiData['price'],
+                    'recorded_at' => $now,
+                ]);
 
                 $this->info("✓ {$crypto->symbol}: {$apiData['price']} EUR (24h: {$apiData['change24h']}%)");
                 $updated++;

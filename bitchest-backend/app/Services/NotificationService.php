@@ -87,7 +87,7 @@ class NotificationService
     private function createLevelUpNotification(User $user, int $level, string $levelName, int $currentXp, int $xpForNext): void
     {
         $title = "🎉 Level Up!";
-        $message = "Félicitations! Vous avez atteint le niveau {$level} - {$levelName}! Continuez à trader pour monter encore plus haut.";
+        $message = "Congratulations! You have reached level {$level} - {$levelName}! Keep trading to level up even higher.";
         
         Notification::create([
             'user_id' => $user->id,
@@ -98,56 +98,117 @@ class NotificationService
             'level_name' => $levelName,
             'is_read' => false,
         ]);
+        
+        // Supprimer les anciennes notifications si on dépasse le maximum (garder les 50 plus récentes)
+        $this->cleanupOldNotifications($user->id, 50);
     }
 
     /**
      * Vérifie et crée des notifications pour une position spécifique
+     * Logique simplifiée et plus sensible pour détecter les changements
      */
     private function checkPositionNotifications(User $user, $position): void
     {
-        $gainLoss = $position->gain_loss ?? 0;
-        $gainLossPercent = $position->gain_loss_percent ?? 0;
-        $cryptoSymbol = $position->crypto->symbol ?? 'Unknown';
-        $cryptoName = $position->crypto->name ?? 'Unknown';
-        
-        // Récupérer la dernière notification pour cette crypto
-        $lastNotification = Notification::where('user_id', $user->id)
-            ->where('crypto_currency_id', $position->crypto_currency_id)
-            ->whereIn('type', ['profit', 'loss'])
-            ->orderBy('created_at', 'desc')
-            ->first();
+        try {
+            // Vérifier que la position a des données valides
+            if (!$position || !isset($position->crypto) || !$position->crypto) {
+                return;
+            }
+            
+            $gainLoss = (float) ($position->gain_loss ?? 0);
+            $gainLossPercent = $position->gain_loss_percent !== null ? (float) $position->gain_loss_percent : 0;
+            $cryptoSymbol = $position->crypto->symbol ?? 'Unknown';
+            $currentPrice = (float) ($position->current_price ?? 0);
+            $quantity = (float) ($position->quantity ?? 0);
+            
+            // Ignorer si la quantité est nulle ou négative
+            if ($quantity <= 0) {
+                return;
+            }
+            
+            // Récupérer la dernière notification pour cette crypto
+            $lastNotification = Notification::where('user_id', $user->id)
+                ->where('crypto_currency_id', $position->crypto_currency_id)
+                ->whereIn('type', ['profit', 'loss'])
+                ->orderBy('created_at', 'desc')
+                ->first();
 
-        // Seuils pour créer des notifications
-        $profitThreshold = 50.0; // €50 de profit
-        $lossThreshold = -50.0; // €50 de perte
-        $percentThreshold = 5.0; // 5% de changement
+            // Seuils très bas pour tester - à ajuster en production
+            $profitThreshold = 0.01; // €0.01 de profit minimum (pour tester)
+            $lossThreshold = -0.01; // €0.01 de perte minimum (pour tester)
+            $percentThreshold = 0.1; // 0.1% de changement minimum (pour tester)
 
-        // Vérifier si on doit créer une notification de profit
-        if ($gainLoss > $profitThreshold || $gainLossPercent > $percentThreshold) {
-            // Vérifier si on a déjà notifié récemment (dans les 30 dernières minutes)
-            if (!$lastNotification || $lastNotification->created_at->lt(now()->subMinutes(30))) {
-                // Vérifier si le gain a augmenté significativement
-                if (!$lastNotification || 
-                    ($gainLoss > ($lastNotification->gain_loss ?? 0) + $profitThreshold) ||
-                    ($gainLossPercent > ($lastNotification->gain_loss_percent ?? 0) + $percentThreshold)) {
+            // Vérifier si on doit créer une notification de profit
+            if ($gainLoss >= $profitThreshold || $gainLossPercent >= $percentThreshold) {
+                $shouldNotify = false;
+                
+                if (!$lastNotification) {
+                    // Première notification pour cette crypto si le seuil est dépassé
+                    $shouldNotify = true;
+                } else {
+                    // Vérifier si on a déjà notifié récemment (dans les 15 dernières minutes)
+                    $lastNotificationTime = $lastNotification->created_at;
+                    $timeSinceLastNotification = now()->diffInMinutes($lastNotificationTime);
                     
-                    $this->createNotification($user, $position, 'profit', $gainLoss, $gainLossPercent);
+                    // Si la dernière notification date de plus de 15 minutes
+                    if ($timeSinceLastNotification >= 15) {
+                        // Vérifier si c'est toujours un profit (même si pas de changement significatif)
+                        $lastGainLoss = (float) ($lastNotification->gain_loss ?? 0);
+                        $lastType = $lastNotification->type;
+                        
+                        // Notifier si :
+                        // 1. La dernière notification était une perte et maintenant c'est un profit
+                        // 2. OU si le gain a augmenté de 5€ ou plus
+                        // 3. OU si le pourcentage a augmenté de 1% ou plus
+                        if ($lastType === 'loss' || 
+                            ($gainLoss - $lastGainLoss) >= 5.0 ||
+                            abs($gainLossPercent - (float)($lastNotification->gain_loss_percent ?? 0)) >= 1.0) {
+                            $shouldNotify = true;
+                        }
+                    }
+                }
+                
+                if ($shouldNotify) {
+                    $this->createNotification($user, $position, 'profit', $gainLoss, $gainLossPercent, $currentPrice);
                 }
             }
-        }
 
-        // Vérifier si on doit créer une notification de perte
-        if ($gainLoss < $lossThreshold || $gainLossPercent < -$percentThreshold) {
-            // Vérifier si on a déjà notifié récemment
-            if (!$lastNotification || $lastNotification->created_at->lt(now()->subMinutes(30))) {
-                // Vérifier si la perte a augmenté significativement
-                if (!$lastNotification || 
-                    ($gainLoss < ($lastNotification->gain_loss ?? 0) + $lossThreshold) ||
-                    ($gainLossPercent < ($lastNotification->gain_loss_percent ?? 0) - $percentThreshold)) {
+            // Vérifier si on doit créer une notification de perte
+            if ($gainLoss <= $lossThreshold || $gainLossPercent <= -$percentThreshold) {
+                $shouldNotify = false;
+                
+                if (!$lastNotification) {
+                    // Première notification pour cette crypto si le seuil est dépassé
+                    $shouldNotify = true;
+                } else {
+                    // Vérifier si on a déjà notifié récemment (dans les 15 dernières minutes)
+                    $lastNotificationTime = $lastNotification->created_at;
+                    $timeSinceLastNotification = now()->diffInMinutes($lastNotificationTime);
                     
-                    $this->createNotification($user, $position, 'loss', $gainLoss, $gainLossPercent);
+                    // Si la dernière notification date de plus de 15 minutes
+                    if ($timeSinceLastNotification >= 15) {
+                        // Vérifier si c'est toujours une perte (même si pas de changement significatif)
+                        $lastGainLoss = (float) ($lastNotification->gain_loss ?? 0);
+                        $lastType = $lastNotification->type;
+                        
+                        // Notifier si :
+                        // 1. La dernière notification était un profit et maintenant c'est une perte
+                        // 2. OU si la perte a augmenté de 5€ ou plus
+                        // 3. OU si le pourcentage a diminué de 1% ou plus
+                        if ($lastType === 'profit' || 
+                            ($lastGainLoss - $gainLoss) >= 5.0 ||
+                            abs($gainLossPercent - (float)($lastNotification->gain_loss_percent ?? 0)) >= 1.0) {
+                            $shouldNotify = true;
+                        }
+                    }
+                }
+                
+                if ($shouldNotify) {
+                    $this->createNotification($user, $position, 'loss', $gainLoss, $gainLossPercent, $currentPrice);
                 }
             }
+        } catch (\Exception $e) {
+            Log::error('Error in checkPositionNotifications: ' . $e->getMessage() . ' - Trace: ' . $e->getTraceAsString());
         }
     }
 
@@ -159,23 +220,35 @@ class NotificationService
         $position,
         string $type,
         float $gainLoss,
-        float $gainLossPercent
+        float $gainLossPercent,
+        ?float $currentPrice = null
     ): void {
         $cryptoSymbol = $position->crypto->symbol ?? 'Unknown';
         $cryptoName = $position->crypto->name ?? 'Unknown';
+        $quantity = (float) ($position->quantity ?? 0);
         
         $isProfit = $type === 'profit';
         $sign = $isProfit ? '+' : '';
         $emoji = $isProfit ? '📈' : '📉';
-        $color = $isProfit ? 'green' : 'red';
+        
+        // Récupérer le prix précédent depuis la dernière notification si disponible
+        $lastNotification = Notification::where('user_id', $user->id)
+            ->where('crypto_currency_id', $position->crypto_currency_id)
+            ->whereIn('type', ['profit', 'loss'])
+            ->orderBy('created_at', 'desc')
+            ->first();
+        
+        $previousPrice = $lastNotification ? $lastNotification->current_price : null;
+        $finalCurrentPrice = $currentPrice ?? ($position->current_price ?? 0);
         
         $title = $isProfit 
-            ? "Profit sur {$cryptoSymbol}" 
-            : "Perte sur {$cryptoSymbol}";
+            ? "{$emoji} Profit on {$cryptoSymbol}" 
+            : "{$emoji} Loss on {$cryptoSymbol}";
         
+        // Message plus détaillé avec quantité et prix
         $message = $isProfit
-            ? "Votre position en {$cryptoName} ({$cryptoSymbol}) a généré un profit de {$sign}€" . number_format(abs($gainLoss), 2) . " ({$sign}" . number_format(abs($gainLossPercent), 2) . "%)"
-            : "Votre position en {$cryptoName} ({$cryptoSymbol}) a subi une perte de {$sign}€" . number_format(abs($gainLoss), 2) . " ({$sign}" . number_format(abs($gainLossPercent), 2) . "%)";
+            ? "Your position in {$cryptoName} ({$cryptoSymbol}) has generated a profit of {$sign}€" . number_format(abs($gainLoss), 2) . " ({$sign}" . number_format(abs($gainLossPercent), 2) . "%). Quantity: " . number_format($quantity, 8) . " {$cryptoSymbol}"
+            : "Your position in {$cryptoName} ({$cryptoSymbol}) has incurred a loss of {$sign}€" . number_format(abs($gainLoss), 2) . " ({$sign}" . number_format(abs($gainLossPercent), 2) . "%). Quantity: " . number_format($quantity, 8) . " {$cryptoSymbol}";
 
         Notification::create([
             'user_id' => $user->id,
@@ -185,12 +258,43 @@ class NotificationService
             'title' => $title,
             'message' => $message,
             'crypto_symbol' => $cryptoSymbol,
-            'gain_loss' => $gainLoss,
-            'gain_loss_percent' => $gainLossPercent,
-            'current_price' => $position->current_price ?? 0,
-            'previous_price' => null, // On pourrait stocker le prix précédent si nécessaire
+            'gain_loss' => round($gainLoss, 8),
+            'gain_loss_percent' => round($gainLossPercent, 2),
+            'current_price' => round($finalCurrentPrice, 8),
+            'previous_price' => $previousPrice ? round($previousPrice, 8) : null,
             'is_read' => false,
         ]);
+        
+        // Supprimer les anciennes notifications si on dépasse le maximum (garder les 50 plus récentes)
+        $this->cleanupOldNotifications($user->id, 50);
+    }
+    
+    /**
+     * Supprime les anciennes notifications pour ne garder que les N plus récentes
+     */
+    private function cleanupOldNotifications(int $userId, int $keepCount = 50): void
+    {
+        try {
+            // Compter le total de notifications
+            $totalCount = Notification::where('user_id', $userId)->count();
+            
+            // Si on dépasse le maximum, supprimer les plus anciennes
+            if ($totalCount > $keepCount) {
+                $toDelete = $totalCount - $keepCount;
+                
+                // Récupérer les IDs des notifications les plus anciennes (lues en priorité, puis non lues)
+                $oldNotifications = Notification::where('user_id', $userId)
+                    ->orderBy('is_read', 'asc') // Les lues d'abord
+                    ->orderBy('created_at', 'asc') // Puis les plus anciennes
+                    ->limit($toDelete)
+                    ->pluck('id');
+                
+                // Supprimer les anciennes notifications
+                Notification::whereIn('id', $oldNotifications)->delete();
+            }
+        } catch (\Exception $e) {
+            Log::error('Error cleaning up old notifications: ' . $e->getMessage());
+        }
     }
 
     /**

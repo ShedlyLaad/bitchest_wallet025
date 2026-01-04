@@ -1,123 +1,69 @@
-import { Cryptocurrency } from '../types';
-import bitcoinIcon from '../assets/bitcoin.png';
-import ethereumIcon from '../assets/ethereum.png';
-import rippleIcon from '../assets/ripple.png';
-import bitcoinCashIcon from '../assets/bitcoin-cash.png';
-import cardanoIcon from '../assets/cardano.png';
-import litecoinIcon from '../assets/litecoin.png';
-import nemIcon from '../assets/nem.png';
-import stellarIcon from '../assets/stellar.png';
-import iotaIcon from '../assets/iota.png';
-import dashIcon from '../assets/dash.png';
+// Mock cryptocurrency data for landing page
 
-/**
- * Supported cryptocurrencies for the admin market page
- * All prices are in EUR
- * Restricted to exactly 10 cryptos: BTC, ETH, XRP, BCH, ADA, LTC, XEM, XLM, IOTA, DASH
- */
-export const adminCryptos: Cryptocurrency[] = [
+export const cryptocurrencies = [
   {
-    id: 'bitcoin',
     symbol: 'BTC',
     name: 'Bitcoin',
-    price: 43250.50, // EUR
-    change24h: 2.45,
-    marketCap: '€847.2B',
-    volume24h: '€15.2B',
-    icon: bitcoinIcon
+    price: 78000,
+    change24h: 2.5,
+    color: '#f7931a',
+    icon: '/src/assets/bitcoin.png'
   },
   {
-    id: 'ethereum',
     symbol: 'ETH',
     name: 'Ethereum',
-    price: 2580.75, // EUR
-    change24h: -1.32,
-    marketCap: '€310.5B',
-    volume24h: '€8.7B',
-    icon: ethereumIcon
+    price: 2700,
+    change24h: 1.8,
+    color: '#627eea',
+    icon: '/src/assets/ethereum.png'
   },
   {
-    id: 'ripple',
     symbol: 'XRP',
     name: 'Ripple',
-    price: 0.58, // EUR
-    change24h: 1.25,
-    marketCap: '€28.5B',
-    volume24h: '€1.2B',
-    icon: rippleIcon
+    price: 1.8,
+    change24h: -0.5,
+    color: '#0085c3',
+    icon: '/src/assets/ripple.png'
   },
   {
-    id: 'bitcoin-cash',
     symbol: 'BCH',
     name: 'Bitcoin Cash',
-    price: 225.80, // EUR
-    change24h: 0.95,
-    marketCap: '€4.3B',
-    volume24h: '€1.1B',
-    icon: bitcoinCashIcon
+    price: 550,
+    change24h: 0.8,
+    color: '#0ac18e',
+    icon: '/src/assets/bitcoin-cash.png'
   },
   {
-    id: 'cardano',
     symbol: 'ADA',
     name: 'Cardano',
-    price: 0.35, // EUR
-    change24h: -0.85,
-    marketCap: '€12.3B',
-    volume24h: '€0.5B',
-    icon: cardanoIcon
+    price: 0.34,
+    change24h: 1.4,
+    color: '#0033ad',
+    icon: '/src/assets/cardano.png'
   },
   {
-    id: 'litecoin',
     symbol: 'LTC',
     name: 'Litecoin',
-    price: 65.42, // EUR
-    change24h: 1.15,
-    marketCap: '€4.8B',
-    volume24h: '€0.9B',
-    icon: litecoinIcon
+    price: 70,
+    change24h: 0.7,
+    color: '#345d9d',
+    icon: '/src/assets/litecoin.png'
   },
   {
-    id: 'nem',
-    symbol: 'XEM',
-    name: 'NEM',
-    price: 0.12, // EUR
-    change24h: -2.15,
-    marketCap: '€1.1B',
-    volume24h: '€0.2B',
-    icon: nemIcon
-  },
-  {
-    id: 'stellar',
     symbol: 'XLM',
     name: 'Stellar',
-    price: 0.11, // EUR
-    change24h: 0.75,
-    marketCap: '€2.9B',
-    volume24h: '€0.3B',
-    icon: stellarIcon
+    price: 0.20,
+    change24h: 0.3,
+    color: '#7d00ff',
+    icon: '/src/assets/stellar.png'
   },
   {
-    id: 'iota',
-    symbol: 'IOTA',
-    name: 'IOTA',
-    price: 0.25, // EUR
-    change24h: -1.45,
-    marketCap: '€0.7B',
-    volume24h: '€0.1B',
-    icon: iotaIcon
-  },
-  {
-    id: 'dash',
     symbol: 'DASH',
     name: 'Dash',
-    price: 45.30, // EUR
-    change24h: 0.55,
-    marketCap: '€0.5B',
-    volume24h: '€0.2B',
-    icon: dashIcon
+    price: 37,
+    change24h: 0.8,
+    color: '#008de4',
+    icon: '/src/assets/dash.png'
   }
 ];
-
-// Export for backward compatibility
-export const cryptocurrencies = adminCryptos;
 

@@ -21,6 +21,7 @@ class UserCreatedMail extends Mailable
 
     public function build()
     {
+        // Utiliser la configuration universelle - fonctionne avec tous les fournisseurs
         return $this
             ->subject("Welcome to BitChest - Your Access Credentials")
             ->view('emails.user_created')

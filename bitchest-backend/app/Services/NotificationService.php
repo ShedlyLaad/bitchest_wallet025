@@ -10,18 +10,25 @@ use Illuminate\Support\Facades\Log;
 class NotificationService
 {
     private PortfolioService $portfolioService;
+    private LevelService $levelService;
 
-    public function __construct(PortfolioService $portfolioService)
+    public function __construct(PortfolioService $portfolioService, LevelService $levelService)
     {
         $this->portfolioService = $portfolioService;
+        $this->levelService = $levelService;
     }
 
     /**
      * Génère des notifications pour les changements de profit/loss dans le portfolio
+     * Vérifie aussi les montées de niveau
      */
     public function checkAndCreatePortfolioNotifications(User $user): void
     {
         try {
+            // Vérifier les montées de niveau en premier
+            $this->checkLevelUp($user);
+            
+            // Ensuite vérifier les notifications de portfolio
             $portfolio = $this->portfolioService->getUserPortfolio($user);
             
             foreach ($portfolio as $position) {
@@ -30,6 +37,55 @@ class NotificationService
         } catch (\Exception $e) {
             Log::error('Error checking portfolio notifications: ' . $e->getMessage());
         }
+    }
+    
+    /**
+     * Vérifie si l'utilisateur a monté de niveau et crée une notification
+     */
+    public function checkLevelUp(User $user): void
+    {
+        try {
+            $result = $this->levelService->updateUserLevel($user);
+            
+            if ($result['level_up']) {
+                $newLevel = $result['new_level'];
+                $levelName = $this->levelService->getLevelName($newLevel);
+                $xpForNext = $result['xp_for_next_level'];
+                $currentXp = $result['new_xp'];
+                
+                // Vérifier si on a déjà notifié ce niveau récemment (dans les 5 dernières minutes)
+                $recentNotification = Notification::where('user_id', $user->id)
+                    ->where('type', 'level_up')
+                    ->where('level', $newLevel)
+                    ->where('created_at', '>=', now()->subMinutes(5))
+                    ->first();
+                
+                if (!$recentNotification) {
+                    $this->createLevelUpNotification($user, $newLevel, $levelName, $currentXp, $xpForNext);
+                }
+            }
+        } catch (\Exception $e) {
+            Log::error('Error checking level up: ' . $e->getMessage());
+        }
+    }
+    
+    /**
+     * Crée une notification de montée de niveau
+     */
+    private function createLevelUpNotification(User $user, int $level, string $levelName, int $currentXp, int $xpForNext): void
+    {
+        $title = "🎉 Level Up!";
+        $message = "Félicitations! Vous avez atteint le niveau {$level} - {$levelName}! Continuez à trader pour monter encore plus haut.";
+        
+        Notification::create([
+            'user_id' => $user->id,
+            'type' => 'level_up',
+            'title' => $title,
+            'message' => $message,
+            'level' => $level,
+            'level_name' => $levelName,
+            'is_read' => false,
+        ]);
     }
 
     /**

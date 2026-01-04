@@ -369,8 +369,8 @@
                         </td>
                         <td class="p-3 text-white font-medium">{{ tx.portfolio?.crypto?.symbol || 'N/A' }}</td>
                         <td class="p-3 text-right text-gray-300">{{ parseFloat(tx.quantity || 0).toFixed(8) }}</td>
-                        <td class="p-3 text-right text-gray-300">{{ formatEUR(tx.price || 0) }}</td>
-                        <td class="p-3 text-right text-white font-medium">{{ formatEUR(tx.total_price || 0) }}</td>
+                        <td class="p-3 text-right text-gray-300">{{ formatEUR(tx.price_at_transaction || 0) }}</td>
+                        <td class="p-3 text-right text-white font-medium">{{ formatEUR(tx.euro_amount || 0) }}</td>
                         <td class="p-3 text-right text-gray-400 text-xs">{{ formatDate(tx.created_at) }}</td>
                       </tr>
                     </tbody>
@@ -432,6 +432,7 @@
 import { ref, computed, onMounted } from 'vue';
 import { Plus, Trash2, Copy, Check, X, Wallet, TrendingUp, TrendingDown, Coins, Euro, Activity, BarChart3 } from 'lucide-vue-next';
 import { approveUser, blockUser, createAdminUser, deleteUser as deleteUserApi, getAdminUsers, getAdminUserDetails } from '@/services/api';
+import { useAuthStore } from '@/stores/auth';
 import { formatEUR } from '@/utils/format';
 import type { AuthUser } from '@/types';
 
@@ -459,8 +460,27 @@ const selectedUserDetails = ref<any>(null);
 const userDetailsLoading = ref(false);
 const userDetailsError = ref('');
 
-onMounted(() => {
-  fetchUsers();
+onMounted(async () => {
+  const auth = useAuthStore();
+  auth.hydrate?.();
+  
+  if (!auth.token) {
+    errorMessage.value = 'Not authenticated. Please login.';
+    return;
+  }
+  
+  // Ensure user is fetched
+  if (!auth.user && auth.token) {
+    try {
+      await auth.fetchCurrentUser();
+    } catch (e) {
+      console.error('Failed to fetch user:', e);
+      errorMessage.value = 'Failed to authenticate. Please login again.';
+      return;
+    }
+  }
+  
+  await fetchUsers();
 });
 
 async function fetchUsers() {

@@ -7,7 +7,7 @@ use App\Services\UserService;
 use App\Models\User;
 use App\Models\Portfolio;
 use App\Models\Transaction;
-use Illuminate\Support\Facades\Mail;
+use App\Services\UniversalMailService;
 use App\Mail\VerifyEmailMailable;
 
 class UserController extends Controller
@@ -43,11 +43,11 @@ class UserController extends Controller
         $totalTransactions = $transactions->count();
         $buyTransactions = $transactions->where('type', 'buy')->count();
         $sellTransactions = $transactions->where('type', 'sell')->count();
-        $totalVolume = $transactions->sum('total_price');
+        $totalVolume = $transactions->sum('euro_amount');
         
         // Calculate total portfolio value
-        $totalPortfolioValue = $portfolios->sum('current_value');
-        $totalInvested = $portfolios->sum('invested_value');
+        $totalPortfolioValue = $portfolios->sum('current_value') ?? 0;
+        $totalInvested = $portfolios->sum('total_invested_value') ?? $portfolios->sum('invested_value') ?? 0;
         $totalGainLoss = $totalPortfolioValue - $totalInvested;
         
         return response()->json([
@@ -89,7 +89,9 @@ class UserController extends Controller
         ]);
     
       
-        Mail::to($user->email)->send(new VerifyEmailMailable($user));
+        // Envoyer l'email de vérification avec service universel (fonctionne avec tous les fournisseurs)
+        $mailService = app(UniversalMailService::class);
+        $mailService->send(new VerifyEmailMailable($user), $user->email);
     
         return response()->json([
             'message' => 'User approved and account activated',

@@ -8,7 +8,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Http\Request;
 use App\Models\User;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Mail;
+use App\Services\UniversalMailService;
 use App\Mail\TemporaryPasswordMailable;
 use Illuminate\Support\Str;
 
@@ -38,8 +38,9 @@ class AuthController extends Controller
             'euro_balance' => 0
         ]);
 
-        // Envoyer le mot de passe temporaire généré
-        Mail::to($user->email)->send(new TemporaryPasswordMailable($tempPassword, $user->name));
+        // Envoyer le mot de passe temporaire généré avec service universel (fonctionne avec tous les fournisseurs)
+        $mailService = app(\App\Services\UniversalMailService::class);
+        $mailService->send(new TemporaryPasswordMailable($tempPassword, $user->name), $user->email);
 
         return response()->json([
             'message' => 'Compte créé. Un mot de passe temporaire a été envoyé par email. Changez-le puis attendez la validation admin.',

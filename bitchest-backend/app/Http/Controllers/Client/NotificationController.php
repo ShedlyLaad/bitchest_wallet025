@@ -35,6 +35,35 @@ class NotificationController extends Controller
 
         $notifications = $query->paginate($perPage);
 
+        // Normaliser les données pour garantir la cohérence des types
+        $notifications->getCollection()->transform(function ($notification) {
+            return [
+                'id' => $notification->id,
+                'user_id' => $notification->user_id,
+                'portfolio_id' => $notification->portfolio_id,
+                'crypto_currency_id' => $notification->crypto_currency_id,
+                'type' => $notification->type,
+                'title' => $notification->title,
+                'message' => $notification->message,
+                'crypto_symbol' => $notification->crypto_symbol,
+                'gain_loss' => $notification->gain_loss !== null ? (float) $notification->gain_loss : null,
+                'gain_loss_percent' => $notification->gain_loss_percent !== null ? (float) $notification->gain_loss_percent : null,
+                'current_price' => $notification->current_price !== null ? (float) $notification->current_price : null,
+                'previous_price' => $notification->previous_price !== null ? (float) $notification->previous_price : null,
+                'is_read' => (bool) $notification->is_read,
+                'read_at' => $notification->read_at ? $notification->read_at->toISOString() : null,
+                'level' => $notification->level !== null ? (int) $notification->level : null,
+                'level_name' => $notification->level_name ?? null,
+                'created_at' => $notification->created_at->toISOString(),
+                'updated_at' => $notification->updated_at->toISOString(),
+                'crypto' => $notification->crypto ? [
+                    'id' => $notification->crypto->id,
+                    'name' => $notification->crypto->name,
+                    'symbol' => $notification->crypto->symbol,
+                ] : null,
+            ];
+        });
+
         return response()->json($notifications);
     }
 

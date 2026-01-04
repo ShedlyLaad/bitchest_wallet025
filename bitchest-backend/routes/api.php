@@ -61,7 +61,9 @@ Route::middleware(['auth:sanctum','account.status'])->group(function () {
 
         // Marché crypto
         Route::get('/market', [CryptoMarketController::class, 'index']);
-        Route::get('/market/history/{crypto_currency_id}', [CryptoMarketController::class, 'history']);
+        Route::get('/market/history/{crypto_currency_id}', [CryptoMarketController::class, 'history'])->where('crypto_currency_id', '[0-9A-Za-z]+');
+        // Nouvelle API REST pour utilisateurs - données Coinbase avec cache
+        Route::get('/user/cryptos', [CryptoMarketController::class, 'userCryptos']);
 
         // Notifications
         Route::get('/notifications', [NotificationController::class, 'index']);

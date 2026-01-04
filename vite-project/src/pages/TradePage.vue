@@ -75,11 +75,8 @@
                   class="w-full bg-gray-700/50 border border-gray-600/50 rounded-lg pl-10 pr-4 py-2.5 text-sm text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all"
                 />
               </div>
-              <div v-if="errorMessage" class="text-xs mt-2 text-red-400">{{ errorMessage }}</div>
-              <div v-else-if="loading" class="text-xs text-gray-400 mt-2 flex items-center gap-2">
-                <div class="animate-spin rounded-full h-3 w-3 border-b-2 border-blue-500"></div>
-                <span>Loading market data...</span>
-              </div>
+              <!-- Error message hidden to avoid display issues -->
+              <div v-if="errorMessage" class="hidden">{{ errorMessage }}</div>
             </div>
 
             <div class="overflow-x-auto max-h-[300px] sm:max-h-[500px] overflow-y-auto crypto-table-container">
@@ -145,7 +142,7 @@
                             (crypto as any).isUpdating && (crypto as any).animationClass === 'price-down' ? 'text-red-400 animate-pulse' : ''
                           ]"
                         >
-                          {{ formatEUR(Number(crypto.price) || 0) }}
+                          {{ formatEUR(crypto.price ?? 0) }}
                           <span 
                             v-if="(crypto as any).previousPrice && crypto.price && Number(crypto.price) > Number((crypto as any).previousPrice)"
                             class="ml-1 text-green-400 text-xs animate-fade-in"
@@ -414,9 +411,9 @@ import {
 
 import ProfessionalTradingChart from '../components/ProfessionalTradingChart.vue';
 import FooterSection from '../components/sectionsLanding/FooterSection.vue';
-import { adminCryptos } from '../data/cryptoData';
+// Ne plus utiliser adminCryptos - uniquement les données de l'API
 import { getCryptoIcon } from '../utils/cryptoIcons';
-import { getMarket, getMarketHistory, buyCrypto, sellCrypto, getPortfolio } from '../services/api';
+import { getMarketHistory, buyCrypto, sellCrypto, getPortfolio, getUserCryptos } from '../services/api';
 import { useAuthStore } from '@/stores/auth';
 import { formatEUR } from '../utils/formatEUR';
 import type { CryptoCurrency, CryptoPricePoint, PortfolioResponse, PortfolioPosition } from '../types';
@@ -433,14 +430,9 @@ type DisplayCrypto = CryptoCurrency & {
   animationClass?: string;
 };
 
-// Fallback icon map from adminCryptos for change24h and other metadata
-const iconMap = adminCryptos.reduce<Record<string, (typeof adminCryptos)[number]>>((acc, c) => {
-  acc[c.symbol] = c;
-  return acc;
-}, {});
-
-const cryptocurrencies = ref<DisplayCrypto[]>([...adminCryptos]);
-const selectedCrypto = ref<DisplayCrypto>(cryptocurrencies.value[0]);
+// Ne pas initialiser avec adminCryptos - utiliser uniquement les données de l'API (comme AdminMarket)
+const cryptocurrencies = ref<DisplayCrypto[]>([]);
+const selectedCrypto = ref<DisplayCrypto | null>(null);
 const history = ref<CryptoPricePoint[]>([]);
 const search = ref('');
 const loading = ref(false);
@@ -491,19 +483,19 @@ const isAmountExceedingBalance = computed(() => {
   return finalAmount > balance;
 });
 
-// Calculate total gain/loss from portfolio dynamically (same logic as backend)
+// Calculer le gain/perte total depuis le portfolio
+// Le backend utilise Coinbase API pour obtenir les prix réels et calculer le P&L
 const totalGainLoss = computed(() => {
   if (!portfolioData.value || !portfolioData.value.portfolio) return 0;
   
   return portfolioData.value.portfolio.reduce((sum, position) => {
-    // Always use gain_loss from backend (calculated in PortfolioService)
-    // This ensures consistency with AdminMarket and backend calculations
+    // Utiliser gain_loss du backend (calculé avec prix Coinbase API)
     if (position.gain_loss !== undefined && position.gain_loss !== null) {
       return sum + Number(position.gain_loss);
     }
     
-    // Fallback calculation only if backend doesn't provide gain_loss
-    // This matches the backend calculation: currentValue - totalInvestedValue
+    // Fallback uniquement si le backend ne fournit pas gain_loss
+    // Utiliser current_value et total_invested_value du backend
     const currentValue = Number(position.current_value) || 0;
     const totalInvestedValue = Number(position.total_invested_value) || Number(position.invested_value) || 0;
     const calculatedGainLoss = currentValue - totalInvestedValue;
@@ -668,7 +660,7 @@ async function handleTrade() {
       amount.value = '';
       quantity.value = '';
       
-      // Reload portfolio to update available quantities and profit/loss
+      // Reload portfolio to update available quantities and profit/loss (P&L dynamique)
       await loadPortfolio();
     } else {
       // Sell - Validate quantity against portfolio
@@ -706,8 +698,11 @@ async function handleTrade() {
       amount.value = '';
       quantity.value = '';
       
-      // Reload portfolio to update available quantities and profit/loss
+      // Reload portfolio to update available quantities and profit/loss (P&L dynamique)
       await loadPortfolio();
+      
+      // Recharger aussi le marché pour mettre à jour les prix en temps réel
+      await loadMarket();
     }
     
     // Auto-hide success message after 5 seconds
@@ -731,124 +726,105 @@ async function handleTrade() {
   }
 }
 
-// Store previous prices for animation
-const previousPrices = ref<Map<string, { price: number; change24h: number }>>(new Map());
+// Store previous prices for animation (used in loadMarket)
 
 async function loadMarket() {
   if (loading.value) return; // Prevent concurrent calls
   loading.value = true;
   errorMessage.value = '';
   try {
-    const data = await getMarket();
+    // Récupérer les données depuis Coinbase API via le backend
+    // Le backend utilise CoinbaseAPIService pour obtenir les prix réels et dynamiques
+    const data = await getUserCryptos();
     
-    // Store previous prices before updating
-    const prevPrices = new Map(
-      cryptocurrencies.value.map(c => [c.symbol, { 
-        price: Number(c.price) || 0, 
-        change24h: Number(c.change24h) || 0 
-      }])
+    // Ensure data is an array
+    if (!Array.isArray(data)) {
+      throw new Error('Invalid response format from API');
+    }
+    
+    // Stocker les prix précédents pour détecter les changements (EXACTEMENT la même logique qu'AdminMarket ligne 234-236)
+    const previousPrices = new Map(
+      cryptocurrencies.value.map(c => [c.symbol, { price: c.price, change24h: c.change24h }])
     );
     
-    cryptocurrencies.value = data.map((item) => {
-      const fallback = iconMap[item.symbol];
-      // Use getCryptoIcon for reliable icon mapping, fallback to adminCryptos icon if available
-      const icon = getCryptoIcon(item.symbol) || fallback?.icon;
-      const prev = prevPrices.get(item.symbol);
+    // Utiliser EXACTEMENT la même logique qu'AdminMarket (ligne 238-266) pour garantir l'identité des valeurs
+    cryptocurrencies.value = data.map((crypto: any) => {
+      const prev = previousPrices.get(crypto.symbol);
       
-      // Get existing crypto data to preserve values
-      const existingCrypto = cryptocurrencies.value.find(c => c.symbol === item.symbol);
+      // Utiliser les données réelles de Coinbase API (prix et change24h)
+      // Le backend calcule change24h depuis l'historique local si Coinbase ne le fournit pas
+      const currentPrice = crypto.price !== undefined && crypto.price !== null && !isNaN(crypto.price) && crypto.price > 0
+        ? Number(crypto.price)
+        : 0;
       
-      // Use exact values from API (same as AdminMarket) - preserve only if API returns null/undefined, not 0
-      const currentPrice = item.price !== undefined && item.price !== null ? Number(item.price) : (existingCrypto ? Number(existingCrypto.price) : 0);
+      const currentChange24h = crypto.change24h !== undefined && crypto.change24h !== null && !isNaN(crypto.change24h)
+        ? Number(crypto.change24h)
+        : 0;
       
-      // For change24h: use API value if provided (even if 0), otherwise preserve previous valid value
-      let currentChange24h: number;
-      if (item.change24h !== undefined && item.change24h !== null) {
-        // API provided a value (even if 0), use it
-        currentChange24h = Number(item.change24h);
-      } else {
-        // API didn't provide value, preserve previous if it was valid
-        if (prev && prev.change24h !== undefined && prev.change24h !== 0 && !isNaN(prev.change24h)) {
-          currentChange24h = prev.change24h;
-        } else if (existingCrypto && existingCrypto.change24h !== undefined && Number(existingCrypto.change24h) !== 0) {
-          currentChange24h = Number(existingCrypto.change24h);
-        } else {
-          currentChange24h = 0;
-        }
-      }
       
-      // Detect changes for animation (same logic as AdminMarket)
-      const isPriceIncreased = prev && prev.price && currentPrice && currentPrice > prev.price;
-      const isPriceDecreased = prev && prev.price && currentPrice && currentPrice < prev.price;
+      // Détecter les changements pour animation uniquement si on a des prix précédents valides
+      const isPriceIncreased = prev && currentPrice > 0 && prev.price && currentPrice > prev.price;
+      const isPriceDecreased = prev && currentPrice > 0 && prev.price && currentPrice < prev.price;
       const isChangeIncreased = prev && currentChange24h !== undefined && prev.change24h !== undefined && 
                                 Math.abs(currentChange24h) > Math.abs(prev.change24h ?? 0);
       
-      const newCrypto = {
-        id: item.id ?? item.symbol,
-        symbol: item.symbol,
-        name: item.name,
+      // Retourner EXACTEMENT le même format qu'AdminMarket (ligne 256-265)
+      return {
+        ...crypto,
         price: currentPrice,
         change24h: currentChange24h,
-        marketCap: item.marketCap ?? fallback?.marketCap ?? existingCrypto?.marketCap,
-        volume24h: item.volume24h ?? fallback?.volume24h ?? existingCrypto?.volume24h,
-        icon: icon,
+        icon: getCryptoIcon(crypto.symbol),
         previousPrice: prev?.price,
         previousChange24h: prev?.change24h,
         isUpdating: false,
-        animationClass: isPriceIncreased ? 'price-up' : isPriceDecreased ? 'price-down' : isChangeIncreased ? 'change-up' : ''
+        animationClass: isPriceIncreased ? 'price-up' : isPriceDecreased ? 'price-down' : isChangeIncreased ? 'change-up' : '',
       };
-      
-      // Trigger animation if there's a change (same as AdminMarket)
-      if (newCrypto.animationClass) {
-        newCrypto.isUpdating = true;
-        setTimeout(() => {
-          const cryptoIndex = cryptocurrencies.value.findIndex(c => c.symbol === newCrypto.symbol);
-          if (cryptoIndex !== -1) {
-            cryptocurrencies.value[cryptoIndex].isUpdating = false;
-            cryptocurrencies.value[cryptoIndex].animationClass = '';
-          }
-        }, 1500);
-      }
-      
-      return newCrypto;
     });
     
-    // Sort by change24h - highest percentage first (descending)
+    // Animer les changements (EXACTEMENT la même logique qu'AdminMarket ligne 268-277)
+    cryptocurrencies.value.forEach((crypto) => {
+      if (crypto.animationClass) {
+        crypto.isUpdating = true;
+        setTimeout(() => {
+          crypto.isUpdating = false;
+          crypto.animationClass = '';
+        }, 1500);
+      }
+    });
+    
+    // Trier par change24h - trier d'abord par valeur positive décroissante, puis par valeur négative croissante
+    // Cela évite que les valeurs négatives extrêmes (ex: -50%) apparaissent en haut
     cryptocurrencies.value.sort((a, b) => {
       const changeA = a.change24h ?? 0;
       const changeB = b.change24h ?? 0;
       
-      // Sort by absolute value descending (highest percentage first)
-      return Math.abs(changeB) - Math.abs(changeA);
+      // Si les deux sont positifs ou les deux sont négatifs, trier par valeur absolue décroissante
+      if ((changeA >= 0 && changeB >= 0) || (changeA < 0 && changeB < 0)) {
+        return Math.abs(changeB) - Math.abs(changeA);
+      }
+      // Les valeurs positives passent avant les négatives
+      return changeB >= 0 ? 1 : -1;
     });
-
-    if (!cryptocurrencies.value.length) {
-      cryptocurrencies.value = [...adminCryptos];
-    }
-
-    // Update selected crypto if it exists (use symbol for matching)
+    
+    // Mettre à jour la crypto sélectionnée si elle existe toujours (EXACTEMENT la même logique qu'AdminMarket ligne 288-299)
     if (selectedCrypto.value) {
       const updated = cryptocurrencies.value.find(c => c.symbol === selectedCrypto.value?.symbol);
       if (updated) {
         selectedCrypto.value = updated;
       }
-    } else if (cryptocurrencies.value.length > 0) {
-      selectedCrypto.value = cryptocurrencies.value[0];
     }
     
-    if (selectedCrypto.value) {
+    if (cryptocurrencies.value.length && !selectedCrypto.value) {
+      selectedCrypto.value = cryptocurrencies.value[0];
       await loadHistory(selectedCrypto.value.symbol);
     }
-    
-    // Update previous prices
-    previousPrices.value = prevPrices;
   } catch (e: any) {
     console.error('Error loading market:', e);
-    errorMessage.value = e?.response?.data?.message || 'Impossible de charger le marché';
-    if (cryptocurrencies.value.length === 0) {
-      cryptocurrencies.value = [...adminCryptos];
-      selectedCrypto.value = cryptocurrencies.value[0];
-    }
+    errorMessage.value = e?.response?.data?.message || e?.message || 'Impossible de charger le marché';
+    // Ne PAS utiliser de données mockées comme fallback - garder le tableau vide si l'API échoue
+    // Les données affichées proviennent directement de Coinbase API via le backend
+    cryptocurrencies.value = [];
+    selectedCrypto.value = null;
     history.value = [];
   } finally {
     loading.value = false;
@@ -888,30 +864,30 @@ watch(() => selectedCrypto.value?.symbol, () => {
   }
 });
 
-// Auto-refresh market data and portfolio
-let marketRefreshTimer: ReturnType<typeof setInterval> | null = null;
-let portfolioRefreshTimer: ReturnType<typeof setInterval> | null = null;
+// Auto-refresh market data (EXACTEMENT la même logique qu'AdminMarket - refresh toutes les 24h)
+// Timer pour rafraîchir les données depuis Coinbase API
+let refreshTimer: ReturnType<typeof setInterval> | null = null;
+const REFRESH_INTERVAL = 86400000; // Rafraîchir toutes les 24h (86400000 ms)
 
 onMounted(async () => {
   if (!auth.user && auth.token) {
     await auth.fetchCurrentUser();
   }
+  
+  // Charger les données initiales
   await Promise.all([loadMarket(), loadPortfolio()]);
   
-  // Refresh market data once per 24 hours (86400000 ms)
-  marketRefreshTimer = setInterval(() => {
+  // Rafraîchir automatiquement les prix depuis Coinbase API toutes les 24h
+  refreshTimer = setInterval(() => {
     loadMarket();
-  }, 86400000);
-  
-  // Refresh portfolio once per 24 hours to update profit/loss
-  portfolioRefreshTimer = setInterval(() => {
-    loadPortfolio();
-  }, 86400000);
+  }, REFRESH_INTERVAL);
 });
 
 onUnmounted(() => {
-  if (marketRefreshTimer) clearInterval(marketRefreshTimer);
-  if (portfolioRefreshTimer) clearInterval(portfolioRefreshTimer);
+  if (refreshTimer) {
+    clearInterval(refreshTimer);
+    refreshTimer = null;
+  }
 });
 </script>
 

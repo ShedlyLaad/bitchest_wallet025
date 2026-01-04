@@ -44,21 +44,37 @@ export function setAuthToken(token: string | null) {
 
 api.interceptors.response.use(
   (response: AxiosResponse) => response,
-  (error: AxiosError<any>) => {
+  async (error: AxiosError<any>) => {
+    // Handle 401 Unauthorized - token might be expired or invalid
+    if (error.response?.status === 401) {
+      const message = error.response?.data?.message || 'Unauthenticated.';
+      console.error('[API]', message);
+      
+      // If we have a token but got 401, it might be expired
+      // Try to refresh user or clear auth state
+      if (currentToken) {
+        // Token might be invalid, but don't auto-logout here
+        // Let the calling code handle it
+      }
+    }
+    
     // Retry once on 419 by refreshing CSRF cookie
     if (error.response?.status === 419 && !csrfReady) {
       csrfReady = false;
     }
+    
     const message = error.response?.data?.message || error.response?.data?.error || error.message;
-    console.error('[API]', message);
+    if (error.response?.status !== 401) {
+      console.error('[API]', message);
+    }
     return Promise.reject(error);
   }
 );
 
 // Ensure XSRF header is present on stateful, non-GET requests
 api.interceptors.request.use((config) => {
-  // Ensure Authorization header is present if we have a stored token
-  if (currentToken && !config.headers?.Authorization) {
+  // Always ensure Authorization header is present if we have a stored token
+  if (currentToken) {
     config.headers = { ...(config.headers || {}), Authorization: `Bearer ${currentToken}` } as any;
   }
   const method = (config.method || 'get').toLowerCase();
@@ -170,6 +186,11 @@ export async function deleteNotification(id: number) {
 
 export async function getMarket() {
   const { data } = await api.get<CryptoCurrency[]>('/api/market');
+  return data;
+}
+
+export async function getUserCryptos() {
+  const { data } = await api.get<CryptoCurrency[]>('/api/user/cryptos');
   return data;
 }
 
@@ -319,6 +340,7 @@ export default {
   sellCrypto,
   getTransactionHistory,
   getMarket,
+  getUserCryptos,
   getMarketHistory,
   getAdminUsers,
   createAdminUser,

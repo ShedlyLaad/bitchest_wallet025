@@ -198,6 +198,7 @@ import { formatEUR } from '@/utils/format';
 import { getCryptoIcon } from '@/utils/cryptoIcons';
 import ProfessionalTradingChart from '@/components/ProfessionalTradingChart.vue';
 import { getAdminCryptoHistory, getAdminCryptos } from '@/services/api';
+import { useAuthStore } from '@/stores/auth';
 import type { CryptoCurrency, CryptoPricePoint } from '@/types';
 
 type AdminCryptoUI = CryptoCurrency & {
@@ -216,7 +217,9 @@ const historyLoading = ref(false);
 const errorMessage = ref('');
 const lastUpdated = ref<Date | null>(null);
 const timeframe = ref('30d'); // Default to 30 days
+// Timer pour rafraîchir les données depuis Coinbase API
 let refreshTimer: ReturnType<typeof setInterval> | null = null;
+const REFRESH_INTERVAL = 86400000; // Rafraîchir toutes les 24h (86400000 ms)
 
 async function loadCryptos() {
   loading.value = true;
@@ -224,20 +227,39 @@ async function loadCryptos() {
   try {
     const data = await getAdminCryptos();
     
+    // Ensure data is an array
+    if (!Array.isArray(data)) {
+      throw new Error('Invalid response format from API');
+    }
+    
     // Stocker les prix précédents pour détecter les changements
     const previousPrices = new Map(
       adminCryptosLocal.value.map(c => [c.symbol, { price: c.price, change24h: c.change24h }])
     );
     
-    adminCryptosLocal.value = data.map((crypto) => {
+    adminCryptosLocal.value = data.map((crypto: any) => {
       const prev = previousPrices.get(crypto.symbol);
-      const isPriceIncreased = prev && crypto.price && prev.price && crypto.price > prev.price;
-      const isPriceDecreased = prev && crypto.price && prev.price && crypto.price < prev.price;
-      const isChangeIncreased = prev && crypto.change24h !== undefined && prev.change24h !== undefined && 
-                                Math.abs(crypto.change24h) > Math.abs(prev.change24h ?? 0);
+      
+      // Utiliser les données réelles de Coinbase API (prix et change24h)
+      // Le backend calcule change24h depuis l'historique local si Coinbase ne le fournit pas
+      const currentPrice = crypto.price !== undefined && crypto.price !== null && !isNaN(crypto.price) && crypto.price > 0
+        ? Number(crypto.price)
+        : 0;
+      
+      const currentChange24h = crypto.change24h !== undefined && crypto.change24h !== null && !isNaN(crypto.change24h)
+        ? Number(crypto.change24h)
+        : 0;
+      
+      
+      const isPriceIncreased = prev && currentPrice && prev.price && currentPrice > prev.price;
+      const isPriceDecreased = prev && currentPrice && prev.price && currentPrice < prev.price;
+      const isChangeIncreased = prev && currentChange24h !== undefined && prev.change24h !== undefined && 
+                                Math.abs(currentChange24h) > Math.abs(prev.change24h ?? 0);
       
       return {
         ...crypto,
+        price: currentPrice,
+        change24h: currentChange24h,
         icon: getCryptoIcon(crypto.symbol),
         previousPrice: prev?.price,
         previousChange24h: prev?.change24h,
@@ -257,13 +279,18 @@ async function loadCryptos() {
       }
     });
     
-    // Trier par change24h - plus grand pourcentage en haut (décroissant)
+    // Trier par change24h - trier d'abord par valeur positive décroissante, puis par valeur négative croissante
+    // Cela évite que les valeurs négatives extrêmes (ex: -50%) apparaissent en haut
     adminCryptosLocal.value.sort((a, b) => {
       const changeA = a.change24h ?? 0;
       const changeB = b.change24h ?? 0;
       
-      // Trier par valeur absolue décroissante (plus grand pourcentage en haut)
-      return Math.abs(changeB) - Math.abs(changeA);
+      // Si les deux sont positifs ou les deux sont négatifs, trier par valeur absolue décroissante
+      if ((changeA >= 0 && changeB >= 0) || (changeA < 0 && changeB < 0)) {
+        return Math.abs(changeB) - Math.abs(changeA);
+      }
+      // Les valeurs positives passent avant les négatives
+      return changeB >= 0 ? 1 : -1;
     });
     
     // Mettre à jour la crypto sélectionnée si elle existe toujours
@@ -280,7 +307,8 @@ async function loadCryptos() {
     }
     lastUpdated.value = new Date();
   } catch (e: any) {
-    errorMessage.value = e?.response?.data?.message || 'Impossible de charger les cryptos';
+    console.error('Error loading cryptos:', e);
+    errorMessage.value = e?.response?.data?.message || e?.message || 'Impossible de charger les cryptos';
   } finally {
     loading.value = false;
   }
@@ -315,10 +343,32 @@ const lastUpdatedLabel = computed(() => {
   return lastUpdated.value.toLocaleTimeString();
 });
 
-onMounted(() => {
-  loadCryptos();
-  // Refresh une seule fois dans les 24h (86400000 ms)
-  refreshTimer = setInterval(loadCryptos, 86400000);
+onMounted(async () => {
+  // Ensure auth is hydrated
+  const auth = useAuthStore();
+  auth.hydrate?.();
+  
+  if (!auth.token) {
+    errorMessage.value = 'Not authenticated. Please login.';
+    return;
+  }
+  
+  // Ensure user is fetched
+  if (!auth.user && auth.token) {
+    try {
+      await auth.fetchCurrentUser();
+    } catch (e) {
+      console.error('Failed to fetch user:', e);
+      errorMessage.value = 'Failed to authenticate. Please login again.';
+      return;
+    }
+  }
+  
+  await loadCryptos();
+  // Rafraîchir automatiquement les prix depuis Coinbase API toutes les 24h
+  refreshTimer = setInterval(() => {
+    loadCryptos();
+  }, REFRESH_INTERVAL);
 });
 
 onUnmounted(() => {

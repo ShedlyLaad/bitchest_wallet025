@@ -356,6 +356,7 @@ import {
   X,
 } from 'lucide-vue-next';
 import { getAdminTransactions } from '@/services/api';
+import { useAuthStore } from '@/stores/auth';
 import { getCryptoIcon } from '@/utils/cryptoIcons';
 import type { Transaction, Paginated } from '@/types';
 
@@ -468,8 +469,27 @@ function closeDetails() {
   }
 }
 
-onMounted(() => {
-  loadTransactions();
+onMounted(async () => {
+  const auth = useAuthStore();
+  auth.hydrate?.();
+  
+  if (!auth.token) {
+    errorMessage.value = 'Not authenticated. Please login.';
+    return;
+  }
+  
+  // Ensure user is fetched
+  if (!auth.user && auth.token) {
+    try {
+      await auth.fetchCurrentUser();
+    } catch (e) {
+      console.error('Failed to fetch user:', e);
+      errorMessage.value = 'Failed to authenticate. Please login again.';
+      return;
+    }
+  }
+  
+  await loadTransactions();
 });
 </script>
 

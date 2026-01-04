@@ -809,11 +809,12 @@ const stats = computed(() => {
   const portfolioValue = portfolioData.value?.portfolio.reduce((sum, pos) => sum + (pos.current_value || 0), 0) ?? 0;
   const totalTrades = pagination.value.total || transactions.value.length;
   const totalPL = portfolioData.value?.portfolio.reduce((sum, pos) => {
-    // Use gain_loss from backend if available, otherwise calculate it
+    // Utiliser gain_loss du backend (calculé avec prix Coinbase API)
     if (pos.gain_loss !== undefined && pos.gain_loss !== null) {
       return sum + Number(pos.gain_loss);
     }
-    // Fallback calculation
+    // Fallback uniquement si le backend ne fournit pas gain_loss
+    // Utiliser current_value et total_invested_value du backend
     const currentValue = (pos.current_value || 0);
     const investedValue = (pos.total_invested_value || pos.invested_value || 0);
     return sum + (currentValue - investedValue);
@@ -840,17 +841,16 @@ const portfolioHoldings = computed(() => {
     .filter(pos => pos.quantity && pos.quantity > 0)
     .map(pos => {
       const quantity = pos.quantity || 0;
+      // Utiliser les valeurs calculées par le backend (basées sur Coinbase API)
       const currentPrice = pos.current_price || 0;
       const currentValue = pos.current_value || (quantity * currentPrice);
       const totalInvestedValue = pos.total_invested_value || pos.invested_value || 0;
       const avgPrice = pos.average_purchase_price || (quantity > 0 ? totalInvestedValue / quantity : 0);
       
-      // Use gain_loss from backend if available, otherwise calculate it
       const gainLoss = pos.gain_loss !== undefined && pos.gain_loss !== null 
         ? Number(pos.gain_loss)
         : currentValue - totalInvestedValue;
       
-      // Use gain_loss_percent from backend if available, otherwise calculate it
       const gainLossPercent = pos.gain_loss_percent !== undefined && pos.gain_loss_percent !== null
         ? Number(pos.gain_loss_percent)
         : totalInvestedValue > 0 ? (gainLoss / totalInvestedValue) * 100 : 0;
@@ -948,9 +948,18 @@ async function loadPortfolio() {
   if (isLoadingPortfolio.value) return;
   isLoadingPortfolio.value = true;
   try {
-    portfolioData.value = await getPortfolio();
-  } catch (error) {
+    const data = await getPortfolio();
+    // Ensure data structure is valid
+    if (data && typeof data === 'object' && Array.isArray(data.portfolio)) {
+      portfolioData.value = data;
+    } else {
+      console.error('Invalid portfolio data format:', data);
+      portfolioData.value = { balance: 0, portfolio: [] };
+    }
+  } catch (error: any) {
     console.error('Error loading portfolio:', error);
+    // Set empty portfolio on error to prevent UI crashes
+    portfolioData.value = { balance: 0, portfolio: [] };
   } finally {
     isLoadingPortfolio.value = false;
   }
@@ -961,15 +970,24 @@ async function loadTransactions(page = 1) {
   isLoadingTransactions.value = true;
   try {
     const response: Paginated<Transaction> = await getTransactionHistory({ page, per_page: 10 });
-    transactions.value = response.data;
-    pagination.value = {
-      current_page: response.current_page,
-      last_page: response.last_page,
-      per_page: response.per_page,
-      total: response.total
-    };
-  } catch (error) {
+    // Ensure response structure is valid
+    if (response && Array.isArray(response.data)) {
+      transactions.value = response.data;
+      pagination.value = {
+        current_page: response.current_page || 1,
+        last_page: response.last_page || 1,
+        per_page: response.per_page || 10,
+        total: response.total || 0
+      };
+    } else {
+      console.error('Invalid transactions data format:', response);
+      transactions.value = [];
+      pagination.value = { current_page: 1, last_page: 1, per_page: 10, total: 0 };
+    }
+  } catch (error: any) {
     console.error('Error loading transactions:', error);
+    transactions.value = [];
+    pagination.value = { current_page: 1, last_page: 1, per_page: 10, total: 0 };
   } finally {
     isLoadingTransactions.value = false;
   }

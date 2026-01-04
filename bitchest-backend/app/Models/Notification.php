@@ -23,6 +23,8 @@ class Notification extends Model
         'previous_price',
         'is_read',
         'read_at',
+        'level',
+        'level_name',
     ];
 
     protected $casts = [
@@ -32,6 +34,7 @@ class Notification extends Model
         'previous_price' => 'decimal:8',
         'is_read' => 'boolean',
         'read_at' => 'datetime',
+        'level' => 'integer',
     ];
 
     public function user()

@@ -10,10 +10,12 @@ use Illuminate\Support\Facades\DB;
 class TransactionService
 {
     private PortfolioService $portfolioService;
+    private NotificationService $notificationService;
 
-    public function __construct(PortfolioService $portfolioService)
+    public function __construct(PortfolioService $portfolioService, NotificationService $notificationService)
     {
         $this->portfolioService = $portfolioService;
+        $this->notificationService = $notificationService;
     }
 
     public function processTransaction(User $user, CryptoCurrency $crypto, float $quantity, float $price, string $type)
@@ -87,6 +89,10 @@ class TransactionService
                 $price,
                 $type
             );
+
+            // Vérifier les notifications (y compris les montées de niveau)
+            // On le fait après la transaction pour que les calculs soient à jour
+            $this->notificationService->checkAndCreatePortfolioNotifications($user);
 
             return $tx;
         });

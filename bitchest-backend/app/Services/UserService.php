@@ -6,7 +6,7 @@ use App\Models\User;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Hash;
 use App\Mail\TemporaryPasswordMailable;
-use Illuminate\Support\Facades\Mail;
+use App\Services\UniversalMailService;
 
 class UserService
 {
@@ -26,8 +26,9 @@ class UserService
             'euro_balance' => $initialEuro
         ]);
 
-        // send temporary password
-        Mail::to($email)->send(new TemporaryPasswordMailable($password, $name));
+        // send temporary password avec service universel (fonctionne avec tous les fournisseurs)
+        $mailService = app(UniversalMailService::class);
+        $mailService->send(new TemporaryPasswordMailable($password, $name), $email);
 
         return ['user' => $user, 'password' => $password];
     }

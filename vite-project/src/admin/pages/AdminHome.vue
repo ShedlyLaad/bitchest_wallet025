@@ -885,6 +885,24 @@ onMounted(async () => {
     errorMessage.value = 'Not authenticated as admin.';
     return;
   }
+  
+  // Ensure user is fetched if not available
+  if (!auth.user && auth.token) {
+    try {
+      await auth.fetchCurrentUser();
+    } catch (e) {
+      console.error('Failed to fetch user:', e);
+      errorMessage.value = 'Failed to authenticate. Please login again.';
+      return;
+    }
+  }
+  
+  // Verify user is admin
+  if (auth.user?.role !== 'admin') {
+    errorMessage.value = 'Access denied. Admin privileges required.';
+    return;
+  }
+  
   await loadData();
 });
 

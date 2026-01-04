@@ -10,7 +10,22 @@ class CryptoController extends Controller
 {
     public function index(CryptoService $cryptoService)
     {
-        return response()->json($cryptoService->getCurrentPrices());
+        // Utiliser le même service que Client pour garantir l'identité des valeurs
+        // Pas de cache ici pour Admin - toujours les données les plus récentes
+        $prices = $cryptoService->getCurrentPrices();
+        
+        // Normaliser le format de retour pour garantir la cohérence avec Client
+        return response()->json($prices->map(function ($crypto) {
+            return [
+                'id' => $crypto['id'] ?? null,
+                'symbol' => $crypto['symbol'] ?? '',
+                'name' => $crypto['name'] ?? '',
+                'price' => isset($crypto['price']) ? (float) $crypto['price'] : 0.0,
+                'change24h' => isset($crypto['change24h']) ? (float) $crypto['change24h'] : 0.0,
+                'marketCap' => isset($crypto['marketCap']) ? (float) $crypto['marketCap'] : 0.0,
+                'volume24h' => isset($crypto['volume24h']) ? (float) $crypto['volume24h'] : 0.0,
+            ];
+        })->values());
     }
 
     public function generate(CryptoService $cryptoService)

@@ -564,13 +564,22 @@ const portfolioHoldings = computed(() => {
     .filter(pos => pos.quantity && pos.quantity > 0)
     .map(pos => {
       const quantity = pos.quantity || 0;
+      // Prix actuel depuis Coinbase API via le backend
       const currentPrice = pos.current_price || 0;
-      // Utiliser les valeurs calculées par le backend selon le cahier des charges
       const averagePurchasePrice = pos.average_purchase_price || 0;
       const totalInvestedValue = pos.total_invested_value || 0;
-      const value = pos.current_value || (quantity * currentPrice);
-      const gainLoss = pos.gain_loss || 0;
-      const gainLossPercent = pos.gain_loss_percent || 0;
+      // Utiliser les valeurs calculées par le backend (basées sur Coinbase API)
+      // Le backend calcule current_value, gain_loss et gain_loss_percent avec les prix réels de Coinbase
+      const value = pos.current_value !== undefined && pos.current_value !== null 
+        ? Number(pos.current_value) 
+        : (quantity * currentPrice);
+      const gainLoss = pos.gain_loss !== undefined && pos.gain_loss !== null 
+        ? Number(pos.gain_loss) 
+        : (value - totalInvestedValue);
+      // Utiliser gain_loss_percent du backend (calculé avec les prix Coinbase réels)
+      const gainLossPercent = pos.gain_loss_percent !== undefined && pos.gain_loss_percent !== null 
+        ? Number(pos.gain_loss_percent) 
+        : (totalInvestedValue > 0 ? ((gainLoss / totalInvestedValue) * 100) : 0);
       const portfolioPercent = totalValue > 0 ? (value / totalValue) * 100 : 0;
       const priceChange = averagePurchasePrice > 0 ? ((currentPrice - averagePurchasePrice) / averagePurchasePrice) * 100 : 0;
       const cryptoCurrencyId = pos.crypto_currency_id;

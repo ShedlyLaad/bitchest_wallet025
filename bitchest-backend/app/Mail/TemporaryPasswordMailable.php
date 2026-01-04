@@ -3,9 +3,13 @@
 namespace App\Mail;
 
 use Illuminate\Mail\Mailable;
+use Illuminate\Bus\Queueable;
+use Illuminate\Queue\SerializesModels;
 
 class TemporaryPasswordMailable extends Mailable
 {
+    use Queueable, SerializesModels;
+
     public string $password;
     public string $name;
 
@@ -17,7 +21,8 @@ class TemporaryPasswordMailable extends Mailable
 
     public function build()
     {
-        return $this->subject('Votre mot de passe temporaire')
+        // Utiliser la configuration universelle - fonctionne avec tous les fournisseurs
+        return $this->subject('Votre mot de passe temporaire - BitChest')
             ->view('emails.temp_password')
             ->with([
                 'password' => $this->password,

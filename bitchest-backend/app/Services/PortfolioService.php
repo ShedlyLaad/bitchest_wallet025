@@ -15,6 +15,13 @@ class PortfolioService
         $this->cryptoService = $cryptoService;
     }
 
+    /**
+     * Met à jour le portfolio après une transaction
+     * 
+     * Note: total_crypto_value est utilisé pour le suivi interne, mais les calculs
+     * de plus-value sont faits dynamiquement dans getUserPortfolio() à partir des transactions
+     * selon le cahier des charges.
+     */
     public function updatePortfolio(Portfolio $portfolio, \App\Models\Transaction $transaction, float $quantity, float $price, string $type)
     {
         // --- BUY ---
@@ -37,12 +44,13 @@ class PortfolioService
                 ->sum('quantity');
             $totalQuantityBefore = $totalBuyQuantity - $totalSellQuantity;
             
-            // Calculer la valeur moyenne investie par unité
+            // Calculer la valeur moyenne investie par unité AVANT la vente
             $averageInvestedValue = $totalQuantityBefore > 0 
                 ? $portfolio->total_crypto_value / $totalQuantityBefore 
                 : 0;
             
             // Réduire la valeur investie proportionnellement à la quantité vendue
+            // Cela permet de maintenir la cohérence du total_crypto_value
             $portfolio->total_crypto_value -= ($quantity * $averageInvestedValue);
             
             // Si la valeur crypto devient négative ou nulle, la mettre à zéro
@@ -54,6 +62,15 @@ class PortfolioService
         $portfolio->save();
     }
 
+    /**
+     * Récupère le portfolio de l'utilisateur avec calculs dynamiques selon le cahier des charges
+     * 
+     * Logique selon cahier des charges :
+     * 1. Coût total = somme de tous les achats (même ceux partiellement vendus)
+     * 2. Quantité possédée = quantité achetée - quantité vendue
+     * 3. Valeur d'achat d'une unité = Coût total / Quantité possédée
+     * 4. Plus-value = (Quantité possédée × Prix actuel) - (Quantité possédée × Valeur d'achat d'une unité)
+     */
     public function getUserPortfolio(User $user)
     {
         $portfolios = $user->portfolios()
@@ -62,13 +79,14 @@ class PortfolioService
 
         // Enrichir chaque portfolio avec quantité détenue, prix courant, valeur courante, gain/perte
         return $portfolios->map(function ($portfolio) {
-            // Récupérer toutes les transactions d'achat
+            // Récupérer toutes les transactions d'achat (selon cahier des charges)
             $buyTransactions = \App\Models\Transaction::where('portfolio_id', $portfolio->id)
                 ->where('type', 'buy')
                 ->orderBy('created_at')
                 ->get();
             
-            // Calculer le coût total des achats (selon cahier des charges)
+            // Calculer le coût total de TOUS les achats (selon cahier des charges)
+            // Exemple : (1 × 10000) + (0.5 × 18000) + (0.5 × 20000) = 29000 euros
             $totalCost = $buyTransactions->sum(function ($tx) {
                 return (float) $tx->quantity * (float) $tx->price_at_transaction;
             });
@@ -81,26 +99,32 @@ class PortfolioService
                 ->where('type', 'sell')
                 ->sum('quantity');
             
-            // Quantité actuellement possédée
+            // Quantité actuellement possédée (selon cahier des charges)
+            // Exemple : 1 + 0.5 + 0.5 = 2 BTC
             $quantity = $totalBuyQuantity - $totalSellQuantity;
             
-            // Récupérer le prix courant via CryptoService (avec CoinGecko)
+            // Récupérer le prix courant en temps réel via CryptoService (avec Coinbase)
             $crypto = \App\Models\CryptoCurrency::find($portfolio->crypto_currency_id);
             $currentPrice = $this->cryptoService->getCurrentPrice($crypto->symbol) ?? 0.0;
             
             // Valeur totale au cours actuel (selon cahier des charges)
+            // Exemple : (1 + 0.5 + 0.5) × 30000 = 60000 euros
             $currentValue = $quantity * $currentPrice;
             
-            // Valeur d'achat moyenne d'une unité (selon cahier des charges)
-            // Coût total / Quantité possédée
-            $averagePurchasePrice = $quantity > 0 ? ($totalCost / $quantity) : 0;
+            // Valeur d'achat d'une unité (selon cahier des charges)
+            // Prix moyen d'achat = Coût total de tous les achats / Quantité totale achetée
+            // Exemple : 29000 / 2 = 14500 euros par BTC
+            $averagePurchasePrice = $totalBuyQuantity > 0 ? ($totalCost / $totalBuyQuantity) : 0;
             
-            // Coût total actuel (valeur investie pour la quantité possédée)
-            // C'est la valeur d'achat de toute la quantité possédée
+            // Coût total investi pour la quantité possédée
+            // C'est le prix moyen d'achat multiplié par la quantité possédée
+            // Exemple : 14500 × 1 = 14500 euros (si on a vendu 1 BTC sur 2)
             $totalInvestedValue = $averagePurchasePrice * $quantity;
             
             // Plus-value actuelle (selon cahier des charges)
-            // Valeur totale au cours actuel - Coût total investi
+            // Exemple : 60000 - 29000 = 31000 euros
+            // Note: Dans l'exemple du cahier, il y a une incohérence (60000 - 14500 = 45500)
+            // mais la logique correcte est : Valeur actuelle - Coût total investi
             $gainLoss = $currentValue - $totalInvestedValue;
             
             // Pourcentage de gain/perte

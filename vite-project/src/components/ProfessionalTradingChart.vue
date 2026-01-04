@@ -160,7 +160,7 @@
       <!-- Chart -->
       <ApexChart
         v-else-if="chartOptions && chartSeries && chartSeries.length > 0 && chartSeries[0].data && chartSeries[0].data.length > 0"
-        :key="`chart-${selectedTimeframe}-${selectedChartType}-${symbol}-${chartSeries[0].data.length}`"
+        :key="`chart-${selectedTimeframe}-${selectedChartType}-${symbol}-${chartSeries[0].data.length}-${currentPrice}`"
         :options="chartOptions"
         :series="chartSeries"
         :type="selectedChartType"
@@ -169,9 +169,10 @@
         class="relative z-0 chart-wrapper"
       />
       <!-- No data message -->
-      <div v-else-if="!isLoading && !error" class="absolute inset-0 flex items-center justify-center bg-gray-900/80 z-20">
+      <div v-else-if="!isLoading && !error && (!chartSeries || chartSeries.length === 0 || !chartSeries[0].data || chartSeries[0].data.length === 0)" class="absolute inset-0 flex items-center justify-center bg-gray-900/80 z-20">
         <div class="text-center text-gray-400">
-          <p class="text-sm">No chart data available</p>
+          <p class="text-sm font-medium mb-1">No chart data available</p>
+          <p class="text-xs text-gray-500">Loading historical data from Coinbase...</p>
         </div>
       </div>
     </div>
@@ -261,18 +262,23 @@ const highPrice = computed(() => marketData.value.high);
 const lowPrice = computed(() => marketData.value.low);
 const volume = computed(() => marketData.value.volume);
 
-// Calculate price change
+// Calculate price change - Utiliser directement change24h de Coinbase (déjà validé côté backend)
+// Le backend limite déjà change24h à -50% à +200%, donc on peut l'utiliser directement
 const priceChange = computed(() => {
-  if (props.change24h !== undefined && props.change24h !== 0) {
+  // Utiliser change24h directement depuis Coinbase (déjà validé backend)
+  if (props.change24h !== undefined && props.change24h !== null && !isNaN(props.change24h)) {
     return (currentPrice.value * props.change24h) / 100;
   }
+  // Fallback: calculer depuis l'historique si change24h n'est pas disponible
   return currentPrice.value - openPrice.value;
 });
 
 const priceChangePercent = computed(() => {
-  if (props.change24h !== undefined && props.change24h !== 0) {
+  // Utiliser change24h directement depuis Coinbase (déjà validé backend)
+  if (props.change24h !== undefined && props.change24h !== null && !isNaN(props.change24h)) {
     return props.change24h;
   }
+  // Fallback: calculer depuis l'historique si change24h n'est pas disponible
   if (openPrice.value === 0) return 0;
   return ((currentPrice.value - openPrice.value) / openPrice.value) * 100;
 });
@@ -293,81 +299,102 @@ const formatDateLabel = (date: Date, timeframe: string): string => {
   return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 };
 
-const chartSeries = computed(() => {
-  // If we have data with dates, use them directly
-  if (props.priceDataWithDates && props.priceDataWithDates.length > 0) {
-    // Sort by date first, then map to chart format
-    const sortedData = [...props.priceDataWithDates]
-      .sort((a, b) => new Date(a.recorded_at).getTime() - new Date(b.recorded_at).getTime())
-      .map((point) => {
-        const date = new Date(point.recorded_at);
-        const price = Number(point.price);
-        // Ensure price is a valid number
-        if (isNaN(price) || price <= 0) {
-          return null;
-        }
-        return {
-          x: date.getTime(), // Use timestamp for proper ordering
-          y: price
-        };
-      })
-      .filter((point): point is { x: number; y: number } => point !== null);
-    
-    if (sortedData.length === 0) {
-      return [];
-    }
-    
-    return [{
-      name: props.symbol,
-      data: sortedData
-    }];
-  }
-  
-  // Fallback: use priceData array if available
-  if (props.priceData && props.priceData.length > 0) {
-    const now = new Date();
-    const timeMap: Record<string, number> = {
-      '1d': 86400000, // 1 day in ms
-      '7d': 604800000, // 7 days in ms
-      '30d': 2592000000, // 30 days in ms
-      '90d': 7776000000 // 90 days in ms
-    };
-    
-    const totalTime = timeMap[selectedTimeframe.value] || 2592000000;
-    const interval = totalTime / props.priceData.length;
-    const startTime = now.getTime() - totalTime;
-    
-    const chartData = props.priceData
-      .map((price, index) => {
-        const priceNum = Number(price);
-        if (isNaN(priceNum) || priceNum <= 0) {
-          return null;
-        }
-        return {
-          x: startTime + (index * interval),
-          y: priceNum
-        };
-      })
-      .filter((point): point is { x: number; y: number } => point !== null);
-    
-    if (chartData.length === 0) {
-      return [];
-    }
-    
-    return [{
-      name: props.symbol,
-      data: chartData
-    }];
-  }
-  
-  // Last resort: generate minimal fallback data with multiple points for visibility
-  const fallbackPrice = props.currentPrice || 100;
-  if (fallbackPrice <= 0) {
-    return [];
-  }
-  
+// Construire les séries depuis l'historique Coinbase - Simple et direct
+const buildSeriesFromHistory = (): Array<{ x: number; y: number }> => {
+  if (!props.priceDataWithDates || props.priceDataWithDates.length === 0) return [];
+
   const now = new Date();
-  const points: Array<{ x: number; y: number }> = [];
+  const timeMap: Record<string, number> = {
+    '1d': 86400000,
+    '7d': 604800000,
+    '30d': 2592000000,
+    '90d': 7776000000
+  };
+  const timeframeMs = timeMap[selectedTimeframe.value] || 2592000000;
+  const cutoffTime = now.getTime() - timeframeMs;
+
+  // Traiter les données Coinbase : trier, filtrer par timeframe, valider
+  const validPoints: Array<{ x: number; y: number }> = [];
+
+  [...props.priceDataWithDates]
+    .sort((a, b) => new Date(a.recorded_at).getTime() - new Date(b.recorded_at).getTime())
+    .forEach((point) => {
+      try {
+        const date = new Date(point.recorded_at);
+        const ts = date.getTime();
+        const price = Number(point.price);
+
+        // Validation stricte : rejeter les données invalides
+        if (isNaN(ts) || ts <= 0) return;
+        if (isNaN(price) || price <= 0) return;
+        
+        // Filtrer par timeframe - être permissif si peu de données
+        const isWithinTimeframe = ts >= cutoffTime;
+        
+        // Si on a peu de données dans le timeframe strict, accepter toutes les données récentes (90 jours)
+        if (!isWithinTimeframe) {
+          const isRecent = ts >= (now.getTime() - (90 * 86400000));
+          if (!isRecent) {
+            return; // Rejeter les données trop anciennes (> 90 jours)
+          }
+          // Accepter les données récentes même si elles sont en dehors du timeframe strict
+          // Cela permet d'afficher quelque chose même si les données ne sont pas parfaitement alignées
+        }
+
+        validPoints.push({ x: ts, y: price });
+      } catch (e) {
+        // Ignorer les points avec erreur de parsing
+        console.warn('Invalid data point:', point, e);
+      }
+    });
+
+  // Si on a moins de 2 points, utiliser toutes les données disponibles (jusqu'à 90 jours)
+  if (validPoints.length < 2) {
+    const allPoints: Array<{ x: number; y: number }> = [];
+    const maxCutoff = now.getTime() - (90 * 86400000);
+    
+    [...props.priceDataWithDates]
+      .sort((a, b) => new Date(a.recorded_at).getTime() - new Date(b.recorded_at).getTime())
+      .forEach((point) => {
+        try {
+          const date = new Date(point.recorded_at);
+          const ts = date.getTime();
+          const price = Number(point.price);
+          if (isNaN(ts) || ts <= 0) return;
+          if (isNaN(price) || price <= 0) return;
+          if (ts < maxCutoff) return;
+          allPoints.push({ x: ts, y: price });
+        } catch (e) {
+          // Ignorer
+        }
+      });
+    
+    if (allPoints.length >= 2) {
+      // Dédupliquer et retourner
+      const byTs = new Map<number, number>();
+      allPoints.forEach(({ x, y }) => {
+        byTs.set(x, y);
+      });
+      return Array.from(byTs.entries())
+        .sort((a, b) => a[0] - b[0])
+        .map(([x, y]) => ({ x, y }));
+    }
+  }
+
+  // Dédupliquer par timestamp (garder le dernier prix pour chaque timestamp)
+  const byTs = new Map<number, number>();
+  validPoints.forEach(({ x, y }) => {
+    byTs.set(x, y);
+  });
+
+  return Array.from(byTs.entries())
+    .sort((a, b) => a[0] - b[0])
+    .map(([x, y]) => ({ x, y }));
+};
+
+const buildSeriesFromArray = (): Array<{ x: number; y: number }> => {
+  if (!props.priceData || props.priceData.length === 0) return [];
+  const now = new Date();
   const timeMap: Record<string, number> = {
     '1d': 86400000,
     '7d': 604800000,
@@ -375,22 +402,41 @@ const chartSeries = computed(() => {
     '90d': 7776000000
   };
   const totalTime = timeMap[selectedTimeframe.value] || 2592000000;
-  const pointCount = 30; // Generate 30 points
-  const interval = totalTime / pointCount;
-  
-  // Generate points with slight variation
-  for (let i = 0; i < pointCount; i++) {
-    const timestamp = now.getTime() - (totalTime - (i * interval));
-    const variation = Math.sin((i / pointCount) * Math.PI * 4) * 0.05;
-    points.push({
-      x: timestamp,
-      y: fallbackPrice * (1 + variation)
-    });
+  const interval = totalTime / props.priceData.length;
+  const startTime = now.getTime() - totalTime;
+
+  return props.priceData
+    .map((price, index) => {
+      const priceNum = Number(price);
+      if (isNaN(priceNum) || priceNum <= 0) return null;
+      return { x: startTime + index * interval, y: priceNum };
+    })
+    .filter((p): p is { x: number; y: number } => p !== null);
+};
+
+// Construire les séries pour le chart - Utiliser uniquement les données réelles Coinbase
+const chartSeries = computed(() => {
+  // Priorité 1: Utiliser priceDataWithDates (données Coinbase depuis l'API)
+  let data = buildSeriesFromHistory();
+
+  // Priorité 2: Fallback vers priceData si disponible (moins idéal mais acceptable)
+  if (data.length < 2) {
+    const fallbackFromArray = buildSeriesFromArray();
+    if (fallbackFromArray.length >= 2) {
+      data = fallbackFromArray;
+    }
   }
-  
+
+  // Si aucune donnée valide, retourner vide (pas de données synthétiques)
+  // Cela permet de voir clairement quand les données ne sont pas disponibles
+  if (data.length === 0) {
+    return [];
+  }
+
+  // Retourner les données réelles uniquement
   return [{
     name: props.symbol,
-    data: points
+    data: data
   }];
 });
 
@@ -465,8 +511,8 @@ const chartOptions = computed<ApexOptions>(() => {
       type: 'datetime',
       labels: {
         style: {
-          colors: '#6b7280',
-          fontSize: '10px',
+          colors: '#9ca3af',
+          fontSize: '11px',
           fontFamily: 'monospace',
           fontWeight: 400
         },
@@ -482,14 +528,17 @@ const chartOptions = computed<ApexOptions>(() => {
           ? 'ddd dd'
           : selectedTimeframe.value === '30d' || selectedTimeframe.value === '90d'
           ? 'MMM dd'
-          : 'MMM dd'
+          : 'MMM dd',
+        datetimeFormatter: {
+          year: 'yyyy',
+          month: 'MMM \'yy',
+          day: 'dd MMM',
+          hour: 'HH:mm'
+        }
       },
       axisBorder: {
         show: true,
-        color: '#1f2937',
-        height: 1,
-        offsetX: 0,
-        offsetY: 0
+        height: 1
       },
       axisTicks: {
         show: false
@@ -512,14 +561,20 @@ const chartOptions = computed<ApexOptions>(() => {
     yaxis: {
       labels: {
         style: {
-          colors: '#6b7280',
-          fontSize: '10px',
+          colors: '#9ca3af',
+          fontSize: '11px',
           fontFamily: 'monospace',
           fontWeight: 400
         },
         formatter: (val: number) => {
-          // Format without currency symbol for cleaner look
-          return val.toFixed(2);
+          // Format with appropriate decimal places based on price
+          if (val >= 1000) {
+            return val.toFixed(2);
+          } else if (val >= 1) {
+            return val.toFixed(4);
+          } else {
+            return val.toFixed(8);
+          }
         },
         offsetX: -5
       },
@@ -537,7 +592,6 @@ const chartOptions = computed<ApexOptions>(() => {
       },
       axisBorder: {
         show: true,
-        color: '#1f2937',
         width: 1
       }
     },
@@ -546,14 +600,12 @@ const chartOptions = computed<ApexOptions>(() => {
       strokeDashArray: 0,
       xaxis: {
         lines: {
-          show: true,
-          color: '#1f2937'
+          show: true
         }
       },
       yaxis: {
         lines: {
-          show: true,
-          color: '#1f2937'
+          show: true
         }
       },
       padding: {
@@ -593,7 +645,7 @@ const chartOptions = computed<ApexOptions>(() => {
       }
     },
     stroke: {
-      width: selectedChartType.value === 'line' ? 4 : 2,
+      width: selectedChartType.value === 'line' ? 3 : 2,
       curve: 'smooth',
       colors: selectedChartType.value === 'line' ? ['#60a5fa'] : ['#10b981'],
       lineCap: 'round',
@@ -613,9 +665,9 @@ const chartOptions = computed<ApexOptions>(() => {
         shadeIntensity: 1,
         gradientToColors: ['#10b981'],
         inverseColors: false,
-        opacityFrom: 0.3,
-        opacityTo: 0.05,
-        stops: [0, 100]
+        opacityFrom: 0.4,
+        opacityTo: 0.1,
+        stops: [0, 50, 100]
       } : undefined,
       colors: selectedChartType.value === 'area' ? ['#10b981'] : ['transparent'],
       opacity: selectedChartType.value === 'area' ? 1 : 0
@@ -650,9 +702,10 @@ watch(() => props.timeframe, (newTimeframe) => {
 });
 
 // Watch for data changes to ensure chart updates
-watch(() => [props.priceDataWithDates, props.priceData, props.currentPrice], () => {
+watch(() => [props.priceDataWithDates, props.priceData, props.currentPrice, props.symbol], () => {
   // Force chart re-render when data changes
-}, { deep: true });
+  // This ensures the chart updates when switching between cryptos or when new data arrives
+}, { deep: true, immediate: false });
 
 // Watch chart type changes
 watch(selectedChartType, () => {
@@ -685,17 +738,38 @@ watch(selectedChartType, () => {
 
 /* Assurer la visibilité des lignes du chart */
 .chart-wrapper :deep(.apexcharts-line-series path) {
-  stroke-width: 4px !important;
+  stroke-width: 3px !important;
   stroke: #60a5fa !important;
+  fill: none !important;
   filter: drop-shadow(0 0 2px rgba(96, 165, 250, 0.5));
 }
 
 .chart-wrapper :deep(.apexcharts-area-series path) {
   stroke-width: 2px !important;
   stroke: #10b981 !important;
+  fill: url(#gradient) !important;
 }
 
 .chart-wrapper :deep(.apexcharts-line-series .apexcharts-line) {
-  stroke-width: 4px !important;
+  stroke-width: 3px !important;
+  fill: none !important;
+}
+
+.chart-wrapper :deep(.apexcharts-area-series .apexcharts-area) {
+  stroke-width: 2px !important;
+  stroke: #10b981 !important;
+}
+
+/* Ensure gradients are visible for area charts */
+.chart-wrapper :deep(.apexcharts-area-series .apexcharts-area) {
+  opacity: 1 !important;
+}
+
+/* Ensure tooltip is visible */
+.chart-wrapper :deep(.apexcharts-tooltip) {
+  background: rgba(31, 41, 55, 0.95) !important;
+  border: 1px solid rgba(75, 85, 99, 0.5) !important;
+  border-radius: 6px !important;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3) !important;
 }
 </style>

@@ -126,7 +126,7 @@ export interface Notification {
   user_id: number;
   portfolio_id?: number;
   crypto_currency_id?: number;
-  type: 'profit' | 'loss' | 'price_alert' | 'portfolio_update';
+  type: 'profit' | 'loss' | 'price_alert' | 'portfolio_update' | 'level_up';
   title: string;
   message: string;
   crypto_symbol?: string;
@@ -136,6 +136,8 @@ export interface Notification {
   previous_price?: number;
   is_read: boolean;
   read_at?: string;
+  level?: number;
+  level_name?: string;
   created_at: string;
   updated_at: string;
   crypto?: CryptoCurrency;

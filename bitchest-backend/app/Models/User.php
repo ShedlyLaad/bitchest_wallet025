@@ -29,11 +29,15 @@ class User extends Authenticatable
         'must_change_password',
         'profile_picture',
         'profile_banner',
+        'level',
+        'experience_points',
     ];
 
     protected $casts = [
         'euro_balance' => 'decimal:2',
         'must_change_password' => 'boolean',
+        'level' => 'integer',
+        'experience_points' => 'integer',
     ];
 
     public function portfolios()

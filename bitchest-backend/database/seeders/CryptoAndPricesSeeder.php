@@ -4,7 +4,7 @@ namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
 use App\Models\CryptoCurrency;
-use App\Models\CryptoPrice;
+use App\Models\CryptoPriceRecord;
 use App\Services\CoinbaseAPIService;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Log;
@@ -39,8 +39,8 @@ class CryptoAndPricesSeeder extends Seeder
                 $price = $apiData['price'];
                 Log::info("Prix récupéré depuis Coinbase pour {$crypto->symbol}: {$price} EUR");
                 
-                // Insérer le prix dans crypto_prices
-                CryptoPrice::create([
+                // Insérer le prix dans crypto_price_records (table unifiée)
+                CryptoPriceRecord::create([
                     'crypto_currency_id' => $crypto->id,
                     'price' => $price,
                     'recorded_at' => $now,
@@ -49,7 +49,7 @@ class CryptoAndPricesSeeder extends Seeder
                 ]);
             } else {
                 // Si l'API échoue ou la crypto n'est pas supportée, utiliser le dernier prix de l'historique
-                $lastPrice = \App\Models\PriceHistory::where('crypto_currency_id', $crypto->id)
+                $lastPrice = CryptoPriceRecord::where('crypto_currency_id', $crypto->id)
                     ->latest('recorded_at')
                     ->value('price');
                 
@@ -62,7 +62,7 @@ class CryptoAndPricesSeeder extends Seeder
                         Log::info("Coinbase API indisponible pour {$crypto->symbol}. Utilisation du prix local: {$lastPrice} EUR");
                     }
                     
-                    CryptoPrice::create([
+                    CryptoPriceRecord::create([
                         'crypto_currency_id' => $crypto->id,
                         'price' => $lastPrice,
                         'recorded_at' => $now,
@@ -76,7 +76,7 @@ class CryptoAndPricesSeeder extends Seeder
                     
                     Log::info("Aucun prix historique pour {$crypto->symbol}. Génération d'un prix initial: {$basePrice} EUR");
                     
-                    CryptoPrice::create([
+                    CryptoPriceRecord::create([
                         'crypto_currency_id' => $crypto->id,
                         'price' => $basePrice,
                         'recorded_at' => $now,

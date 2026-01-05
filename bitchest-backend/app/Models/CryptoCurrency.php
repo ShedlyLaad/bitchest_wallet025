@@ -11,9 +11,9 @@ class CryptoCurrency extends Model
 
     protected $fillable = ['name', 'symbol'];
 
-    public function priceHistories()
+    public function priceRecords()
     {
-        return $this->hasMany(PriceHistory::class, 'crypto_currency_id');
+        return $this->hasMany(CryptoPriceRecord::class, 'crypto_currency_id');
     }
 
     public function portfolios()

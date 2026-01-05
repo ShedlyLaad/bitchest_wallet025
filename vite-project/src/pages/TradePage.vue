@@ -800,7 +800,7 @@ async function loadMarket() {
       
       // Si les deux sont positifs ou les deux sont négatifs, trier par valeur absolue décroissante
       if ((changeA >= 0 && changeB >= 0) || (changeA < 0 && changeB < 0)) {
-        return Math.abs(changeB) - Math.abs(changeA);
+      return Math.abs(changeB) - Math.abs(changeA);
       }
       // Les valeurs positives passent avant les négatives
       return changeB >= 0 ? 1 : -1;

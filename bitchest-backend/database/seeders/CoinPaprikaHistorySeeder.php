@@ -4,7 +4,7 @@ namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
 use App\Models\CryptoCurrency;
-use App\Models\PriceHistory;
+use App\Models\CryptoPriceRecord;
 use App\Services\CoinbaseAPIService;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Log;
@@ -32,7 +32,7 @@ class CoinPaprikaHistorySeeder extends Seeder
             Log::info("Récupération historique pour {$crypto->symbol} ({$crypto->name})...");
             
             // Supprimer les anciennes données pour cette crypto
-            PriceHistory::where('crypto_currency_id', $crypto->id)->delete();
+            CryptoPriceRecord::where('crypto_currency_id', $crypto->id)->delete();
             
             // Récupérer l'historique depuis Coinbase (fallback vers données locales car Coinbase ne fournit pas d'historique)
             $historicalData = $coinbaseAPIService->getHistoricalPrices(
@@ -52,7 +52,7 @@ class CoinPaprikaHistorySeeder extends Seeder
             // Insérer dans la base de données
             $inserted = 0;
             foreach ($historicalData as $data) {
-                PriceHistory::create([
+                CryptoPriceRecord::create([
                     'crypto_currency_id' => $crypto->id,
                     'price' => max(0.00000001, round($data['price'], 8)), // Prix toujours positif
                     'recorded_at' => $data['date'],
@@ -92,7 +92,7 @@ class CoinPaprikaHistorySeeder extends Seeder
             // S'assurer que le prix est toujours positif (cahier des charges)
             $price = max(0.00000001, round($price, 8));
 
-            PriceHistory::create([
+            CryptoPriceRecord::create([
                 'crypto_currency_id' => $crypto->id,
                 'price' => $price,
                 'recorded_at' => $currentDate->copy()->addHours(rand(0, 23))->addMinutes(rand(0, 59)),

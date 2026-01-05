@@ -909,7 +909,7 @@
 								"cryptos"
 							]
 						},
-						"description": "Get all cryptocurrencies with current prices from price_histories table"
+						"description": "Get all cryptocurrencies with current prices from crypto_price_records table"
 					},
 					"response": []
 				},
@@ -962,7 +962,7 @@
 								"generate"
 							]
 						},
-						"description": "Generate initial prices for all cryptocurrencies. Prices are stored in price_histories table."
+						"description": "Generate initial prices for all cryptocurrencies. Prices are stored in crypto_price_records table."
 					},
 					"response": []
 				}

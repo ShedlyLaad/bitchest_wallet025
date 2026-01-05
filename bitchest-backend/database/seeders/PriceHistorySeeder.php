@@ -3,7 +3,7 @@
 namespace Database\Seeders;
 
 use App\Models\CryptoCurrency;
-use App\Models\PriceHistory;
+use App\Models\CryptoPriceRecord;
 use Illuminate\Database\Seeder;
 
 class PriceHistorySeeder extends Seeder
@@ -37,7 +37,7 @@ class PriceHistorySeeder extends Seeder
                 // S'assurer que le prix reste positif et réaliste
                 $price = max(0.00000001, round($price, 8));
                 
-                PriceHistory::create([
+                CryptoPriceRecord::create([
                     'crypto_currency_id' => $crypto->id,
                     'price' => $price,
                     'recorded_at' => now()->subDays($i)->startOfDay()->addHours(rand(0, 23)),

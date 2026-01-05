@@ -3,8 +3,7 @@
 namespace App\Services;
 
 use App\Models\CryptoCurrency;
-use App\Models\PriceHistory;
-use App\Models\CryptoPrice;
+use App\Models\CryptoPriceRecord;
 use Carbon\Carbon;
 
 class CryptoService
@@ -18,7 +17,7 @@ class CryptoService
 
     /**
      * Retourne les prix actuels des 10 cryptos avec données live depuis Coinbase API
-     * Met à jour automatiquement crypto_prices avec les données de l'API
+     * Met à jour automatiquement crypto_price_records avec les données de l'API
      */
     public function getCurrentPrices()
     {
@@ -40,15 +39,8 @@ class CryptoService
             if ($data && isset($data['price']) && $data['price'] > 0) {
                 $currentPrice = (float) $data['price'];
                 
-                // Mettre à jour crypto_prices avec les données live de l'API
-                CryptoPrice::create([
-                    'crypto_currency_id' => $crypto->id,
-                    'price' => $currentPrice,
-                    'recorded_at' => Carbon::now(),
-                ]);
-                
-                // Aussi enregistrer dans PriceHistory pour le calcul de change24h
-                PriceHistory::create([
+                // Enregistrer dans crypto_price_records (table unifiée)
+                CryptoPriceRecord::create([
                     'crypto_currency_id' => $crypto->id,
                     'price' => $currentPrice,
                     'recorded_at' => Carbon::now(),
@@ -71,15 +63,9 @@ class CryptoService
 
             // Fallback: utiliser les données de la base de données si Coinbase échoue ou crypto non supportée
             
-            $price = CryptoPrice::where('crypto_currency_id', $crypto->id)
+            $price = CryptoPriceRecord::where('crypto_currency_id', $crypto->id)
                 ->latest('recorded_at')
                 ->value('price');
-
-            if ($price === null) {
-                $price = PriceHistory::where('crypto_currency_id', $crypto->id)
-                    ->latest('recorded_at')
-                    ->value('price');
-            }
             
             // Si toujours pas de prix, utiliser un prix par défaut basé sur le symbole
             if ($price === null) {
@@ -87,8 +73,8 @@ class CryptoService
                 $basePrice = $this->generateInitialPrice($crypto->symbol, $crypto->name);
                 $price = $basePrice;
                 
-                // Créer une entrée dans PriceHistory pour éviter ce problème à l'avenir
-                PriceHistory::create([
+                // Créer une entrée dans crypto_price_records pour éviter ce problème à l'avenir
+                CryptoPriceRecord::create([
                     'crypto_currency_id' => $crypto->id,
                     'price' => $basePrice,
                     'recorded_at' => Carbon::now(),
@@ -129,15 +115,9 @@ class CryptoService
             throw new \Exception("Crypto inconnue ($symbol)");
         }
 
-        $price = CryptoPrice::where('crypto_currency_id', $crypto->id)
+        $price = CryptoPriceRecord::where('crypto_currency_id', $crypto->id)
             ->latest('recorded_at')
             ->value('price');
-
-        if ($price === null) {
-            $price = PriceHistory::where('crypto_currency_id', $crypto->id)
-                ->latest('recorded_at')
-                ->value('price');
-        }
 
         return $price !== null ? (float) $price : null;
     }
@@ -153,7 +133,7 @@ class CryptoService
         $endDate = Carbon::now()->endOfDay();
 
         // 1) Essayer d'abord les données locales récentes
-        $history = PriceHistory::where('crypto_currency_id', $crypto->id)
+        $history = CryptoPriceRecord::where('crypto_currency_id', $crypto->id)
             ->where('recorded_at', '>=', $startDate)
             ->orderBy('recorded_at')
             ->get();
@@ -169,7 +149,7 @@ class CryptoService
 
             if (!empty($apiData)) {
                 // Supprimer l'ancien historique dans la fenêtre ciblée pour éviter les doublons
-                PriceHistory::where('crypto_currency_id', $crypto->id)
+                CryptoPriceRecord::where('crypto_currency_id', $crypto->id)
                     ->whereBetween('recorded_at', [$startDate, $endDate])
                     ->delete();
 
@@ -178,7 +158,7 @@ class CryptoService
                     $recordedAt = $point['date'] ?? null;
 
                     if ($recordedAt) {
-                        PriceHistory::create([
+                        CryptoPriceRecord::create([
                             'crypto_currency_id' => $crypto->id,
                             'price' => $price,
                             'recorded_at' => $recordedAt,
@@ -187,14 +167,14 @@ class CryptoService
                 }
 
                 // Recharger l'historique fraîchement persisté
-                $history = PriceHistory::where('crypto_currency_id', $crypto->id)
+                $history = CryptoPriceRecord::where('crypto_currency_id', $crypto->id)
                     ->where('recorded_at', '>=', $startDate)
                     ->orderBy('recorded_at')
                     ->get();
             } else {
                 // Si l'API a échoué (402 ou autre), utiliser toutes les données disponibles même en dehors du timeframe
                 // Cela permet d'afficher quelque chose même si les données ne sont pas parfaites
-                $allHistory = PriceHistory::where('crypto_currency_id', $crypto->id)
+                $allHistory = CryptoPriceRecord::where('crypto_currency_id', $crypto->id)
                     ->where('recorded_at', '>=', Carbon::now()->subDays(max($days, 90))) // Au moins les données des 90 derniers jours
                     ->orderBy('recorded_at')
                     ->get();
@@ -232,7 +212,7 @@ class CryptoService
     {
         // Si pas de prix actuel fourni, utiliser le dernier prix de l'historique
         if ($currentPrice === null || $currentPrice <= 0) {
-            $currentPrice = PriceHistory::where('crypto_currency_id', $cryptoId)
+            $currentPrice = CryptoPriceRecord::where('crypto_currency_id', $cryptoId)
                 ->latest('recorded_at')
                 ->value('price');
         }
@@ -254,7 +234,7 @@ class CryptoService
         $maxDaysBack = $isMappedCrypto ? 7 : 30;
         
         // Essayer de trouver le prix il y a exactement 24h (avec une marge de ±1h)
-        $price24hAgo = PriceHistory::where('crypto_currency_id', $cryptoId)
+        $price24hAgo = CryptoPriceRecord::where('crypto_currency_id', $cryptoId)
             ->where('recorded_at', '>=', $now->copy()->subHours(25))
             ->where('recorded_at', '<=', $now->copy()->subHours(23))
             ->where('recorded_at', '>=', $now->copy()->subDays($maxDaysBack))
@@ -268,7 +248,7 @@ class CryptoService
         
         // Si pas trouvé, chercher dans une fenêtre plus large (20h-28h)
         if ($price24hAgo === null) {
-            $price24hAgo = PriceHistory::where('crypto_currency_id', $cryptoId)
+            $price24hAgo = CryptoPriceRecord::where('crypto_currency_id', $cryptoId)
                 ->where('recorded_at', '>=', $now->copy()->subHours(28))
                 ->where('recorded_at', '<=', $now->copy()->subHours(20))
                 ->where('recorded_at', '>=', $now->copy()->subDays($maxDaysBack))
@@ -283,7 +263,7 @@ class CryptoService
         
         // Si toujours pas trouvé, utiliser le prix le plus proche d'il y a 24h (dans les X derniers jours)
         if ($price24hAgo === null) {
-            $price24hAgo = PriceHistory::where('crypto_currency_id', $cryptoId)
+            $price24hAgo = CryptoPriceRecord::where('crypto_currency_id', $cryptoId)
                 ->where('recorded_at', '>=', $now->copy()->subDays($maxDaysBack))
                 ->where('recorded_at', '<', $now)
                 ->get()

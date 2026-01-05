@@ -6,7 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Client\BuyCryptoRequest;
 use App\Http\Requests\Client\SellCryptoRequest;
 use App\Models\CryptoCurrency;
-use App\Models\CryptoPrice;
+use App\Models\CryptoPriceRecord;
 use App\Models\Transaction as TransactionModel;
 use App\Models\Portfolio;
 use Illuminate\Http\Request;

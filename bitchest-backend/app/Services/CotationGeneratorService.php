@@ -3,7 +3,7 @@
 namespace App\Services;
 
 use App\Models\CryptoCurrency;
-use App\Models\PriceHistory;
+use App\Models\CryptoPriceRecord;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Log;
@@ -38,7 +38,7 @@ class CotationGeneratorService
 
         foreach ($cryptos as $crypto) {
             if ($force) {
-                PriceHistory::where('crypto_currency_id', $crypto->id)->delete();
+                CryptoPriceRecord::where('crypto_currency_id', $crypto->id)->delete();
             }
 
             // Utiliser Coinbase si demandé et disponible
@@ -72,7 +72,7 @@ class CotationGeneratorService
         }
 
         foreach ($historicalData as $data) {
-            PriceHistory::create([
+            CryptoPriceRecord::create([
                 'crypto_currency_id' => $crypto->id,
                 'price' => max(0.00000001, round($data['price'], 8)),
                 'recorded_at' => $data['date'],
@@ -113,7 +113,7 @@ class CotationGeneratorService
             // S'assurer que le prix est toujours positif (cahier des charges)
                 $price = max(0.00000001, round($price, 8));
 
-                PriceHistory::create([
+                CryptoPriceRecord::create([
                     'crypto_currency_id' => $crypto->id,
                     'price' => $price,
                 'recorded_at' => $currentDate->copy()->addHours(rand(0, 23))->addMinutes(rand(0, 59)),
@@ -133,7 +133,7 @@ class CotationGeneratorService
         $cryptos = CryptoCurrency::all();
 
         foreach ($cryptos as $crypto) {
-            $last = PriceHistory::where('crypto_currency_id', $crypto->id)
+            $last = CryptoPriceRecord::where('crypto_currency_id', $crypto->id)
                 ->latest('recorded_at')
                 ->first();
 
@@ -144,7 +144,7 @@ class CotationGeneratorService
             $price = $base + $variation;
             $price = max(0.00000001, round($price, 8));
 
-            PriceHistory::create([
+            CryptoPriceRecord::create([
                 'crypto_currency_id' => $crypto->id,
                 'price' => $price,
                 'recorded_at' => now(),
@@ -196,7 +196,7 @@ class CotationGeneratorService
     {
         $crypto = CryptoCurrency::where('symbol', $symbol)->firstOrFail();
 
-        return PriceHistory::where('crypto_currency_id', $crypto->id)
+        return CryptoPriceRecord::where('crypto_currency_id', $crypto->id)
             ->where('recorded_at', '>=', now()->subDays($days))
             ->orderBy('recorded_at')
             ->get(['recorded_at', 'price']);
@@ -210,7 +210,7 @@ class CotationGeneratorService
         $crypto = CryptoCurrency::where('symbol', $symbol)->first();
         if (!$crypto) return null;
 
-        return (float) PriceHistory::where('crypto_currency_id', $crypto->id)
+        return (float) CryptoPriceRecord::where('crypto_currency_id', $crypto->id)
             ->latest('recorded_at')
             ->value('price');
     }

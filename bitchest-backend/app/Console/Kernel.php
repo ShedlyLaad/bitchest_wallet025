@@ -16,7 +16,7 @@ class Kernel extends ConsoleKernel
             ->withoutOverlapping()
             ->onOneServer();
 
-        // Generate crypto prices hourly (for PriceHistory)
+        // Generate crypto prices hourly (for crypto_price_records)
         $schedule->call(function (\App\Services\CotationGeneratorService $service) {
             $service->generateDaily();
         })->hourly();

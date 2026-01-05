@@ -3,13 +3,13 @@
 namespace Database\Factories;
 
 use App\Models\CryptoCurrency;
-use App\Models\PriceHistory;
+use App\Models\CryptoPriceRecord;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Carbon\Carbon;
 
 class PriceHistoryFactory extends Factory
 {
-    protected $model = PriceHistory::class;
+    protected $model = CryptoPriceRecord::class;
 
     public function definition(): array
     {

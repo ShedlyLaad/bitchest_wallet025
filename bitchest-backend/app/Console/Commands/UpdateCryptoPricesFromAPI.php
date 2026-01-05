@@ -4,7 +4,7 @@ namespace App\Console\Commands;
 
 use Illuminate\Console\Command;
 use App\Models\CryptoCurrency;
-use App\Models\CryptoPrice;
+use App\Models\CryptoPriceRecord;
 use App\Services\CoinbaseAPIService;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Log;
@@ -54,15 +54,8 @@ class UpdateCryptoPricesFromAPI extends Command
             $apiData = $liveData[$symbol] ?? null;
 
             if ($apiData && isset($apiData['price']) && $apiData['price'] > 0) {
-                // Mettre à jour le prix dans crypto_prices
-                CryptoPrice::create([
-                    'crypto_currency_id' => $crypto->id,
-                    'price' => $apiData['price'],
-                    'recorded_at' => $now,
-                ]);
-                
-                // Aussi enregistrer dans PriceHistory pour le calcul de change24h
-                \App\Models\PriceHistory::create([
+                // Enregistrer dans crypto_price_records (table unifiée)
+                CryptoPriceRecord::create([
                     'crypto_currency_id' => $crypto->id,
                     'price' => $apiData['price'],
                     'recorded_at' => $now,

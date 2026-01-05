@@ -5,11 +5,11 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 
-class CryptoPrice extends Model
+class CryptoPriceRecord extends Model
 {
     use HasFactory;
 
-    protected $table = 'crypto_prices';
+    protected $table = 'crypto_price_records';
 
     protected $fillable = [
         'crypto_currency_id',
@@ -27,3 +27,4 @@ class CryptoPrice extends Model
         return $this->belongsTo(CryptoCurrency::class, 'crypto_currency_id');
     }
 }
+

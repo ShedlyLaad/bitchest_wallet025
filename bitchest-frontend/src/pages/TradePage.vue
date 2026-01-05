@@ -169,7 +169,7 @@
                             (crypto as any).isUpdating && (crypto as any).animationClass === 'change-up' ? 'animate-pulse-change scale-110' : ''
                           ]"
                         >
-                          <span>{{ (crypto.change24h ?? 0) >= 0 ? '+' : '' }}{{ (crypto.change24h ?? 0).toFixed(2) }}%</span>
+                          <span>{{ (crypto.change24h ?? 0) >= 0 ? '+' : '' }}{{ Math.abs(crypto.change24h ?? 0).toFixed(2) }}%</span>
                           <span 
                             v-if="(crypto as any).previousChange24h !== undefined && crypto.change24h !== undefined && 
                                   Math.abs(Number(crypto.change24h)) > Math.abs(Number((crypto as any).previousChange24h))"
@@ -413,7 +413,7 @@ import ProfessionalTradingChart from '../components/ProfessionalTradingChart.vue
 import UserFooter from '../components/UserFooter.vue';
 // Ne plus utiliser adminCryptos - uniquement les données de l'API
 import { getCryptoIcon } from '../utils/cryptoIcons';
-import { getMarketHistory, buyCrypto, sellCrypto, getPortfolio, getUserCryptos } from '../services/api';
+import { getMarketHistory, buyCrypto, sellCrypto, getPortfolio, getUserCryptos, refreshCryptoPrices } from '../services/api';
 import { useAuthStore } from '@/stores/auth';
 import { formatEUR } from '../utils/formatEUR';
 import type { CryptoCurrency, CryptoPricePoint, PortfolioResponse, PortfolioPosition } from '../types';
@@ -728,14 +728,17 @@ async function handleTrade() {
 
 // Store previous prices for animation (used in loadMarket)
 
-async function loadMarket() {
-  if (loading.value) return; // Prevent concurrent calls
+async function loadMarket(forceRefresh = false) {
+  if (loading.value && !forceRefresh) return; // Prevent concurrent calls
   loading.value = true;
   errorMessage.value = '';
   try {
     // Récupérer les données depuis Coinbase API via le backend
     // Le backend utilise CoinbaseAPIService pour obtenir les prix réels et dynamiques
-    const data = await getUserCryptos();
+    // Utiliser refreshCryptoPrices si forceRefresh est true pour forcer le rafraîchissement
+    const data = forceRefresh 
+      ? await refreshCryptoPrices() 
+      : await getUserCryptos(true);
     
     // Ensure data is an array
     if (!Array.isArray(data)) {
@@ -754,12 +757,23 @@ async function loadMarket() {
       // Utiliser les données réelles de Coinbase API (prix et change24h)
       // Le backend calcule change24h depuis l'historique local si Coinbase ne le fournit pas
       const currentPrice = crypto.price !== undefined && crypto.price !== null && !isNaN(crypto.price) && crypto.price > 0
-        ? Number(crypto.price)
+        ? Number(Number(crypto.price).toFixed(8))
         : 0;
       
-      const currentChange24h = crypto.change24h !== undefined && crypto.change24h !== null && !isNaN(crypto.change24h)
+      // S'assurer que change24h est correctement arrondi à 2 décimales et ne dépasse pas les limites réalistes
+      let currentChange24h = crypto.change24h !== undefined && crypto.change24h !== null && !isNaN(crypto.change24h)
         ? Number(crypto.change24h)
         : 0;
+      
+      // Valider et limiter les valeurs aberrantes (entre -99% et +200%)
+      if (currentChange24h < -99) {
+        currentChange24h = -99;
+      } else if (currentChange24h > 200) {
+        currentChange24h = 200;
+      }
+      
+      // Arrondir à 2 décimales
+      currentChange24h = Number(currentChange24h.toFixed(2));
       
       
       // Détecter les changements pour animation uniquement si on a des prix précédents valides
@@ -864,22 +878,23 @@ watch(() => selectedCrypto.value?.symbol, () => {
   }
 });
 
-// Auto-refresh market data (EXACTEMENT la même logique qu'AdminMarket - refresh toutes les 24h)
+// Auto-refresh market data - Rafraîchir toutes les heures
 // Timer pour rafraîchir les données depuis Coinbase API
 let refreshTimer: ReturnType<typeof setInterval> | null = null;
-const REFRESH_INTERVAL = 86400000; // Rafraîchir toutes les 24h (86400000 ms)
+const REFRESH_INTERVAL = 60 * 60 * 1000; // Rafraîchir toutes les heures (3600000 ms)
 
 onMounted(async () => {
   if (!auth.user && auth.token) {
     await auth.fetchCurrentUser();
   }
   
-  // Charger les données initiales
+  // Charger les données initiales (utilise le cache si disponible)
   await Promise.all([loadMarket(), loadPortfolio()]);
   
-  // Rafraîchir automatiquement les prix depuis Coinbase API toutes les 24h
+  // Rafraîchir automatiquement les prix depuis Coinbase API toutes les heures
   refreshTimer = setInterval(() => {
-    loadMarket();
+    // Forcer le rafraîchissement sans utiliser le cache
+    loadMarket(true);
   }, REFRESH_INTERVAL);
 });
 

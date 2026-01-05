@@ -26,8 +26,9 @@
 
             <Motion tag="div" :while-hover="{ scale: 1.05 }" :while-tap="{ scale: 0.95 }">
               <RouterLink
+                data-cta-button
                 to="/signup"
-                class="inline-flex items-center text-white px-8 py-4 rounded-xl font-semibold transition-all hover:shadow-lg relative overflow-hidden"
+                class="inline-flex items-center text-white px-8 py-4 rounded-xl font-semibold transition-all hover:shadow-xl hover:scale-105 relative overflow-hidden group"
                 :style="primaryButtonStyle"
                 @mouseenter="primaryHover(true)"
                 @mouseleave="primaryHover(false)"
@@ -37,7 +38,9 @@
                   <ArrowRight class="ml-2 h-5 w-5" />
                 </Motion>
 
-                <div class="absolute inset-0 rounded-xl bg-white opacity-0 transition-opacity pointer-events-none" :class="{ 'opacity-10': primaryHovered }"></div>
+                <div class="absolute inset-0 rounded-xl bg-white opacity-0 group-hover:opacity-10 transition-opacity duration-300 pointer-events-none"></div>
+                <!-- Shine effect -->
+                <div class="absolute inset-0 -translate-x-full group-hover:translate-x-full transition-transform duration-700 bg-gradient-to-r from-transparent via-white/30 to-transparent"></div>
               </RouterLink>
             </Motion>
 
@@ -112,7 +115,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue';
+import { ref, computed } from 'vue';
 import { Motion } from '@motionone/vue';
 import { RouterLink } from 'vue-router';
 import { ArrowRight, Shield, Zap, Users, Star, TrendingUp, ChevronRight } from 'lucide-vue-next';
@@ -145,8 +148,8 @@ const awards = [
 /* Styles + hover state */
 const primaryHovered = ref(false);
 const primaryButtonStyle = {
-  background: 'linear-gradient(to right, var(--blue), var(--blue-dark))',
-  boxShadow: '0 0 20px rgba(53, 167, 255, 0.25)'
+  background: 'linear-gradient(to right, var(--accent-green), var(--blue), var(--blue-dark))',
+  boxShadow: '0 0 30px rgba(1, 255, 25, 0.3), 0 0 20px rgba(53, 167, 255, 0.25)'
 };
 
 function primaryHover(enter = true) {

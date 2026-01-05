@@ -22,6 +22,10 @@ Route::post('/register', [AuthController::class, 'register'])
 Route::post('/login', [AuthController::class, 'login'])
     ->withoutMiddleware([\Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful::class]);
 
+// Public crypto market data for landing page
+Route::get('/public/market', [CryptoMarketController::class, 'index'])
+    ->withoutMiddleware([\Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful::class]);
+
 /*
 |--------------------------------------------------------------------------
 | ROUTES PROTECTED BY AUTH (Sanctum)

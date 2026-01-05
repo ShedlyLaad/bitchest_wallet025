@@ -176,9 +176,9 @@ class CacheService {
    * Détermine le TTL par défaut selon le type de données
    */
   private getDefaultTTL(key: string): number {
-    // Données de marché : 30 secondes (changent souvent)
+    // Données de marché : 1 heure (comme demandé par l'utilisateur)
     if (key.includes('market') || key.includes('crypto') || key.includes('price')) {
-      return 30 * 1000;
+      return 60 * 60 * 1000; // 1 heure
     }
     
     // Portfolio : 1 minute (change moins souvent)

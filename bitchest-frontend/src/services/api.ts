@@ -160,19 +160,21 @@ export async function getPurchaseDetails(cryptoCurrencyId: number) {
 
 export async function buyCrypto(payload: BuyPayload): Promise<{ transaction: Transaction; balance: number }> {
   const { data } = await api.post<{ transaction: Transaction; balance: number; message: string }>('/api/transaction/buy', payload);
-  // Invalider les caches liés après une transaction
+  // Invalider les caches liés après une transaction pour forcer le rafraîchissement
   cacheService.remove('portfolio');
   cacheService.remove('transaction_history_1_10');
   cacheService.remove('user_cryptos');
+  cacheService.remove('market');
   return { transaction: data.transaction, balance: data.balance };
 }
 
 export async function sellCrypto(payload: SellPayload): Promise<{ transaction: Transaction; balance: number }> {
   const { data } = await api.post<{ transaction: Transaction; balance: number; message: string }>('/api/transaction/sell', payload);
-  // Invalider les caches liés après une transaction
+  // Invalider les caches liés après une transaction pour forcer le rafraîchissement
   cacheService.remove('portfolio');
   cacheService.remove('transaction_history_1_10');
   cacheService.remove('user_cryptos');
+  cacheService.remove('market');
   return { transaction: data.transaction, balance: data.balance };
 }
 
@@ -267,13 +269,20 @@ export async function getMarket(useCache: boolean = true) {
         const { data } = await api.get<CryptoCurrency[]>('/api/market');
         return data;
       },
-      { ttl: 30 * 1000 } // 30 secondes
+      { ttl: 60 * 60 * 1000 } // 1 heure
     );
   }
   
   const { data } = await api.get<CryptoCurrency[]>('/api/market');
-  cacheService.set(cacheKey, data, { ttl: 30 * 1000 });
+  cacheService.set(cacheKey, data, { ttl: 60 * 60 * 1000 }); // 1 heure
   return data;
+}
+
+/**
+ * Force le rafraîchissement des prix crypto uniquement (alias pour refreshCryptoPrices)
+ */
+export async function refreshMarketPrices(): Promise<CryptoCurrency[]> {
+  return refreshCryptoPrices();
 }
 
 export async function getUserCryptos(useCache: boolean = true) {
@@ -284,14 +293,39 @@ export async function getUserCryptos(useCache: boolean = true) {
       cacheKey,
       async () => {
         const { data } = await api.get<CryptoCurrency[]>('/api/user/cryptos');
-        return data;
+        // S'assurer que les valeurs sont correctement formatées
+        return Array.isArray(data) ? data.map(crypto => ({
+          ...crypto,
+          price: typeof crypto.price === 'number' ? Number(crypto.price.toFixed(8)) : Number(crypto.price || 0),
+          change24h: typeof crypto.change24h === 'number' ? Number(crypto.change24h.toFixed(2)) : Number(crypto.change24h || 0)
+        })) : data;
       },
-      { ttl: 30 * 1000 } // 30 secondes
+      { ttl: 60 * 60 * 1000 } // 1 heure
     );
   }
   
   const { data } = await api.get<CryptoCurrency[]>('/api/user/cryptos');
-  cacheService.set(cacheKey, data, { ttl: 30 * 1000 });
+  // S'assurer que les valeurs sont correctement formatées
+  const formattedData = Array.isArray(data) ? data.map(crypto => ({
+    ...crypto,
+    price: typeof crypto.price === 'number' ? Number(crypto.price.toFixed(8)) : Number(crypto.price || 0),
+    change24h: typeof crypto.change24h === 'number' ? Number(crypto.change24h.toFixed(2)) : Number(crypto.change24h || 0)
+  })) : data;
+  cacheService.set(cacheKey, formattedData, { ttl: 60 * 60 * 1000 }); // 1 heure
+  return formattedData;
+}
+
+/**
+ * Force le rafraîchissement des prix crypto uniquement
+ * Invalide le cache et récupère les nouvelles données depuis l'API
+ */
+export async function refreshCryptoPrices(): Promise<CryptoCurrency[]> {
+  // Invalider tous les caches liés aux prix crypto
+  cacheService.remove('user_cryptos');
+  cacheService.remove('market');
+  
+  // Forcer le rafraîchissement sans utiliser le cache
+  const data = await getUserCryptos(false);
   return data;
 }
 
@@ -489,6 +523,8 @@ export default {
   getMarket,
   getUserCryptos,
   getMarketHistory,
+  refreshCryptoPrices,
+  refreshMarketPrices,
   getAdminUsers,
   createAdminUser,
   approveUser,

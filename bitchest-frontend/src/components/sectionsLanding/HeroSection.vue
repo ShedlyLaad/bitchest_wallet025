@@ -60,23 +60,28 @@
           <div class="space-y-6">
             <div class="inline-block">
               <div
-                class="inline-flex items-center gap-2 px-4 py-2 backdrop-blur-sm rounded-full border mb-6"
-                :style="{ backgroundColor: 'rgba(15,23,42,0.08)', borderColor: 'rgba(15,23,42,0.08)' }"
+                class="inline-flex items-center gap-2 px-4 py-2 backdrop-blur-md rounded-full border mb-6 transition-all duration-300 hover:scale-105"
+                :style="{ 
+                  backgroundColor: 'rgba(56, 97, 140, 0.15)', 
+                  borderColor: 'var(--blue)',
+                  boxShadow: '0 0 20px rgba(53, 167, 255, 0.2)'
+                }"
               >
-                <span class="h-2 w-2 rounded-full animate-pulse" style="background-color: var(--blue)"></span>
-                <span class="text-sm font-medium" style="color: var(--blue)">E-quanouita Landing Page</span>
+                <span class="h-2 w-2 rounded-full animate-pulse" style="background-color: var(--accent-green)"></span>
+                <span class="text-sm font-medium" style="color: var(--blue)">Bitchest Platform</span>
+                <span class="text-xs px-2 py-0.5 rounded-full" style="background-color: 'rgba(1, 255, 25, 0.2)', color: 'var(--accent-green)'">Live</span>
               </div>
             </div>
 
-            <h1 class="text-4xl md:text-5xl lg:text-6xl font-bold leading-tight">
-              <span class="block text-white bg-gradient-to-r from-white to-blue-200 bg-clip-text text-transparent">
+            <h1 class="text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-bold leading-tight">
+              <span class="block text-white mb-2">
                 Master the Future of
               </span>
               <span
                 ref="animatedTitle"
-                class="block text-white mt-2 bg-clip-text text-transparent"
+                class="block mt-2 bg-clip-text text-transparent"
                 :style="{
-                  background: 'linear-gradient(to right, var(--blue), var(--blue-dark))',
+                  background: 'linear-gradient(to right, var(--accent-green), var(--blue), var(--blue-dark), var(--accent-green))',
                   WebkitBackgroundClip: 'text',
                   WebkitTextFillColor: 'transparent',
                   backgroundSize: '200% 200%',
@@ -94,14 +99,20 @@
             <div class="flex flex-col sm:flex-row gap-4 pt-2">
               <router-link
                 to="/signup"
-                class="group relative flex items-center justify-center text-white px-8 py-4 rounded-xl font-semibold transition-all duration-300 transform hover:scale-[1.03] shadow-lg"
-                style="background: linear-gradient(to right, var(--blue-dark), var(--blue)); box-shadow: 0 0 20px rgba(53,167,255,0.3)"
+                class="group relative flex items-center justify-center text-white px-8 py-4 rounded-xl font-semibold transition-all duration-300 transform hover:scale-[1.05] shadow-xl overflow-hidden"
+                :style="{ 
+                  background: 'linear-gradient(to right, var(--accent-green), var(--blue))',
+                  boxShadow: '0 0 30px rgba(1, 255, 25, 0.4), 0 0 20px rgba(53, 167, 255, 0.3)'
+                }"
               >
-                <span>Get Started Today</span>
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 ml-2 transition-transform group-hover:translate-x-1" viewBox="0 0 20 20" fill="currentColor">
+                <span class="relative z-10">Get Started Today</span>
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 ml-2 transition-transform group-hover:translate-x-1 relative z-10" viewBox="0 0 20 20" fill="currentColor">
                   <path fill-rule="evenodd" d="M10.293 5.293a1 1 0 011.414 0l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414-1.414L12.586 11H5a1 1 0 110-2h7.586l-2.293-2.293a1 1 0 010-1.414z" clip-rule="evenodd"/>
                 </svg>
-                <div class="absolute inset-0 rounded-xl bg-white opacity-0 group-hover:opacity-10 transition-opacity"></div>
+                <!-- Animated background on hover -->
+                <div class="absolute inset-0 rounded-xl bg-white opacity-0 group-hover:opacity-10 transition-opacity duration-300"></div>
+                <!-- Shine effect -->
+                <div class="absolute inset-0 -translate-x-full group-hover:translate-x-full transition-transform duration-700 bg-gradient-to-r from-transparent via-white/20 to-transparent"></div>
               </router-link>
 
               <router-link

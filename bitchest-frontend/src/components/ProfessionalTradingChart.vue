@@ -189,8 +189,8 @@ import type { CryptoPricePoint } from '@/types';
 interface Props {
   symbol: string;
   cryptoName?: string;
-  priceData?: number[];
-  priceDataWithDates?: CryptoPricePoint[];
+  priceData?: number[]; // Format simple: array de nombres (fallback)
+  priceDataWithDates?: CryptoPricePoint[]; // Format CryptoPriceRecord: [{ crypto_currency_id, price, recorded_at }]
   currentPrice?: number;
   change24h?: number;
   height?: number | string;
@@ -223,35 +223,48 @@ const selectedChartType = ref<'line' | 'area'>('line');
 const isLoading = ref(false);
 const error = ref('');
 
-// Calculate market data from price history
+// Calculate market data from price history (CryptoPriceRecord format)
 const marketData = computed(() => {
-  // Use priceDataWithDates if available
+  // Use priceDataWithDates if available (format: { crypto_currency_id, price, recorded_at })
   if (props.priceDataWithDates && props.priceDataWithDates.length > 0) {
-    const prices = props.priceDataWithDates.map(p => Number(p.price));
-    const open = prices[0] || props.currentPrice;
-    const close = prices[prices.length - 1] || props.currentPrice;
-    const high = Math.max(...prices, props.currentPrice);
-    const low = Math.min(...prices, props.currentPrice);
-    const volume = prices.length * 1000000;
-    return { open, high, low, close, volume };
+    // Trier par recorded_at pour avoir l'ordre chronologique
+    const sortedData = [...props.priceDataWithDates].sort((a, b) => {
+      return new Date(a.recorded_at).getTime() - new Date(b.recorded_at).getTime();
+    });
+    
+    const prices = sortedData.map(p => Number(p.price)).filter(p => !isNaN(p) && p > 0);
+    
+    if (prices.length > 0) {
+      const open = prices[0];
+      const close = prices[prices.length - 1];
+      const high = Math.max(...prices);
+      const low = Math.min(...prices);
+      // Volume estimé basé sur le nombre de points (approximation)
+      const volume = prices.length * 1000000;
+      return { open, high, low, close, volume };
+    }
   }
   
-  // Fallback to priceData array
+  // Fallback to priceData array (format simple: number[])
   if (props.priceData && props.priceData.length > 0) {
-    const prices = props.priceData.map(p => Number(p));
-    const open = prices[0] || props.currentPrice;
-    const close = prices[prices.length - 1] || props.currentPrice;
-    const high = Math.max(...prices, props.currentPrice);
-    const low = Math.min(...prices, props.currentPrice);
-    const volume = prices.length * 1000000;
-    return { open, high, low, close, volume };
+    const prices = props.priceData.map(p => Number(p)).filter(p => !isNaN(p) && p > 0);
+    
+    if (prices.length > 0) {
+      const open = prices[0];
+      const close = prices[prices.length - 1];
+      const high = Math.max(...prices);
+      const low = Math.min(...prices);
+      const volume = prices.length * 1000000;
+      return { open, high, low, close, volume };
+    }
   }
 
+  // Fallback: utiliser le prix actuel si aucune donnée historique
   return {
-    open: props.currentPrice,
-    high: props.currentPrice,
-    low: props.currentPrice,
-    close: props.currentPrice,
+    open: props.currentPrice || 0,
+    high: props.currentPrice || 0,
+    low: props.currentPrice || 0,
+    close: props.currentPrice || 0,
     volume: 0
   };
 });
@@ -299,82 +312,96 @@ const formatDateLabel = (date: Date, timeframe: string): string => {
   return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 };
 
-// Construire les séries depuis l'historique Coinbase - Simple et direct
+// Construire les séries depuis l'historique CryptoPriceRecord - Format: { crypto_currency_id, price, recorded_at }
 const buildSeriesFromHistory = (): Array<{ x: number; y: number }> => {
   if (!props.priceDataWithDates || props.priceDataWithDates.length === 0) return [];
 
   const now = new Date();
   const timeMap: Record<string, number> = {
-    '1d': 86400000,
-    '7d': 604800000,
-    '30d': 2592000000,
-    '90d': 7776000000
+    '1d': 86400000,      // 1 jour
+    '7d': 604800000,     // 7 jours
+    '30d': 2592000000,   // 30 jours
+    '90d': 7776000000    // 90 jours
   };
   const timeframeMs = timeMap[selectedTimeframe.value] || 2592000000;
   const cutoffTime = now.getTime() - timeframeMs;
 
-  // Traiter les données Coinbase : trier, filtrer par timeframe, valider
+  // Traiter les données CryptoPriceRecord depuis la base de données
+  // Format attendu: { crypto_currency_id: number, price: number, recorded_at: string }
   const validPoints: Array<{ x: number; y: number }> = [];
 
-  [...props.priceDataWithDates]
-    .sort((a, b) => new Date(a.recorded_at).getTime() - new Date(b.recorded_at).getTime())
-    .forEach((point) => {
+  // Trier les données par recorded_at (chronologique)
+  const sortedData = [...props.priceDataWithDates].sort((a, b) => {
+    const dateA = new Date(a.recorded_at).getTime();
+    const dateB = new Date(b.recorded_at).getTime();
+    return dateA - dateB;
+  });
+
+  sortedData.forEach((point) => {
+    try {
+      // Parser recorded_at depuis la base de données (format ISO 8601)
+      const date = new Date(point.recorded_at);
+      const ts = date.getTime();
+      
+      // Valider le timestamp
+      if (isNaN(ts) || ts <= 0) {
+        console.warn('Invalid timestamp:', point.recorded_at);
+        return;
+      }
+
+      // Parser le prix depuis la base de données (décimal:8)
+      const price = Number(point.price);
+      if (isNaN(price) || price <= 0) {
+        console.warn('Invalid price:', point.price);
+        return;
+      }
+
+      // Filtrer par timeframe
+      // Accepter les données dans le timeframe ou les données récentes (90 jours max)
+      const isWithinTimeframe = ts >= cutoffTime;
+      const isRecent = ts >= (now.getTime() - (90 * 86400000));
+      
+      if (!isWithinTimeframe && !isRecent) {
+        return; // Rejeter les données trop anciennes (> 90 jours)
+      }
+
+      validPoints.push({ x: ts, y: price });
+    } catch (e) {
+      console.warn('Error processing data point:', point, e);
+    }
+  });
+
+  // Si on a moins de 2 points valides, essayer d'utiliser toutes les données disponibles
+  if (validPoints.length < 2) {
+    const allPoints: Array<{ x: number; y: number }> = [];
+    const maxCutoff = now.getTime() - (90 * 86400000); // 90 jours maximum
+    
+    sortedData.forEach((point) => {
       try {
         const date = new Date(point.recorded_at);
         const ts = date.getTime();
         const price = Number(point.price);
-
-        // Validation stricte : rejeter les données invalides
-        if (isNaN(ts) || ts <= 0) return;
-        if (isNaN(price) || price <= 0) return;
         
-        // Filtrer par timeframe - être permissif si peu de données
-        const isWithinTimeframe = ts >= cutoffTime;
+        if (isNaN(ts) || ts <= 0 || isNaN(price) || price <= 0) return;
+        if (ts < maxCutoff) return; // Trop ancien
         
-        // Si on a peu de données dans le timeframe strict, accepter toutes les données récentes (90 jours)
-        if (!isWithinTimeframe) {
-          const isRecent = ts >= (now.getTime() - (90 * 86400000));
-          if (!isRecent) {
-            return; // Rejeter les données trop anciennes (> 90 jours)
-          }
-          // Accepter les données récentes même si elles sont en dehors du timeframe strict
-          // Cela permet d'afficher quelque chose même si les données ne sont pas parfaitement alignées
-        }
-
-        validPoints.push({ x: ts, y: price });
+        allPoints.push({ x: ts, y: price });
       } catch (e) {
-        // Ignorer les points avec erreur de parsing
-        console.warn('Invalid data point:', point, e);
+        // Ignorer les erreurs
       }
     });
-
-  // Si on a moins de 2 points, utiliser toutes les données disponibles (jusqu'à 90 jours)
-  if (validPoints.length < 2) {
-    const allPoints: Array<{ x: number; y: number }> = [];
-    const maxCutoff = now.getTime() - (90 * 86400000);
-    
-    [...props.priceDataWithDates]
-      .sort((a, b) => new Date(a.recorded_at).getTime() - new Date(b.recorded_at).getTime())
-      .forEach((point) => {
-        try {
-          const date = new Date(point.recorded_at);
-          const ts = date.getTime();
-          const price = Number(point.price);
-          if (isNaN(ts) || ts <= 0) return;
-          if (isNaN(price) || price <= 0) return;
-          if (ts < maxCutoff) return;
-          allPoints.push({ x: ts, y: price });
-        } catch (e) {
-          // Ignorer
-        }
-      });
     
     if (allPoints.length >= 2) {
-      // Dédupliquer et retourner
+      // Dédupliquer par timestamp (garder le dernier prix pour chaque timestamp)
       const byTs = new Map<number, number>();
       allPoints.forEach(({ x, y }) => {
-        byTs.set(x, y);
+        // Si plusieurs points ont le même timestamp, garder le dernier
+        const existing = byTs.get(x);
+        if (!existing || y > existing) {
+          byTs.set(x, y);
+        }
       });
+      
       return Array.from(byTs.entries())
         .sort((a, b) => a[0] - b[0])
         .map(([x, y]) => ({ x, y }));
@@ -382,11 +409,17 @@ const buildSeriesFromHistory = (): Array<{ x: number; y: number }> => {
   }
 
   // Dédupliquer par timestamp (garder le dernier prix pour chaque timestamp)
+  // Cela évite les doublons si plusieurs enregistrements ont le même timestamp
   const byTs = new Map<number, number>();
   validPoints.forEach(({ x, y }) => {
-    byTs.set(x, y);
+    const existing = byTs.get(x);
+    // Garder le prix le plus récent si même timestamp
+    if (!existing || y > existing) {
+      byTs.set(x, y);
+    }
   });
 
+  // Retourner les points triés chronologiquement
   return Array.from(byTs.entries())
     .sort((a, b) => a[0] - b[0])
     .map(([x, y]) => ({ x, y }));
@@ -414,12 +447,13 @@ const buildSeriesFromArray = (): Array<{ x: number; y: number }> => {
     .filter((p): p is { x: number; y: number } => p !== null);
 };
 
-// Construire les séries pour le chart - Utiliser uniquement les données réelles Coinbase
+// Construire les séries pour le chart - Utiliser les données CryptoPriceRecord depuis la base de données
 const chartSeries = computed(() => {
-  // Priorité 1: Utiliser priceDataWithDates (données Coinbase depuis l'API)
+  // Priorité 1: Utiliser priceDataWithDates (données CryptoPriceRecord depuis l'API)
+  // Format: [{ crypto_currency_id: number, price: number, recorded_at: string }]
   let data = buildSeriesFromHistory();
 
-  // Priorité 2: Fallback vers priceData si disponible (moins idéal mais acceptable)
+  // Priorité 2: Fallback vers priceData si disponible (format simple: number[])
   if (data.length < 2) {
     const fallbackFromArray = buildSeriesFromArray();
     if (fallbackFromArray.length >= 2) {
@@ -427,13 +461,13 @@ const chartSeries = computed(() => {
     }
   }
 
-  // Si aucune donnée valide, retourner vide (pas de données synthétiques)
-  // Cela permet de voir clairement quand les données ne sont pas disponibles
+  // Si aucune donnée valide, retourner vide
+  // Le composant affichera un message "No chart data available"
   if (data.length === 0) {
     return [];
   }
 
-  // Retourner les données réelles uniquement
+  // Retourner les données depuis CryptoPriceRecord (base de données)
   return [{
     name: props.symbol,
     data: data

@@ -49,19 +49,31 @@
 
           <!-- Card content -->
           <div
-             class="relative bg-gray-800/70 backdrop-blur-xl rounded-2xl p-8 border border-gray-700/30 transition-all duration-500 h-full flex flex-col overflow-hidden"
+             class="relative bg-gray-800/70 backdrop-blur-xl rounded-2xl p-8 border border-gray-700/30 transition-all duration-500 h-full flex flex-col overflow-hidden group-hover:border-opacity-60"
+             :style="{ borderColor: feature.borderColor }"
              >
-             <!-- Animated rings behind icon -->
+             <!-- Animated rings behind icon with brand colors -->
              <div class="absolute -top-20 -left-20 w-40 h-40 opacity-20 group-hover:opacity-40 transition-opacity duration-500">
-               <div class="absolute inset-0 border border-gray-500 rounded-full animate-ping" style="animation-duration: 4s;"></div>
-               <div class="absolute inset-4 border border-gray-500 rounded-full animate-ping" style="animation-duration: 6s; animation-delay: 1s;"></div>
+               <div 
+                 class="absolute inset-0 border rounded-full animate-ping" 
+                 :style="{ borderColor: feature.glowColor, animationDuration: '4s' }"
+               ></div>
+               <div 
+                 class="absolute inset-4 border rounded-full animate-ping" 
+                 :style="{ borderColor: feature.glowColor, animationDuration: '6s', animationDelay: '1s' }"
+               ></div>
              </div>
 
-            <div class="mb-8 p-4 rounded-full w-20 h-20 flex items-center justify-center transition-transform duration-500 group-hover:rotate-[15deg] relative z-10"
+            <div class="mb-8 p-4 rounded-full w-20 h-20 flex items-center justify-center transition-transform duration-500 group-hover:rotate-[15deg] group-hover:scale-110 relative z-10"
                  :style="cardGradientStyle(feature)">
-               <div class="bg-gray-900 rounded-full w-16 h-16 flex items-center justify-center">
-                 <component :is="feature.icon" class="h-12 w-12" />
+               <div class="bg-gray-900 rounded-full w-16 h-16 flex items-center justify-center shadow-lg">
+                 <component :is="feature.icon" class="h-12 w-12 text-white" />
                </div>
+               <!-- Glow effect on hover -->
+               <div 
+                 class="absolute inset-0 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-500 blur-xl"
+                 :style="{ backgroundColor: feature.glowColor }"
+               ></div>
              </div>
 
             <h3
@@ -74,10 +86,19 @@
 
              <p class="text-gray-300 leading-relaxed flex-grow">{{ feature.description }}</p>
 
-             <!-- Hover light effect -->
+             <!-- Hover light effect with brand colors -->
              <div class="absolute inset-0 rounded-2xl overflow-hidden opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none">
-               <div class="absolute -top-[100%] -left-[100%] w-[300%] h-[300%] bg-gradient-to-r from-transparent via-blue-500/10 to-transparent group-hover:animate-spin-slow"></div>
+               <div 
+                 class="absolute -top-[100%] -left-[100%] w-[300%] h-[300%] bg-gradient-to-r from-transparent via-transparent to-transparent group-hover:animate-spin-slow"
+                 :style="{ background: `linear-gradient(to right, transparent, ${feature.glowColor}20, transparent)` }"
+               ></div>
              </div>
+
+             <!-- Bottom accent line -->
+             <div 
+               class="absolute bottom-0 left-0 right-0 h-1 opacity-0 group-hover:opacity-100 transition-opacity duration-500"
+               :style="{ background: `linear-gradient(to right, ${feature.colorStart}, ${feature.colorEnd})` }"
+             ></div>
           </div>
          </Motion>
        </div>
@@ -99,26 +120,29 @@ import { Shield, Zap, Users } from 'lucide-vue-next';
      icon: Shield,
      title: 'Bank-Level Security',
      description: 'Your funds are protected by military-grade encryption and cold storage.',
-     // explicit colors for reliable inline gradients
-     colorStart: '#06b6d4', // cyan-400
-     colorEnd: '#3b82f6',   // blue-500
-     borderColor: 'rgba(59,130,246,0.35)'
+     // Using brand colors
+     colorStart: 'var(--blue-dark)', // #38618C
+     colorEnd: 'var(--blue)',        // #35A7FF
+     borderColor: 'rgba(53, 167, 255, 0.35)',
+     glowColor: '#35A7FF'
    },
    {
      icon: Zap,
      title: 'Lightning Fast',
      description: 'Execute trades in milliseconds with our advanced matching engine.',
-     colorStart: '#f59e0b', // amber-500
-     colorEnd: '#f97316',   // orange-500
-     borderColor: 'rgba(249,115,22,0.35)'
+     colorStart: 'var(--accent-green)', // #01FF19
+     colorEnd: 'var(--blue)',           // #35A7FF
+     borderColor: 'rgba(1, 255, 25, 0.35)',
+     glowColor: '#01FF19'
    },
    {
      icon: Users,
      title: '24/7 Support',
      description: 'Our expert team is always here to help you succeed in crypto trading.',
-     colorStart: '#10b981', // emerald-500
-     colorEnd: '#14b8a6',   // teal-400
-     borderColor: 'rgba(16,185,129,0.35)'
+     colorStart: 'var(--blue)',        // #35A7FF
+     colorEnd: 'var(--blue-dark)',     // #38618C
+     borderColor: 'rgba(56, 97, 140, 0.35)',
+     glowColor: '#38618C'
    }
  ];
  

@@ -614,15 +614,15 @@
       </div>
     </div>
 
-    <!-- Footer - Full Width -->
-    <FooterSection />
+    <!-- Footer - Minimal -->
+    <UserFooter />
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { Wallet, TrendingUp, TrendingDown, Activity, User, Shield, CreditCard, History, Plus, Calendar, Euro } from 'lucide-vue-next';
-import FooterSection from '../components/sectionsLanding/FooterSection.vue';
+import UserFooter from '../components/UserFooter.vue';
 import { formatEUR } from '../utils/formatEUR';
 import { useAuthStore } from '@/stores/auth';
 import { getPortfolio, getTransactionHistory, changePassword } from '@/services/api';

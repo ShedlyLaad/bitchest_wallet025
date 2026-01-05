@@ -6,7 +6,7 @@
           <!-- Company Info -->
           <div class="space-y-6">
             <div class="flex items-center">
-              <img :src="BitchestFooterLogo" alt="Bitchest Logo" class="h-10 w-auto" />
+              <img :src="BitchestFooterLogo" alt="Bitchest Logo" class="h-15 w-auto" />
             </div>
             <p class="text-gray-400 text-sm">
               The world's leading cryptocurrency trading platform. Trusted by millions of users worldwide.
@@ -69,28 +69,33 @@
             <h3 class="text-lg font-semibold">Connect With Us</h3>
             <div class="space-y-4">
               <div class="flex flex-col space-y-2">
+                <span class="text-gray-400 text-sm">Address</span>
+                <p class="text-white font-semibold">Soluyman, 108 Av. République</p>
+              </div>
+
+              <div class="flex flex-col space-y-2">
                 <span class="text-gray-400 text-sm">24/7 Support</span>
-                <a href="tel:+18001234567" class="text-white font-semibold hover:text-blue-400 transition-colors">+216 72 290 512</a>
+                <a href="tel:+21672290512" class="text-white font-semibold hover:text-blue-400 transition-colors">+216 72 290 512</a>
               </div>
 
               <div class="flex flex-col space-y-2">
                 <span class="text-gray-400 text-sm">Email Us</span>
-                <a href="mailto:support@SafeStash.com" class="text-white font-semibold hover:text-blue-400 transition-colors">support@eqanaouita.com</a>
+                <a href="mailto:admin@bitchest.com" class="text-white font-semibold hover:text-blue-400 transition-colors">admin@bitchest.com</a>
               </div>
 
               <div class="space-y-2">
                 <span class="text-gray-400 text-sm">Follow Us</span>
                 <div class="flex space-x-4">
                   <a
-                    v-for="([key, Icon]) in socialEntries"
-                    :key="key"
-                    :href="`https://${key}.com`"
+                    v-for="social in socialLinks"
+                    :key="social.name"
+                    :href="social.url"
                     class="p-2 bg-gray-700 rounded-lg hover:bg-gray-600 transition-colors group"
                     target="_blank"
                     rel="noopener noreferrer"
-                    :aria-label="`Follow on ${capitalize(key)}`"
+                    :aria-label="`Follow on ${social.name}`"
                   >
-                    <component :is="Icon" class="h-5 w-5 text-white group-hover:text-app-secondary transition-colors" />
+                    <component :is="social.icon" class="h-5 w-5 text-white group-hover:text-app-secondary transition-colors" />
                   </a>
                 </div>
               </div>
@@ -136,31 +141,21 @@ import {
   Instagram,
   Linkedin,
   Github,
-  X as Twitter,
-  Youtube,
   Smartphone,
   Store
 } from 'lucide-vue-next';
 
 import BitchestFooterLogo from '@/assets/bitchest_Footer.png';
 
-// Social icons mapping (key -> component)
-const socialIcons: Record<string, any> = {
-  twitter: Twitter,
-  linkedin: Linkedin,
-  facebook: Facebook,
-  instagram: Instagram,
-  github: Github,
-  youtube: Youtube
-};
-
-const socialEntries = Object.entries(socialIcons) as [string, any][];
+// Social links with specific URLs
+const socialLinks = [
+  { name: 'GitHub', icon: Github, url: 'https://github.com/ShedlyLaad' },
+  { name: 'Instagram', icon: Instagram, url: 'https://www.instagram.com/shedlylaadhiby/' },
+  { name: 'Facebook', icon: Facebook, url: 'https://www.facebook.com/TheRealShedly93' },
+  { name: 'LinkedIn', icon: Linkedin, url: 'https://www.linkedin.com/in/chedlylaadhiby98/' }
+];
 
 const year = new Date().getFullYear();
-
-function capitalize(s: string) {
-  return s.charAt(0).toUpperCase() + s.slice(1);
-}
 </script>
 
 <style scoped>

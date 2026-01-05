@@ -396,8 +396,8 @@
       </div>
     </div>
 
-    <!-- Footer - Full Width -->
-    <FooterSection />
+    <!-- Footer - Minimal -->
+    <UserFooter />
   </div>
 </template>
 
@@ -410,7 +410,7 @@ import {
 } from 'lucide-vue-next';
 
 import ProfessionalTradingChart from '../components/ProfessionalTradingChart.vue';
-import FooterSection from '../components/sectionsLanding/FooterSection.vue';
+import UserFooter from '../components/UserFooter.vue';
 // Ne plus utiliser adminCryptos - uniquement les données de l'API
 import { getCryptoIcon } from '../utils/cryptoIcons';
 import { getMarketHistory, buyCrypto, sellCrypto, getPortfolio, getUserCryptos } from '../services/api';

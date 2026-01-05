@@ -502,8 +502,8 @@
       </div>
     </div>
 
-    <!-- Footer - Full Width -->
-    <FooterSection />
+    <!-- Footer - Minimal -->
+    <UserFooter />
   </div>
 </template>
 
@@ -514,7 +514,7 @@ import { formatEUR } from '../utils/formatEUR';
 import { useAuthStore } from '@/stores/auth';
 import { getPortfolio, sellCrypto, getPurchaseDetails } from '../services/api';
 import { getCryptoIcon } from '../utils/cryptoIcons';
-import FooterSection from '../components/sectionsLanding/FooterSection.vue';
+import UserFooter from '../components/UserFooter.vue';
 import type { PortfolioResponse } from '../types';
 
 const auth = useAuthStore();

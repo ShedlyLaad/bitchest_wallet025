@@ -23,33 +23,39 @@
               </button>
             </div>
 
-            <!-- Status Section -->
-            <div class="px-4 py-2">
-              <div class="flex items-center space-x-2 px-4 py-2 rounded-xl bg-gray-700/30">
-                <div class="h-2 w-2 rounded-full animate-pulse" :style="{ backgroundColor: 'var(--accent-green)' }"></div>
-                <span class="text-xs text-gray-400">En ligne</span>
-              </div>
-            </div>
-
-            <!-- Profile Section Compact -->
+            <!-- Profile Section Compact - Futuriste -->
             <div class="px-4 py-2 group relative">
               <button
-                class="w-full flex items-center space-x-2 cursor-pointer rounded-lg px-2 py-1.5 transition-colors hover:bg-gray-700/30"
+                class="w-full flex items-center space-x-3 cursor-pointer rounded-xl px-3 py-2.5 transition-all duration-200 hover:bg-gray-700/30 hover:shadow-lg hover:shadow-blue-500/10 border border-transparent hover:border-blue-500/20"
                 @click="toggleProfileMenu"
               >
-                <div
-                  class="w-8 h-8 rounded-full flex items-center justify-center shadow-lg flex-shrink-0"
-                  :style="{
-                    background: `linear-gradient(to bottom right, var(--blue), var(--blue-dark))`,
-                    boxShadow: 'var(--blue-ring-shadow)'
-                  }"
-                >
-                  <Shield class="h-4 w-4 text-white" />
+                <div class="relative w-10 h-10 rounded-full overflow-hidden border-2 border-blue-500/30 shadow-lg flex-shrink-0">
+                  <img
+                    :src="adminLogoUrl"
+                    alt="Admin Avatar"
+                    class="w-full h-full object-cover"
+                    @error="handleImageError"
+                    @load="imageLoaded = true"
+                  />
+                  <div v-if="!imageLoaded" class="absolute inset-0 bg-gradient-to-br from-blue-600 to-blue-800 flex items-center justify-center">
+                    <Shield class="h-5 w-5 text-white" />
+                  </div>
+                  <!-- Status indicator -->
+                  <div class="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-green-500 rounded-full border-2 border-gray-800 shadow-lg animate-pulse">
+                    <div class="absolute inset-0 bg-green-400 rounded-full animate-ping opacity-75"></div>
+                  </div>
                 </div>
                 <div class="flex-1 min-w-0 text-left">
-                  <p class="text-xs font-medium text-gray-300 truncate">{{ currentUser.name }}</p>
+                  <div class="flex items-center gap-2 mb-0.5">
+                    <p class="text-sm font-semibold text-white truncate">{{ currentUser.name }}</p>
+                    <div class="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-green-500/20 border border-green-500/30">
+                      <div class="h-1.5 w-1.5 rounded-full bg-green-400 animate-pulse"></div>
+                      <span class="text-[10px] font-medium text-green-400 uppercase tracking-wider">Online</span>
+                    </div>
+                  </div>
+                  <p class="text-xs text-gray-400 truncate">{{ currentUser.email }}</p>
                 </div>
-                <ChevronDown class="h-4 w-4 text-gray-400 transition-transform duration-200" :class="{ 'rotate-180': isProfileMenuOpen }" />
+                <ChevronDown class="h-4 w-4 text-gray-400 transition-transform duration-200 flex-shrink-0" :class="{ 'rotate-180': isProfileMenuOpen }" />
               </button>
               <!-- Profile Menu Dropdown -->
               <Transition name="fade">
@@ -60,21 +66,32 @@
                 >
                   <div class="px-4 py-3 border-b border-gray-600 bg-gradient-to-r from-gray-800 to-gray-800/50">
                     <div class="flex items-center space-x-3">
-                      <div
-                        class="w-10 h-10 rounded-full flex items-center justify-center shadow-lg"
-                        :style="{
-                          background: `linear-gradient(to bottom right, var(--blue), var(--blue-dark))`,
-                          boxShadow: 'var(--blue-ring-shadow)'
-                        }"
-                      >
-                        <Shield class="h-5 w-5 text-white" />
+                      <div class="relative w-12 h-12 rounded-full overflow-hidden border-2 border-blue-500/30 shadow-lg flex-shrink-0">
+                        <img
+                          :src="adminLogoUrl"
+                          alt="Admin Avatar"
+                          class="w-full h-full object-cover"
+                          @error="handleImageError"
+                        />
+                        <div v-if="!imageLoaded" class="absolute inset-0 bg-gradient-to-br from-blue-600 to-blue-800 flex items-center justify-center">
+                          <Shield class="h-6 w-6 text-white" />
+                        </div>
+                        <div class="absolute -bottom-0.5 -right-0.5 w-4 h-4 bg-green-500 rounded-full border-2 border-gray-800 shadow-lg">
+                          <div class="absolute inset-0 bg-green-400 rounded-full animate-ping opacity-75"></div>
+                        </div>
                       </div>
                       <div class="flex-1 min-w-0">
-                        <p class="text-sm font-bold text-white truncate">{{ currentUser.name }}</p>
+                        <div class="flex items-center gap-2 mb-1">
+                          <p class="text-sm font-bold text-white truncate">{{ currentUser.name }}</p>
+                          <div class="flex items-center gap-1 px-2 py-0.5 rounded-full bg-green-500/20 border border-green-500/30">
+                            <div class="h-1.5 w-1.5 rounded-full bg-green-400 animate-pulse"></div>
+                            <span class="text-[10px] font-medium text-green-400 uppercase tracking-wider">Online</span>
+                          </div>
+                        </div>
                         <p class="text-xs text-gray-400 truncate">{{ currentUser.email }}</p>
-                        <div class="flex items-center space-x-1 mt-1">
-                          <div class="h-1.5 w-1.5 rounded-full" :style="{ backgroundColor: 'var(--accent-green)' }"></div>
-                          <span class="text-xs" :style="{ color: 'var(--accent-green)' }">Administrator</span>
+                        <div class="flex items-center space-x-1 mt-1.5">
+                          <Shield class="h-3 w-3 text-blue-400" />
+                          <span class="text-xs text-blue-400 font-medium">Administrator</span>
                         </div>
                       </div>
                     </div>
@@ -84,10 +101,13 @@
                       <User class="h-4 w-4" />
                       <span class="font-medium">View profile</span>
                     </button>
-                    <button class="w-full flex items-center space-x-3 px-4 py-2.5 text-sm text-gray-300 hover:bg-gray-700/80 hover:text-white transition-all duration-150">
-                      <Settings class="h-4 w-4" />
-                      <span class="font-medium">Settings</span>
-                    </button>
+                <button
+                  @click="handleSecurity"
+                  class="w-full flex items-center space-x-3 px-4 py-2.5 text-sm text-gray-300 hover:bg-gray-700/80 hover:text-white transition-all duration-150"
+                >
+                  <Lock class="h-4 w-4" />
+                  <span class="font-medium">Security</span>
+                </button>
                   </div>
                   <div class="border-t border-gray-700 pt-2 mt-1">
                     <button
@@ -187,33 +207,41 @@
           <img :src="AdminLogo" alt="Admin Logo" class="h-auto w-full max-w-[160px] object-contain" />
         </div>
 
-        <!-- Status Section -->
-        <div class="px-4 py-2">
-          <div class="flex items-center space-x-2 px-4 py-2 rounded-xl bg-gray-700/30">
-            <div class="h-2 w-2 rounded-full animate-pulse" :style="{ backgroundColor: 'var(--accent-green)' }"></div>
-            <span class="text-xs text-gray-400">En ligne</span>
-          </div>
-        </div>
+      
 
-        <!-- Profile Section avec Menu -->
+        <!-- Profile Section avec Menu - Futuriste -->
         <div class="px-4 py-2 group relative" ref="menuRef">
           <button
-            class="w-full flex items-center space-x-2 cursor-pointer rounded-lg px-2 py-1.5 transition-colors hover:bg-gray-700/30"
+            class="w-full flex items-center space-x-3 cursor-pointer rounded-xl px-3 py-2.5 transition-all duration-200 hover:bg-gray-700/30 hover:shadow-lg hover:shadow-blue-500/10 border border-transparent hover:border-blue-500/20"
             @click.stop="toggleProfileMenu"
           >
-            <div
-              class="w-8 h-8 rounded-full flex items-center justify-center shadow-lg flex-shrink-0"
-              :style="{
-                background: `linear-gradient(to bottom right, var(--blue), var(--blue-dark))`,
-                boxShadow: 'var(--blue-ring-shadow)'
-              }"
-            >
-              <Shield class="h-4 w-4 text-white" />
+            <div class="relative w-10 h-10 rounded-full overflow-hidden border-2 border-blue-500/30 shadow-lg flex-shrink-0">
+              <img
+                :src="adminLogoUrl"
+                alt="Admin Avatar"
+                class="w-full h-full object-cover"
+                @error="handleImageError"
+                @load="imageLoaded = true"
+              />
+              <div v-if="!imageLoaded" class="absolute inset-0 bg-gradient-to-br from-blue-600 to-blue-800 flex items-center justify-center">
+                <Shield class="h-5 w-5 text-white" />
+              </div>
+              <!-- Status indicator -->
+              <div class="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-green-500 rounded-full border-2 border-gray-800 shadow-lg animate-pulse">
+                <div class="absolute inset-0 bg-green-400 rounded-full animate-ping opacity-75"></div>
+              </div>
             </div>
             <div class="flex-1 min-w-0 text-left">
-              <p class="text-xs font-medium text-gray-300 truncate">{{ currentUser.name }}</p>
+              <div class="flex items-center gap-2 mb-0.5">
+                <p class="text-sm font-semibold text-white truncate">{{ currentUser.name }}</p>
+                <div class="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-green-500/20 border border-green-500/30">
+                  <div class="h-1.5 w-1.5 rounded-full bg-green-400 animate-pulse"></div>
+                  <span class="text-[10px] font-medium text-green-400 uppercase tracking-wider">Online</span>
+                </div>
+              </div>
+              <p class="text-xs text-gray-400 truncate">{{ currentUser.email }}</p>
             </div>
-            <ChevronDown class="h-4 w-4 text-gray-400 transition-transform duration-200" :class="{ 'rotate-180': isProfileMenuOpen }" />
+            <ChevronDown class="h-4 w-4 text-gray-400 transition-transform duration-200 flex-shrink-0" :class="{ 'rotate-180': isProfileMenuOpen }" />
           </button>
           <!-- Profile Menu Dropdown -->
           <Transition name="fade">
@@ -224,21 +252,32 @@
             >
               <div class="px-4 py-3 border-b border-gray-600 bg-gradient-to-r from-gray-800 to-gray-800/50">
                 <div class="flex items-center space-x-3">
-                  <div
-                    class="w-10 h-10 rounded-full flex items-center justify-center shadow-lg"
-                    :style="{
-                      background: `linear-gradient(to bottom right, var(--blue), var(--blue-dark))`,
-                      boxShadow: 'var(--blue-ring-shadow)'
-                    }"
-                  >
-                    <Shield class="h-5 w-5 text-white" />
+                  <div class="relative w-12 h-12 rounded-full overflow-hidden border-2 border-blue-500/30 shadow-lg flex-shrink-0">
+                    <img
+                      :src="adminLogoUrl"
+                      alt="Admin Avatar"
+                      class="w-full h-full object-cover"
+                      @error="handleImageError"
+                    />
+                    <div v-if="!imageLoaded" class="absolute inset-0 bg-gradient-to-br from-blue-600 to-blue-800 flex items-center justify-center">
+                      <Shield class="h-6 w-6 text-white" />
+                    </div>
+                    <div class="absolute -bottom-0.5 -right-0.5 w-4 h-4 bg-green-500 rounded-full border-2 border-gray-800 shadow-lg">
+                      <div class="absolute inset-0 bg-green-400 rounded-full animate-ping opacity-75"></div>
+                    </div>
                   </div>
                   <div class="flex-1 min-w-0">
-                    <p class="text-sm font-bold text-white truncate">{{ currentUser.name }}</p>
+                    <div class="flex items-center gap-2 mb-1">
+                      <p class="text-sm font-bold text-white truncate">{{ currentUser.name }}</p>
+                      <div class="flex items-center gap-1 px-2 py-0.5 rounded-full bg-green-500/20 border border-green-500/30">
+                        <div class="h-1.5 w-1.5 rounded-full bg-green-400 animate-pulse"></div>
+                        <span class="text-[10px] font-medium text-green-400 uppercase tracking-wider">Online</span>
+                      </div>
+                    </div>
                     <p class="text-xs text-gray-400 truncate">{{ currentUser.email }}</p>
-                    <div class="flex items-center space-x-1 mt-1">
-                      <div class="h-1.5 w-1.5 rounded-full" :style="{ backgroundColor: 'var(--accent-green)' }"></div>
-                      <span class="text-xs" :style="{ color: 'var(--accent-green)' }">Administrator</span>
+                    <div class="flex items-center space-x-1 mt-1.5">
+                      <Shield class="h-3 w-3 text-blue-400" />
+                      <span class="text-xs text-blue-400 font-medium">Administrator</span>
                     </div>
                   </div>
                 </div>
@@ -248,9 +287,12 @@
                   <User class="h-4 w-4" />
                   <span class="font-medium">View profile</span>
                 </button>
-                <button class="w-full flex items-center space-x-3 px-4 py-2.5 text-sm text-gray-300 hover:bg-gray-700/80 hover:text-white transition-all duration-150">
-                  <Settings class="h-4 w-4" />
-                  <span class="font-medium">Settings</span>
+                <button
+                  @click="handleSecurity"
+                  class="w-full flex items-center space-x-3 px-4 py-2.5 text-sm text-gray-300 hover:bg-gray-700/80 hover:text-white transition-all duration-150"
+                >
+                  <Lock class="h-4 w-4" />
+                  <span class="font-medium">Security</span>
                 </button>
               </div>
               <div class="border-t border-gray-700 pt-2 mt-1">
@@ -348,7 +390,7 @@
 <script setup lang="ts">
 import { computed, ref, onMounted, onBeforeUnmount, watch } from 'vue';
 import { useRoute, RouterLink, useRouter } from 'vue-router';
-import { LayoutDashboard, Users, TrendingUp, FileText, Shield, X, Bell, User, LogOut, Settings, ChevronDown } from 'lucide-vue-next';
+import { LayoutDashboard, Users, TrendingUp, FileText, Shield, X, Bell, User, LogOut, Lock, ChevronDown } from 'lucide-vue-next';
 import AdminLogo from '../../assets/ADMIN.png';
 import { useAuthStore } from '@/stores/auth';
 import api from '@/services/api';
@@ -403,6 +445,18 @@ const currentUser = computed(() => {
   return { name: name || 'Admin', email: u.email ?? '' };
 });
 
+// Admin logo URL
+const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
+const adminLogoUrl = computed(() => `${baseUrl}/images/adminLogo.png`);
+const imageLoaded = ref(false);
+
+function handleImageError(event: Event) {
+  const target = event.target as HTMLImageElement;
+  if (target) {
+    imageLoaded.value = false;
+  }
+}
+
 const pendingUsers = computed(() => (authPendingUsers.value ?? []).slice(0, 20));
 
 function isActive(path: string) {
@@ -435,7 +489,13 @@ function toggleNotif() {
 function handleViewProfile() {
   isProfileMenuOpen.value = false;
   closeMobileSidebar();
-  router.push('/admin/profile');
+  router.push({ path: '/admin/profile', query: { tab: 'profile' } });
+}
+
+function handleSecurity() {
+  isProfileMenuOpen.value = false;
+  closeMobileSidebar();
+  router.push({ path: '/admin/profile', query: { tab: 'security' } });
 }
 
 async function handleLogout() {

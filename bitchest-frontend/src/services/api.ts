@@ -1,4 +1,5 @@
 import axios, { AxiosError, type AxiosResponse } from 'axios';
+import { cacheService } from './cacheService';
 import type {
   AdminCreateUserPayload,
   AdminCreateUserResponse,
@@ -133,8 +134,22 @@ export async function fetchUser(): Promise<AuthUser | null> {
 }
 
 // CLIENT
-export async function getPortfolio(): Promise<PortfolioResponse> {
+export async function getPortfolio(useCache: boolean = true): Promise<PortfolioResponse> {
+  const cacheKey = 'portfolio';
+  
+  if (useCache) {
+    return cacheService.preload(
+      cacheKey,
+      async () => {
+        const { data } = await api.get<PortfolioResponse>('/api/portfolio');
+        return data;
+      },
+      { ttl: 60 * 1000 } // 1 minute
+    );
+  }
+  
   const { data } = await api.get<PortfolioResponse>('/api/portfolio');
+  cacheService.set(cacheKey, data, { ttl: 60 * 1000 });
   return data;
 }
 
@@ -145,27 +160,85 @@ export async function getPurchaseDetails(cryptoCurrencyId: number) {
 
 export async function buyCrypto(payload: BuyPayload): Promise<{ transaction: Transaction; balance: number }> {
   const { data } = await api.post<{ transaction: Transaction; balance: number; message: string }>('/api/transaction/buy', payload);
+  // Invalider les caches liés après une transaction
+  cacheService.remove('portfolio');
+  cacheService.remove('transaction_history_1_10');
+  cacheService.remove('user_cryptos');
   return { transaction: data.transaction, balance: data.balance };
 }
 
 export async function sellCrypto(payload: SellPayload): Promise<{ transaction: Transaction; balance: number }> {
   const { data } = await api.post<{ transaction: Transaction; balance: number; message: string }>('/api/transaction/sell', payload);
+  // Invalider les caches liés après une transaction
+  cacheService.remove('portfolio');
+  cacheService.remove('transaction_history_1_10');
+  cacheService.remove('user_cryptos');
   return { transaction: data.transaction, balance: data.balance };
 }
 
-export async function getTransactionHistory(params?: { page?: number; per_page?: number }): Promise<Paginated<Transaction>> {
+export async function getTransactionHistory(params?: { page?: number; per_page?: number }, useCache: boolean = true): Promise<Paginated<Transaction>> {
+  const page = params?.page || 1;
+  const cacheKey = `transaction_history_${page}_${params?.per_page || 10}`;
+  
+  if (useCache && page === 1) {
+    // Cache uniquement la première page pour affichage rapide
+    return cacheService.preload(
+      cacheKey,
+      async () => {
+        const { data } = await api.get<Paginated<Transaction>>('/api/transaction/history', { params });
+        return data;
+      },
+      { ttl: 2 * 60 * 1000 } // 2 minutes
+    );
+  }
+  
   const { data } = await api.get<Paginated<Transaction>>('/api/transaction/history', { params });
+  if (page === 1) {
+    cacheService.set(cacheKey, data, { ttl: 2 * 60 * 1000 });
+  }
   return data;
 }
 
 // NOTIFICATIONS
-export async function getNotifications(params?: { page?: number; per_page?: number; unread_only?: boolean }) {
+export async function getNotifications(params?: { page?: number; per_page?: number; unread_only?: boolean }, useCache: boolean = true) {
+  const page = params?.page || 1;
+  const unreadOnly = params?.unread_only ? 'unread' : 'all';
+  const cacheKey = `notifications_${page}_${unreadOnly}`;
+  
+  if (useCache && page === 1) {
+    return cacheService.preload(
+      cacheKey,
+      async () => {
+        const { data } = await api.get<Paginated<any>>('/api/notifications', { params });
+        return data;
+      },
+      { ttl: 10 * 1000 } // 10 secondes
+    );
+  }
+  
   const { data } = await api.get<Paginated<any>>('/api/notifications', { params });
+  if (page === 1) {
+    cacheService.set(cacheKey, data, { ttl: 10 * 1000 });
+  }
   return data;
 }
 
-export async function getUnreadNotificationsCount() {
+export async function getUnreadNotificationsCount(useCache: boolean = true) {
+  const cacheKey = 'notifications_unread_count';
+  
+  if (useCache) {
+    return cacheService.preload(
+      cacheKey,
+      async () => {
+        const { data } = await api.get<{ count: number }>('/api/notifications/unread-count');
+        return data;
+      },
+      { ttl: 10 * 1000 } // 10 secondes
+    );
+  }
+  
   const { data } = await api.get<{ count: number }>('/api/notifications/unread-count');
+  cacheService.set(cacheKey, data, { ttl: 10 * 1000 });
   return data;
 }
 
@@ -184,18 +257,60 @@ export async function deleteNotification(id: number) {
   return data;
 }
 
-export async function getMarket() {
+export async function getMarket(useCache: boolean = true) {
+  const cacheKey = 'market';
+  
+  if (useCache) {
+    return cacheService.preload(
+      cacheKey,
+      async () => {
+        const { data } = await api.get<CryptoCurrency[]>('/api/market');
+        return data;
+      },
+      { ttl: 30 * 1000 } // 30 secondes
+    );
+  }
+  
   const { data } = await api.get<CryptoCurrency[]>('/api/market');
+  cacheService.set(cacheKey, data, { ttl: 30 * 1000 });
   return data;
 }
 
-export async function getUserCryptos() {
+export async function getUserCryptos(useCache: boolean = true) {
+  const cacheKey = 'user_cryptos';
+  
+  if (useCache) {
+    return cacheService.preload(
+      cacheKey,
+      async () => {
+        const { data } = await api.get<CryptoCurrency[]>('/api/user/cryptos');
+        return data;
+      },
+      { ttl: 30 * 1000 } // 30 secondes
+    );
+  }
+  
   const { data } = await api.get<CryptoCurrency[]>('/api/user/cryptos');
+  cacheService.set(cacheKey, data, { ttl: 30 * 1000 });
   return data;
 }
 
-export async function getMarketHistory(symbol: string) {
+export async function getMarketHistory(symbol: string, useCache: boolean = true) {
+  const cacheKey = `market_history_${symbol}`;
+  
+  if (useCache) {
+    return cacheService.preload(
+      cacheKey,
+      async () => {
+        const { data } = await api.get<CryptoPricePoint[]>(`/api/market/history/${symbol}`);
+        return data;
+      },
+      { ttl: 60 * 1000 } // 1 minute
+    );
+  }
+  
   const { data } = await api.get<CryptoPricePoint[]>(`/api/market/history/${symbol}`);
+  cacheService.set(cacheKey, data, { ttl: 60 * 1000 });
   return data;
 }
 
@@ -308,9 +423,36 @@ export async function getAdminUserDetails(id: number) {
   };
 }
 
-export async function getAdminDashboard(timeFilter?: string) {
+export async function getAdminDashboard(timeFilter?: string, useCache: boolean = true) {
   const params = timeFilter ? { time_filter: timeFilter } : {};
+  const cacheKey = `admin_dashboard_${timeFilter || 'default'}`;
+  
+  if (useCache) {
+    return cacheService.preload(
+      cacheKey,
+      async () => {
+        const { data } = await api.get('/api/admin/dashboard', { params });
+        return data as {
+          totals: {
+            total_users: number;
+            active_users: number;
+            pending_validation: number;
+            euro_balance: number;
+            total_revenue: number;
+            trades_count: number;
+          };
+          revenue_series: number[];
+          trades_series: number[];
+          pending_users: { id: number; name: string; email: string; submitDate: string }[];
+          recent_activities: { id: number; user: string; action: string; time: string }[];
+        };
+      },
+      { ttl: 60 * 1000 } // 1 minute
+    );
+  }
+  
   const { data } = await api.get('/api/admin/dashboard', { params });
+  cacheService.set(cacheKey, data, { ttl: 60 * 1000 });
   return data as {
     totals: {
       total_users: number;
@@ -360,4 +502,7 @@ export default {
   getAdminUserDetails,
   getPurchaseDetails
 };
+
+
+
 

@@ -197,8 +197,8 @@
         
         <!-- Modal Content -->
         <div class="relative z-10 bg-white/5 backdrop-blur-xl rounded-2xl border border-white/10 shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-hidden flex flex-col">
-          <!-- Header -->
-          <div class="px-6 py-5 border-b border-white/10 flex items-center justify-between">
+          <!-- Header - Sans bordure en haut -->
+          <div class="px-6 py-5 flex items-center justify-between">
             <div class="flex items-center gap-3">
               <div
                 :class="[

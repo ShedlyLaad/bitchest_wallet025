@@ -262,6 +262,11 @@ export async function deleteUser(id: number) {
   return data;
 }
 
+export async function updateAdminUser(id: number, payload: { first_name?: string; last_name?: string }) {
+  const { data } = await api.put<{ message: string; user: AuthUser }>(`/api/admin/users/${id}`, payload);
+  return data;
+}
+
 export async function getAdminTransactions(params?: { user_id?: number; symbol?: string; type?: 'buy' | 'sell'; per_page?: number; page?: number }) {
   const { data } = await api.get<Paginated<Transaction>>('/api/admin/transactions', { params });
   return data;

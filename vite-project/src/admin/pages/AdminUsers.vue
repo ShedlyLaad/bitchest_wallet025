@@ -157,235 +157,291 @@
         </div>
       </div>
 
-    <!-- User Details Modal -->
-    <div v-if="isUserDetailsModalOpen" class="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4" @click.self="closeUserDetailsModal">
-      <div class="bg-gradient-to-br from-gray-800 to-gray-900 rounded-xl border border-gray-700 max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col shadow-2xl">
-        <!-- Header -->
-        <div class="p-6 border-b border-gray-700 bg-gray-800/50 flex items-center justify-between">
-          <div class="flex items-center gap-4">
-            <div class="relative w-16 h-16 flex-shrink-0">
-              <div class="w-16 h-16 rounded-xl overflow-hidden border-2 border-blue-500/30 bg-gradient-to-br from-blue-500/20 to-blue-600/20 flex items-center justify-center">
-                <img
-                  v-if="selectedUserDetails && getProfilePictureUrl(selectedUserDetails.user.profile_picture)"
-                  :src="getProfilePictureUrl(selectedUserDetails.user.profile_picture)!"
-                  :alt="selectedUserDetails.user.name || selectedUserDetails.user.email"
-                  class="w-full h-full object-cover"
-                  @error="(e: any) => { e.target.style.display = 'none'; }"
-                />
-                <span v-else class="text-blue-400 font-bold text-2xl">
-                  {{ selectedUserDetails?.user.email?.charAt(0).toUpperCase() || 'U' }}
-                </span>
+    <!-- User Details Modal - Inspiré de Transaction Details -->
+    <Transition name="modal">
+      <div
+        v-if="isUserDetailsModalOpen && selectedUserDetails"
+        class="fixed inset-0 z-50 flex items-center justify-center p-4"
+        @click.self="closeUserDetailsModal"
+      >
+        <!-- Backdrop with blur -->
+        <div class="absolute inset-0 bg-black/60 backdrop-blur-md"></div>
+        
+        <!-- Modal Content -->
+        <div class="relative z-10 bg-white/5 backdrop-blur-xl rounded-2xl border border-white/10 shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col">
+          <!-- Header -->
+          <div class="px-6 py-5 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+              <div class="relative w-12 h-12 flex-shrink-0">
+                <div class="w-12 h-12 rounded-xl overflow-hidden border-2 border-blue-500/30 bg-gradient-to-br from-blue-500/20 to-blue-600/20 flex items-center justify-center">
+                  <img
+                    v-if="getProfilePictureUrl(selectedUserDetails.user.profile_picture)"
+                    :src="getProfilePictureUrl(selectedUserDetails.user.profile_picture)!"
+                    :alt="selectedUserDetails.user.name || selectedUserDetails.user.email"
+                    class="w-full h-full object-cover"
+                    @error="(e: any) => { e.target.style.display = 'none'; }"
+                  />
+                  <span v-else class="text-blue-400 font-bold text-xl">
+                    {{ selectedUserDetails.user.email?.charAt(0).toUpperCase() || 'U' }}
+                  </span>
+                </div>
+                <div 
+                  v-if="selectedUserDetails.user.status === 'active'" 
+                  class="absolute -bottom-1 -right-1 w-4 h-4 bg-green-500 rounded-full border-2 border-gray-900"
+                  title="Active user"
+                ></div>
               </div>
-              <div 
-                v-if="selectedUserDetails?.user.status === 'active'" 
-                class="absolute -bottom-1 -right-1 w-4 h-4 bg-green-500 rounded-full border-2 border-gray-900"
-                title="Active user"
-              ></div>
+              <div>
+                <h2 class="text-xl font-semibold text-white">User Details</h2>
+                <p class="text-xs text-gray-400 mt-0.5">{{ selectedUserDetails.user.email }}</p>
+              </div>
             </div>
-            <div>
-              <h2 class="text-2xl font-bold text-white flex items-center gap-2">
-                <Activity class="h-6 w-6 text-blue-400" />
-                User Details
-              </h2>
-              <p v-if="selectedUserDetails" class="text-sm text-gray-400 mt-1">{{ selectedUserDetails.user.email }}</p>
-              <p v-if="selectedUserDetails?.user.name" class="text-sm text-gray-300 mt-0.5">{{ selectedUserDetails.user.name }}</p>
-            </div>
+            <button
+              @click="closeUserDetailsModal"
+              class="w-8 h-8 flex items-center justify-center text-gray-400 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
+            >
+              <X class="h-4 w-4" />
+            </button>
           </div>
-          <button @click="closeUserDetailsModal" class="p-2 hover:bg-gray-700 rounded-lg transition-colors">
-            <X class="h-5 w-5 text-gray-400" />
-          </button>
-        </div>
+          
+          <!-- Content -->
+          <div class="overflow-y-auto flex-1">
+            <div class="p-6 space-y-5">
+              <!-- User Info Section - Editable -->
+              <div class="space-y-3">
+                <div class="text-xs font-medium text-gray-400 uppercase tracking-wider">User Information</div>
+                <div class="grid grid-cols-2 gap-3">
+                  <div class="p-4 bg-white/5 rounded-xl border border-white/5">
+                    <div class="text-xs text-gray-400 mb-1">First Name</div>
+                    <div v-if="!isEditingUser" class="text-sm font-medium text-white">
+                      {{ selectedUserDetails.user.first_name || 'N/A' }}
+                    </div>
+                    <input
+                      v-else
+                      v-model="editUserForm.first_name"
+                      type="text"
+                      class="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+                  <div class="p-4 bg-white/5 rounded-xl border border-white/5">
+                    <div class="text-xs text-gray-400 mb-1">Last Name</div>
+                    <div v-if="!isEditingUser" class="text-sm font-medium text-white">
+                      {{ selectedUserDetails.user.last_name || 'N/A' }}
+                    </div>
+                    <input
+                      v-else
+                      v-model="editUserForm.last_name"
+                      type="text"
+                      class="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+                  <div class="p-4 bg-white/5 rounded-xl border border-white/5 col-span-2">
+                    <div class="text-xs text-gray-400 mb-1">Email</div>
+                    <div class="text-sm font-medium text-white break-all">
+                      {{ selectedUserDetails.user.email }}
+                    </div>
+                    <p class="text-xs text-gray-500 mt-1">Email cannot be modified</p>
+                  </div>
+                </div>
+                <div class="flex justify-end gap-2">
+                  <button
+                    v-if="!isEditingUser"
+                    @click="startEditingUser"
+                    class="px-4 py-2 bg-blue-500/20 hover:bg-blue-500/30 text-blue-300 rounded-lg text-sm font-medium transition-colors border border-blue-500/30"
+                  >
+                    <Edit class="h-4 w-4 inline mr-2" />
+                    Edit
+                  </button>
+                  <template v-else>
+                    <button
+                      @click="cancelEditingUser"
+                      class="px-4 py-2 bg-gray-700/50 hover:bg-gray-700 text-white rounded-lg text-sm font-medium transition-colors"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      @click="saveUserChanges"
+                      :disabled="savingUser"
+                      class="px-4 py-2 bg-green-500/20 hover:bg-green-500/30 text-green-300 rounded-lg text-sm font-medium transition-colors border border-green-500/30 disabled:opacity-50"
+                    >
+                      {{ savingUser ? 'Saving...' : 'Save' }}
+                    </button>
+                  </template>
+                </div>
+              </div>
 
-        <!-- Content -->
-        <div class="flex-1 overflow-y-auto p-6">
-          <div v-if="userDetailsLoading" class="flex items-center justify-center py-12">
-            <div class="text-center">
-              <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
-              <p class="text-gray-400">Loading user details...</p>
-            </div>
-          </div>
-
-          <div v-else-if="userDetailsError" class="bg-red-900/20 border border-red-500/50 rounded-lg p-4 text-red-300">
-            {{ userDetailsError }}
-          </div>
-
-          <div v-else-if="selectedUserDetails" class="space-y-6">
-            <!-- User Info Cards -->
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <!-- Balance Card -->
-              <div class="bg-gradient-to-br from-blue-900/30 to-blue-800/20 rounded-xl p-5 border border-blue-700/30">
-                <div class="flex items-center justify-between mb-3">
-                  <div class="p-2 bg-blue-500/20 rounded-lg">
+              <!-- Stats Cards -->
+              <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div class="p-4 bg-blue-500/10 rounded-xl border border-blue-500/20">
+                  <div class="flex items-center justify-between mb-2">
                     <Euro class="h-5 w-5 text-blue-400" />
+                    <span class="text-xs text-gray-400">Balance</span>
                   </div>
-                  <span class="text-xs text-gray-400 font-medium">EUR Balance</span>
+                  <div class="text-2xl font-bold text-white">{{ formatEUR(selectedUserDetails.balance) }}</div>
                 </div>
-                <div class="text-2xl font-bold text-white mb-1">{{ formatEUR(selectedUserDetails.balance) }}</div>
-                <div class="text-xs text-gray-400">Available funds</div>
-              </div>
-
-              <!-- Total Portfolio Value -->
-              <div class="bg-gradient-to-br from-green-900/30 to-green-800/20 rounded-xl p-5 border border-green-700/30">
-                <div class="flex items-center justify-between mb-3">
-                  <div class="p-2 bg-green-500/20 rounded-lg">
+                <div class="p-4 bg-green-500/10 rounded-xl border border-green-500/20">
+                  <div class="flex items-center justify-between mb-2">
                     <Wallet class="h-5 w-5 text-green-400" />
+                    <span class="text-xs text-gray-400">Portfolio</span>
                   </div>
-                  <span class="text-xs text-gray-400 font-medium">Portfolio Value</span>
+                  <div class="text-2xl font-bold text-white">{{ formatEUR(selectedUserDetails.statistics.total_portfolio_value) }}</div>
                 </div>
-                <div class="text-2xl font-bold text-white mb-1">{{ formatEUR(selectedUserDetails.statistics.total_portfolio_value) }}</div>
-                <div class="text-xs text-gray-400">Current value</div>
-              </div>
-
-              <!-- Gain/Loss -->
-              <div :class="[
-                'rounded-xl p-5 border',
-                selectedUserDetails.statistics.total_gain_loss >= 0
-                  ? 'bg-gradient-to-br from-green-900/30 to-green-800/20 border-green-700/30'
-                  : 'bg-gradient-to-br from-red-900/30 to-red-800/20 border-red-700/30'
-              ]">
-                <div class="flex items-center justify-between mb-3">
-                  <div :class="['p-2 rounded-lg', selectedUserDetails.statistics.total_gain_loss >= 0 ? 'bg-green-500/20' : 'bg-red-500/20']">
+                <div :class="[
+                  'p-4 rounded-xl border',
+                  selectedUserDetails.statistics.total_gain_loss >= 0
+                    ? 'bg-green-500/10 border-green-500/20'
+                    : 'bg-red-500/10 border-red-500/20'
+                ]">
+                  <div class="flex items-center justify-between mb-2">
                     <component :is="selectedUserDetails.statistics.total_gain_loss >= 0 ? TrendingUp : TrendingDown" 
                       :class="['h-5 w-5', selectedUserDetails.statistics.total_gain_loss >= 0 ? 'text-green-400' : 'text-red-400']" />
+                    <span class="text-xs text-gray-400">Gain/Loss</span>
                   </div>
-                  <span class="text-xs text-gray-400 font-medium">Gain/Loss</span>
-                </div>
-                <div :class="['text-2xl font-bold mb-1', selectedUserDetails.statistics.total_gain_loss >= 0 ? 'text-green-400' : 'text-red-400']">
-                  {{ selectedUserDetails.statistics.total_gain_loss >= 0 ? '+' : '' }}{{ formatEUR(selectedUserDetails.statistics.total_gain_loss) }}
-                </div>
-                <div class="text-xs text-gray-400">
-                  {{ selectedUserDetails.statistics.total_gain_loss_percent >= 0 ? '+' : '' }}{{ selectedUserDetails.statistics.total_gain_loss_percent.toFixed(2) }}%
+                  <div :class="['text-2xl font-bold', selectedUserDetails.statistics.total_gain_loss >= 0 ? 'text-green-400' : 'text-red-400']">
+                    {{ selectedUserDetails.statistics.total_gain_loss >= 0 ? '+' : '' }}{{ formatEUR(selectedUserDetails.statistics.total_gain_loss) }}
+                  </div>
                 </div>
               </div>
-            </div>
 
-            <!-- Statistics Grid -->
-            <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <div class="bg-gray-800/50 rounded-lg p-4 border border-gray-700">
-                <div class="text-xs text-gray-400 mb-1">Total Transactions</div>
-                <div class="text-xl font-bold text-white">{{ selectedUserDetails.statistics.total_transactions }}</div>
+              <!-- Statistics Grid -->
+              <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+                <div class="p-3 bg-white/5 rounded-lg border border-white/5">
+                  <div class="text-xs text-gray-400 mb-1">Transactions</div>
+                  <div class="text-lg font-bold text-white">{{ selectedUserDetails.statistics.total_transactions }}</div>
+                </div>
+                <div class="p-3 bg-white/5 rounded-lg border border-white/5">
+                  <div class="text-xs text-gray-400 mb-1">Buy Orders</div>
+                  <div class="text-lg font-bold text-green-400">{{ selectedUserDetails.statistics.buy_transactions }}</div>
+                </div>
+                <div class="p-3 bg-white/5 rounded-lg border border-white/5">
+                  <div class="text-xs text-gray-400 mb-1">Sell Orders</div>
+                  <div class="text-lg font-bold text-red-400">{{ selectedUserDetails.statistics.sell_transactions }}</div>
+                </div>
+                <div class="p-3 bg-white/5 rounded-lg border border-white/5">
+                  <div class="text-xs text-gray-400 mb-1">Volume</div>
+                  <div class="text-lg font-bold text-white">{{ formatEUR(selectedUserDetails.statistics.total_volume) }}</div>
+                </div>
               </div>
-              <div class="bg-gray-800/50 rounded-lg p-4 border border-gray-700">
-                <div class="text-xs text-gray-400 mb-1">Buy Orders</div>
-                <div class="text-xl font-bold text-green-400">{{ selectedUserDetails.statistics.buy_transactions }}</div>
-              </div>
-              <div class="bg-gray-800/50 rounded-lg p-4 border border-gray-700">
-                <div class="text-xs text-gray-400 mb-1">Sell Orders</div>
-                <div class="text-xl font-bold text-red-400">{{ selectedUserDetails.statistics.sell_transactions }}</div>
-              </div>
-              <div class="bg-gray-800/50 rounded-lg p-4 border border-gray-700">
-                <div class="text-xs text-gray-400 mb-1">Total Volume</div>
-                <div class="text-xl font-bold text-white">{{ formatEUR(selectedUserDetails.statistics.total_volume) }}</div>
-              </div>
-            </div>
 
-            <!-- Portfolio -->
-            <div v-if="selectedUserDetails.portfolio && selectedUserDetails.portfolio.length > 0">
-              <h3 class="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-                <Coins class="h-5 w-5 text-blue-400" />
-                Portfolio Holdings
-              </h3>
-              <div class="bg-gray-800/50 rounded-lg border border-gray-700 overflow-hidden">
-                <div class="overflow-x-auto">
-                  <table class="w-full">
-                    <thead class="bg-gray-800/70 border-b border-gray-700">
-                      <tr>
-                        <th class="text-left p-3 text-xs text-gray-400 font-medium uppercase">Crypto</th>
-                        <th class="text-right p-3 text-xs text-gray-400 font-medium uppercase">Quantity</th>
-                        <th class="text-right p-3 text-xs text-gray-400 font-medium uppercase">Current Price</th>
-                        <th class="text-right p-3 text-xs text-gray-400 font-medium uppercase">Value</th>
-                        <th class="text-right p-3 text-xs text-gray-400 font-medium uppercase">Gain/Loss</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      <tr v-for="(item, idx) in selectedUserDetails.portfolio" :key="idx" class="border-b border-gray-700/50 hover:bg-gray-700/30">
-                        <td class="p-3">
-                          <div class="flex items-center gap-2">
-                            <div class="w-8 h-8 bg-gray-700 rounded-lg flex items-center justify-center">
-                              <span class="text-white font-bold text-xs">{{ item.crypto?.symbol || 'N/A' }}</span>
+              <!-- Portfolio -->
+              <div v-if="selectedUserDetails.portfolio && selectedUserDetails.portfolio.length > 0">
+                <div class="text-xs font-medium text-gray-400 uppercase tracking-wider mb-3">Portfolio Holdings</div>
+                <div class="bg-white/5 rounded-xl border border-white/5 overflow-hidden">
+                  <div class="overflow-x-auto">
+                    <table class="w-full">
+                      <thead class="bg-white/5 border-b border-white/10">
+                        <tr>
+                          <th class="text-left p-3 text-xs text-gray-400 font-medium uppercase">Crypto</th>
+                          <th class="text-right p-3 text-xs text-gray-400 font-medium uppercase">Quantity</th>
+                          <th class="text-right p-3 text-xs text-gray-400 font-medium uppercase">Price</th>
+                          <th class="text-right p-3 text-xs text-gray-400 font-medium uppercase">Value</th>
+                          <th class="text-right p-3 text-xs text-gray-400 font-medium uppercase">Gain/Loss</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr v-for="(item, idx) in selectedUserDetails.portfolio" :key="idx" class="border-b border-white/5 hover:bg-white/5">
+                          <td class="p-3">
+                            <div class="flex items-center gap-2">
+                              <div class="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center border border-white/10 overflow-hidden">
+                                <img
+                                  v-if="getCryptoIcon(item.crypto?.symbol || '')"
+                                  :src="getCryptoIcon(item.crypto?.symbol || '')"
+                                  :alt="item.crypto?.symbol || 'N/A'"
+                                  class="w-full h-full object-contain p-1"
+                                  @error="(e: any) => { e.target.style.display = 'none'; }"
+                                />
+                                <span v-else class="text-white font-bold text-xs">{{ item.crypto?.symbol || 'N/A' }}</span>
+                              </div>
+                              <div>
+                                <div class="text-white font-medium text-sm">{{ item.crypto?.symbol || 'N/A' }}</div>
+                                <div class="text-gray-400 text-xs">{{ item.crypto?.name || 'Unknown' }}</div>
+                              </div>
                             </div>
-                            <div>
-                              <div class="text-white font-medium text-sm">{{ item.crypto?.symbol || 'N/A' }}</div>
-                              <div class="text-gray-400 text-xs">{{ item.crypto?.name || 'Unknown' }}</div>
+                          </td>
+                          <td class="p-3 text-right text-white font-medium text-sm">{{ parseFloat(item.quantity || 0).toFixed(8) }}</td>
+                          <td class="p-3 text-right text-gray-300 text-sm">{{ formatEUR(item.current_price || 0) }}</td>
+                          <td class="p-3 text-right text-white font-medium text-sm">{{ formatEUR(item.current_value || 0) }}</td>
+                          <td class="p-3 text-right">
+                            <div :class="['font-medium text-sm', (item.gain_loss || 0) >= 0 ? 'text-green-400' : 'text-red-400']">
+                              {{ (item.gain_loss || 0) >= 0 ? '+' : '' }}{{ formatEUR(item.gain_loss || 0) }}
                             </div>
-                          </div>
-                        </td>
-                        <td class="p-3 text-right text-white font-medium">{{ parseFloat(item.quantity || 0).toFixed(8) }}</td>
-                        <td class="p-3 text-right text-gray-300">{{ formatEUR(item.current_price || 0) }}</td>
-                        <td class="p-3 text-right text-white font-medium">{{ formatEUR(item.current_value || 0) }}</td>
-                        <td class="p-3 text-right">
-                          <div :class="[
-                            'font-medium',
-                            (item.gain_loss || 0) >= 0 ? 'text-green-400' : 'text-red-400'
-                          ]">
-                            {{ (item.gain_loss || 0) >= 0 ? '+' : '' }}{{ formatEUR(item.gain_loss || 0) }}
-                          </div>
-                          <div :class="[
-                            'text-xs',
-                            (item.gain_loss_percent || 0) >= 0 ? 'text-green-400/70' : 'text-red-400/70'
-                          ]">
-                            {{ (item.gain_loss_percent || 0) >= 0 ? '+' : '' }}{{ (item.gain_loss_percent || 0).toFixed(2) }}%
-                          </div>
-                        </td>
-                      </tr>
-                    </tbody>
-                  </table>
+                            <div :class="['text-xs', (item.gain_loss_percent || 0) >= 0 ? 'text-green-400/70' : 'text-red-400/70']">
+                              {{ (item.gain_loss_percent || 0) >= 0 ? '+' : '' }}{{ (item.gain_loss_percent || 0).toFixed(2) }}%
+                            </div>
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
                 </div>
               </div>
-            </div>
-            <div v-else class="bg-gray-800/50 rounded-lg border border-gray-700 p-8 text-center">
-              <BarChart3 class="h-12 w-12 text-gray-600 mx-auto mb-3" />
-              <p class="text-gray-400">No portfolio holdings</p>
-            </div>
 
-            <!-- Recent Transactions -->
-            <div v-if="selectedUserDetails.recent_transactions && selectedUserDetails.recent_transactions.length > 0">
-              <h3 class="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-                <Activity class="h-5 w-5 text-blue-400" />
-                Recent Transactions
-              </h3>
-              <div class="bg-gray-800/50 rounded-lg border border-gray-700 overflow-hidden">
-                <div class="overflow-x-auto">
-                  <table class="w-full">
-                    <thead class="bg-gray-800/70 border-b border-gray-700">
-                      <tr>
-                        <th class="text-left p-3 text-xs text-gray-400 font-medium uppercase">Type</th>
-                        <th class="text-left p-3 text-xs text-gray-400 font-medium uppercase">Crypto</th>
-                        <th class="text-right p-3 text-xs text-gray-400 font-medium uppercase">Quantity</th>
-                        <th class="text-right p-3 text-xs text-gray-400 font-medium uppercase">Price</th>
-                        <th class="text-right p-3 text-xs text-gray-400 font-medium uppercase">Total</th>
-                        <th class="text-right p-3 text-xs text-gray-400 font-medium uppercase">Date</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      <tr v-for="(tx, idx) in selectedUserDetails.recent_transactions" :key="idx" class="border-b border-gray-700/50 hover:bg-gray-700/30">
-                        <td class="p-3">
-                          <span :class="[
-                            'px-2 py-1 rounded text-xs font-medium',
-                            tx.type === 'buy' ? 'bg-green-900/30 text-green-400' : 'bg-red-900/30 text-red-400'
-                          ]">
-                            {{ tx.type === 'buy' ? 'Buy' : 'Sell' }}
-                          </span>
-                        </td>
-                        <td class="p-3 text-white font-medium">{{ tx.portfolio?.crypto?.symbol || 'N/A' }}</td>
-                        <td class="p-3 text-right text-gray-300">{{ parseFloat(tx.quantity || 0).toFixed(8) }}</td>
-                        <td class="p-3 text-right text-gray-300">{{ formatEUR(tx.price_at_transaction || 0) }}</td>
-                        <td class="p-3 text-right text-white font-medium">{{ formatEUR(tx.euro_amount || 0) }}</td>
-                        <td class="p-3 text-right text-gray-400 text-xs">{{ formatDate(tx.created_at) }}</td>
-                      </tr>
-                    </tbody>
-                  </table>
+              <!-- Recent Transactions -->
+              <div v-if="selectedUserDetails.recent_transactions && selectedUserDetails.recent_transactions.length > 0">
+                <div class="text-xs font-medium text-gray-400 uppercase tracking-wider mb-3">Recent Transactions</div>
+                <div class="bg-white/5 rounded-xl border border-white/5 overflow-hidden">
+                  <div class="overflow-x-auto">
+                    <table class="w-full">
+                      <thead class="bg-white/5 border-b border-white/10">
+                        <tr>
+                          <th class="text-left p-3 text-xs text-gray-400 font-medium uppercase">Type</th>
+                          <th class="text-left p-3 text-xs text-gray-400 font-medium uppercase">Crypto</th>
+                          <th class="text-right p-3 text-xs text-gray-400 font-medium uppercase">Quantity</th>
+                          <th class="text-right p-3 text-xs text-gray-400 font-medium uppercase">Price</th>
+                          <th class="text-right p-3 text-xs text-gray-400 font-medium uppercase">Total</th>
+                          <th class="text-right p-3 text-xs text-gray-400 font-medium uppercase">Date</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr v-for="(tx, idx) in selectedUserDetails.recent_transactions" :key="idx" class="border-b border-white/5 hover:bg-white/5">
+                          <td class="p-3">
+                            <span :class="[
+                              'px-2 py-1 rounded text-xs font-medium',
+                              tx.type === 'buy' ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'
+                            ]">
+                              {{ tx.type === 'buy' ? 'Buy' : 'Sell' }}
+                            </span>
+                          </td>
+                          <td class="p-3">
+                            <div class="flex items-center gap-2">
+                              <div class="w-6 h-6 rounded bg-white/5 flex items-center justify-center border border-white/10 overflow-hidden">
+                                <img
+                                  v-if="getCryptoIcon(tx.portfolio?.crypto?.symbol || '')"
+                                  :src="getCryptoIcon(tx.portfolio?.crypto?.symbol || '')"
+                                  :alt="tx.portfolio?.crypto?.symbol || 'N/A'"
+                                  class="w-full h-full object-contain p-0.5"
+                                  @error="(e: any) => { e.target.style.display = 'none'; }"
+                                />
+                                <span v-else class="text-white font-bold text-[10px]">{{ tx.portfolio?.crypto?.symbol?.charAt(0) || '?' }}</span>
+                              </div>
+                              <span class="text-white font-medium text-sm">{{ tx.portfolio?.crypto?.symbol || 'N/A' }}</span>
+                            </div>
+                          </td>
+                          <td class="p-3 text-right text-gray-300 text-sm">{{ parseFloat(tx.quantity || 0).toFixed(8) }}</td>
+                          <td class="p-3 text-right text-gray-300 text-sm">{{ formatEUR(tx.price_at_transaction || 0) }}</td>
+                          <td class="p-3 text-right text-white font-medium text-sm">{{ formatEUR(tx.euro_amount || 0) }}</td>
+                          <td class="p-3 text-right text-gray-400 text-xs">{{ formatDate(tx.created_at) }}</td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
                 </div>
               </div>
             </div>
-            <div v-else class="bg-gray-800/50 rounded-lg border border-gray-700 p-8 text-center">
-              <Activity class="h-12 w-12 text-gray-600 mx-auto mb-3" />
-              <p class="text-gray-400">No transactions yet</p>
-            </div>
+          </div>
+
+          <!-- Footer -->
+          <div class="px-6 py-4 border-t border-white/10 flex justify-end">
+            <button
+              @click="closeUserDetailsModal"
+              class="px-4 py-2 bg-white/10 hover:bg-white/20 text-white rounded-lg text-sm font-medium transition-colors"
+            >
+              Close
+            </button>
           </div>
         </div>
       </div>
-    </div>
+    </Transition>
 
     <!-- Create User Modal -->
     <div v-if="isCreateModalOpen" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
@@ -430,10 +486,11 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue';
-import { Plus, Trash2, Copy, Check, X, Wallet, TrendingUp, TrendingDown, Coins, Euro, Activity, BarChart3 } from 'lucide-vue-next';
-import { approveUser, blockUser, createAdminUser, deleteUser as deleteUserApi, getAdminUsers, getAdminUserDetails } from '@/services/api';
+import { Plus, Trash2, Copy, Check, X, Wallet, TrendingUp, TrendingDown, Euro, Edit } from 'lucide-vue-next';
+import { approveUser, blockUser, createAdminUser, deleteUser as deleteUserApi, getAdminUsers, getAdminUserDetails, updateAdminUser } from '@/services/api';
 import { useAuthStore } from '@/stores/auth';
 import { formatEUR } from '@/utils/format';
+import { getCryptoIcon } from '@/utils/cryptoIcons';
 import type { AuthUser } from '@/types';
 
 interface CreateUserData {
@@ -459,6 +516,9 @@ const isUserDetailsModalOpen = ref(false);
 const selectedUserDetails = ref<any>(null);
 const userDetailsLoading = ref(false);
 const userDetailsError = ref('');
+const isEditingUser = ref(false);
+const editUserForm = ref({ first_name: '', last_name: '' });
+const savingUser = ref(false);
 
 onMounted(async () => {
   const auth = useAuthStore();
@@ -493,13 +553,6 @@ async function fetchUsers() {
   } finally {
     loading.value = false;
   }
-}
-
-function generateTempPassword() {
-  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*';
-  let password = '';
-  for (let i = 0; i < 12; i++) password += chars.charAt(Math.floor(Math.random() * chars.length));
-  return password;
 }
 
 async function handleCreateUser() {
@@ -620,8 +673,13 @@ async function openUserDetails(userId: number) {
   isUserDetailsModalOpen.value = true;
   userDetailsLoading.value = true;
   userDetailsError.value = '';
+  isEditingUser.value = false;
   try {
     selectedUserDetails.value = await getAdminUserDetails(userId);
+    editUserForm.value = {
+      first_name: selectedUserDetails.value.user.first_name || '',
+      last_name: selectedUserDetails.value.user.last_name || '',
+    };
   } catch (e: any) {
     userDetailsError.value = e?.response?.data?.message || 'Impossible de charger les détails';
   } finally {
@@ -633,9 +691,97 @@ function closeUserDetailsModal() {
   isUserDetailsModalOpen.value = false;
   selectedUserDetails.value = null;
   userDetailsError.value = '';
+  isEditingUser.value = false;
+}
+
+function startEditingUser() {
+  if (!selectedUserDetails.value) return;
+  editUserForm.value = {
+    first_name: selectedUserDetails.value.user.first_name || '',
+    last_name: selectedUserDetails.value.user.last_name || '',
+  };
+  isEditingUser.value = true;
+}
+
+function cancelEditingUser() {
+  isEditingUser.value = false;
+  if (selectedUserDetails.value) {
+    editUserForm.value = {
+      first_name: selectedUserDetails.value.user.first_name || '',
+      last_name: selectedUserDetails.value.user.last_name || '',
+    };
+  }
+}
+
+async function saveUserChanges() {
+  if (!selectedUserDetails.value) return;
+  
+  savingUser.value = true;
+  try {
+    const { user } = await updateAdminUser(selectedUserDetails.value.user.id, {
+      first_name: editUserForm.value.first_name,
+      last_name: editUserForm.value.last_name,
+    });
+    
+    // Update local state
+    selectedUserDetails.value.user = user;
+    
+    // Update users list
+    const userIndex = users.value.findIndex(u => u.id === user.id);
+    if (userIndex !== -1) {
+      users.value[userIndex] = user;
+    }
+    
+    isEditingUser.value = false;
+    successMessage.value = 'User updated successfully';
+    setTimeout(() => { successMessage.value = ''; }, 3000);
+  } catch (e: any) {
+    userDetailsError.value = e?.response?.data?.message || 'Failed to update user';
+  } finally {
+    savingUser.value = false;
+  }
 }
 </script>
 
 <style scoped>
-/* Tailwind handles the look */
+/* Modal Transitions */
+.modal-enter-active,
+.modal-leave-active {
+  transition: opacity 0.2s ease;
+}
+
+.modal-enter-active .relative.z-10,
+.modal-leave-active .relative.z-10 {
+  transition: transform 0.2s ease, opacity 0.2s ease;
+}
+
+.modal-enter-from,
+.modal-leave-to {
+  opacity: 0;
+}
+
+.modal-enter-from .relative.z-10,
+.modal-leave-to .relative.z-10 {
+  transform: scale(0.95);
+  opacity: 0;
+}
+
+/* Custom scrollbar */
+.overflow-y-auto::-webkit-scrollbar {
+  width: 6px;
+}
+
+.overflow-y-auto::-webkit-scrollbar-track {
+  background: rgba(31, 41, 55, 0.5);
+  border-radius: 3px;
+}
+
+.overflow-y-auto::-webkit-scrollbar-thumb {
+  background: rgba(107, 114, 128, 0.5);
+  border-radius: 3px;
+}
+
+.overflow-y-auto::-webkit-scrollbar-thumb:hover {
+  background: rgba(107, 114, 128, 0.7);
+}
 </style>

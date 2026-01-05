@@ -1,35 +1,358 @@
 <template>
-  <aside class="fixed left-0 top-0 h-screen w-64 bg-gray-800 border-r border-gray-700 z-40 overflow-y-auto">
-    <div class="flex flex-col h-full">
-      <!-- Sidebar Header -->
-      <div class="p-4 flex items-center justify-center">
-        <img :src="AdminLogo" alt="Admin Logo" class="h-auto w-full max-w-[120px] object-contain" />
-      </div>
-
-      <!-- Navigation Items -->
-      <nav class="flex-1 p-4 space-y-2">
-        <RouterLink
-          v-for="item in sidebarItems"
-          :key="item.path"
-          :to="item.path"
-          class="flex items-center space-x-3 px-4 py-3 rounded-lg transition-colors"
-          :class="isActive(item.path) ? 'bg-gray-700 text-white' : 'text-gray-300 hover:bg-gray-700/50 hover:text-white'"
+  <div>
+    <!-- Mobile Sidebar Overlay -->
+    <Transition name="mobile-sidebar">
+      <div
+        v-if="isMobileMenuOpen"
+        class="md:hidden fixed inset-0 z-50 bg-gray-900/80 backdrop-blur-sm"
+        @click="closeMobileSidebar"
+      >
+        <div
+          class="fixed inset-y-0 left-0 w-64 bg-gray-800 border-r border-gray-700 overflow-y-auto"
+          @click.stop
         >
-          <span :style="isActive(item.path) ? { color: 'var(--blue)' } : {}">
-            <component :is="item.icon" class="h-5 w-5" />
-          </span>
-          <span class="font-medium">{{ item.label }}</span>
-        </RouterLink>
-      </nav>
+          <div class="flex flex-col h-full">
+            <!-- Mobile Header with Toggle -->
+            <div class="p-4 flex items-center justify-between">
+              <img :src="AdminLogo" alt="Admin Logo" class="h-auto w-32 object-contain" />
+              <button
+                @click="closeMobileSidebar"
+                class="p-2 rounded-lg hover:bg-gray-700/50 transition-colors"
+              >
+                <X class="h-5 w-5 text-gray-300" />
+              </button>
+            </div>
+
+            <!-- Status Section -->
+            <div class="px-4 py-2">
+              <div class="flex items-center space-x-2 px-4 py-2 rounded-xl bg-gray-700/30">
+                <div class="h-2 w-2 rounded-full animate-pulse" :style="{ backgroundColor: 'var(--accent-green)' }"></div>
+                <span class="text-xs text-gray-400">En ligne</span>
+              </div>
+            </div>
+
+            <!-- Profile Section Compact -->
+            <div class="px-4 py-2 group relative">
+              <button
+                class="w-full flex items-center space-x-2 cursor-pointer rounded-lg px-2 py-1.5 transition-colors hover:bg-gray-700/30"
+                @click="toggleProfileMenu"
+              >
+                <div
+                  class="w-8 h-8 rounded-full flex items-center justify-center shadow-lg flex-shrink-0"
+                  :style="{
+                    background: `linear-gradient(to bottom right, var(--blue), var(--blue-dark))`,
+                    boxShadow: 'var(--blue-ring-shadow)'
+                  }"
+                >
+                  <Shield class="h-4 w-4 text-white" />
+                </div>
+                <div class="flex-1 min-w-0 text-left">
+                  <p class="text-xs font-medium text-gray-300 truncate">{{ currentUser.name }}</p>
+                </div>
+                <ChevronDown class="h-4 w-4 text-gray-400 transition-transform duration-200" :class="{ 'rotate-180': isProfileMenuOpen }" />
+              </button>
+              <!-- Profile Menu Dropdown -->
+              <Transition name="fade">
+                <div
+                  v-if="isProfileMenuOpen"
+                  class="absolute left-4 right-4 top-full mt-2 bg-gray-700/95 backdrop-blur-sm rounded-lg border border-gray-600 shadow-xl z-50 overflow-hidden"
+                  @click.stop
+                >
+                  <div class="px-4 py-3 border-b border-gray-600 bg-gradient-to-r from-gray-800 to-gray-800/50">
+                    <div class="flex items-center space-x-3">
+                      <div
+                        class="w-10 h-10 rounded-full flex items-center justify-center shadow-lg"
+                        :style="{
+                          background: `linear-gradient(to bottom right, var(--blue), var(--blue-dark))`,
+                          boxShadow: 'var(--blue-ring-shadow)'
+                        }"
+                      >
+                        <Shield class="h-5 w-5 text-white" />
+                      </div>
+                      <div class="flex-1 min-w-0">
+                        <p class="text-sm font-bold text-white truncate">{{ currentUser.name }}</p>
+                        <p class="text-xs text-gray-400 truncate">{{ currentUser.email }}</p>
+                        <div class="flex items-center space-x-1 mt-1">
+                          <div class="h-1.5 w-1.5 rounded-full" :style="{ backgroundColor: 'var(--accent-green)' }"></div>
+                          <span class="text-xs" :style="{ color: 'var(--accent-green)' }">Administrator</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="py-2">
+                    <button @click="handleViewProfile" class="w-full flex items-center space-x-3 px-4 py-2.5 text-sm text-gray-300 hover:bg-gray-700/80 hover:text-white transition-all duration-150">
+                      <User class="h-4 w-4" />
+                      <span class="font-medium">View profile</span>
+                    </button>
+                    <button class="w-full flex items-center space-x-3 px-4 py-2.5 text-sm text-gray-300 hover:bg-gray-700/80 hover:text-white transition-all duration-150">
+                      <Settings class="h-4 w-4" />
+                      <span class="font-medium">Settings</span>
+                    </button>
+                  </div>
+                  <div class="border-t border-gray-700 pt-2 mt-1">
+                    <button
+                      @click="handleLogout"
+                      class="w-full flex items-center space-x-3 px-4 py-2.5 text-sm transition-all duration-150 group rounded-lg mx-2"
+                      :style="{ color: 'var(--accent-red)' }"
+                    >
+                      <LogOut class="h-4 w-4" />
+                      <span class="font-medium">Logout</span>
+                    </button>
+                  </div>
+                </div>
+              </Transition>
+            </div>
+
+            <!-- Notifications Section with Dropdown -->
+            <div class="px-4 py-2 relative" ref="notifRef">
+              <button
+                @click.stop="toggleNotif"
+                class="relative w-full flex items-center space-x-3 px-4 py-2.5 rounded-xl transition-all duration-200 hover:bg-gray-700/50 group"
+                :title="pendingCount > 0 ? `${pendingCount} en attente de validation` : 'Aucune notification'"
+              >
+                <Bell class="h-5 w-5 text-gray-300" />
+                <span class="font-medium text-gray-300">Notifications</span>
+                <Transition name="bounce">
+                  <span
+                    v-if="pendingCount > 0"
+                    class="ml-auto text-xs font-semibold text-white rounded-full px-2 py-0.5"
+                    style="background-color: var(--accent-red);"
+                  >
+                    {{ pendingCount }}
+                  </span>
+                </Transition>
+              </button>
+              <!-- Notifications Dropdown -->
+              <Transition name="fade">
+                <div
+                  v-if="notifOpen"
+                  class="absolute left-4 right-4 top-full mt-2 bg-gray-800 border border-gray-700 rounded-xl shadow-2xl py-2 z-50 max-h-64 overflow-y-auto"
+                  @click.stop
+                >
+                  <div class="px-4 py-2 border-b border-gray-700 flex items-center justify-between sticky top-0 bg-gray-800">
+                    <span class="text-sm text-gray-200">Validations en attente</span>
+                    <span class="text-xs text-gray-400">{{ pendingUsers.length }} items</span>
+                  </div>
+                  <div v-if="pendingUsers.length === 0" class="p-4 text-sm text-gray-400">Aucune notification</div>
+                  <div v-else class="divide-y divide-gray-700">
+                    <button
+                      v-for="u in pendingUsers"
+                      :key="u.id"
+                      class="w-full text-left px-4 py-2 hover:bg-gray-700/60 transition flex items-center justify-between"
+                      @click="goToUsers"
+                    >
+                      <div>
+                        <div class="text-white text-sm font-semibold">{{ u.first_name || '' }} {{ u.last_name || '' }}</div>
+                        <div class="text-xs text-gray-400">{{ u.email }}</div>
+                      </div>
+                      <span class="text-[11px] px-2 py-1 rounded-full" style="background-color: var(--accent-orange); color: #111827">
+                        pending
+                      </span>
+                    </button>
+                  </div>
+                </div>
+              </Transition>
+            </div>
+
+            <!-- Navigation Section -->
+            <nav class="flex-1 p-4 space-y-2 overflow-y-auto">
+              <RouterLink
+                v-for="item in sidebarItems"
+                :key="item.path"
+                :to="item.path"
+                @click="closeMobileSidebar"
+                class="flex items-center space-x-3 px-4 py-3 rounded-xl transition-all duration-200"
+                :class="isActive(item.path) 
+                  ? 'bg-gray-700 text-white shadow-lg' 
+                  : 'text-gray-300 hover:bg-gray-700/50 hover:text-white'"
+              >
+                <span :style="isActive(item.path) ? { color: 'var(--blue)' } : {}">
+                  <component :is="item.icon" class="h-5 w-5" />
+                </span>
+                <span class="font-medium">{{ item.label }}</span>
+              </RouterLink>
+            </nav>
+          </div>
+        </div>
+      </div>
+    </Transition>
+
+    <!-- Desktop Sidebar -->
+    <aside
+      class="hidden md:flex flex-col fixed top-0 left-0 h-full w-64 bg-gray-800 border-r border-gray-700 z-40 overflow-y-auto"
+    >
+      <div class="flex flex-col h-full">
+        <!-- Sidebar Header - Logo agrandi sans bordure -->
+        <div class="p-6 flex items-center justify-center">
+          <img :src="AdminLogo" alt="Admin Logo" class="h-auto w-full max-w-[160px] object-contain" />
+        </div>
+
+        <!-- Status Section -->
+        <div class="px-4 py-2">
+          <div class="flex items-center space-x-2 px-4 py-2 rounded-xl bg-gray-700/30">
+            <div class="h-2 w-2 rounded-full animate-pulse" :style="{ backgroundColor: 'var(--accent-green)' }"></div>
+            <span class="text-xs text-gray-400">En ligne</span>
+          </div>
+        </div>
+
+        <!-- Profile Section avec Menu -->
+        <div class="px-4 py-2 group relative" ref="menuRef">
+          <button
+            class="w-full flex items-center space-x-2 cursor-pointer rounded-lg px-2 py-1.5 transition-colors hover:bg-gray-700/30"
+            @click.stop="toggleProfileMenu"
+          >
+            <div
+              class="w-8 h-8 rounded-full flex items-center justify-center shadow-lg flex-shrink-0"
+              :style="{
+                background: `linear-gradient(to bottom right, var(--blue), var(--blue-dark))`,
+                boxShadow: 'var(--blue-ring-shadow)'
+              }"
+            >
+              <Shield class="h-4 w-4 text-white" />
+            </div>
+            <div class="flex-1 min-w-0 text-left">
+              <p class="text-xs font-medium text-gray-300 truncate">{{ currentUser.name }}</p>
+            </div>
+            <ChevronDown class="h-4 w-4 text-gray-400 transition-transform duration-200" :class="{ 'rotate-180': isProfileMenuOpen }" />
+          </button>
+          <!-- Profile Menu Dropdown -->
+          <Transition name="fade">
+            <div
+              v-if="isProfileMenuOpen"
+              class="absolute left-4 right-4 top-full mt-2 bg-gray-700/95 backdrop-blur-sm rounded-lg border border-gray-600 shadow-xl z-50 overflow-hidden"
+              @click.stop
+            >
+              <div class="px-4 py-3 border-b border-gray-600 bg-gradient-to-r from-gray-800 to-gray-800/50">
+                <div class="flex items-center space-x-3">
+                  <div
+                    class="w-10 h-10 rounded-full flex items-center justify-center shadow-lg"
+                    :style="{
+                      background: `linear-gradient(to bottom right, var(--blue), var(--blue-dark))`,
+                      boxShadow: 'var(--blue-ring-shadow)'
+                    }"
+                  >
+                    <Shield class="h-5 w-5 text-white" />
+                  </div>
+                  <div class="flex-1 min-w-0">
+                    <p class="text-sm font-bold text-white truncate">{{ currentUser.name }}</p>
+                    <p class="text-xs text-gray-400 truncate">{{ currentUser.email }}</p>
+                    <div class="flex items-center space-x-1 mt-1">
+                      <div class="h-1.5 w-1.5 rounded-full" :style="{ backgroundColor: 'var(--accent-green)' }"></div>
+                      <span class="text-xs" :style="{ color: 'var(--accent-green)' }">Administrator</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div class="py-2">
+                <button @click="handleViewProfile" class="w-full flex items-center space-x-3 px-4 py-2.5 text-sm text-gray-300 hover:bg-gray-700/80 hover:text-white transition-all duration-150">
+                  <User class="h-4 w-4" />
+                  <span class="font-medium">View profile</span>
+                </button>
+                <button class="w-full flex items-center space-x-3 px-4 py-2.5 text-sm text-gray-300 hover:bg-gray-700/80 hover:text-white transition-all duration-150">
+                  <Settings class="h-4 w-4" />
+                  <span class="font-medium">Settings</span>
+                </button>
+              </div>
+              <div class="border-t border-gray-700 pt-2 mt-1">
+                <button
+                  @click="handleLogout"
+                  class="w-full flex items-center space-x-3 px-4 py-2.5 text-sm transition-all duration-150 group rounded-lg mx-2"
+                  :style="{ color: 'var(--accent-red)' }"
+                >
+                  <LogOut class="h-4 w-4" />
+                  <span class="font-medium">Logout</span>
+                </button>
+              </div>
+            </div>
+          </Transition>
+        </div>
+
+        <!-- Notifications Section with Dropdown -->
+        <div class="px-4 py-2 relative" ref="notifRef">
+          <button
+            @click.stop="toggleNotif"
+            class="relative w-full flex items-center space-x-3 px-4 py-2.5 rounded-xl transition-all duration-200 hover:bg-gray-700/50 group"
+            :title="pendingCount > 0 ? `${pendingCount} en attente de validation` : 'Aucune notification'"
+          >
+            <Bell class="h-5 w-5 text-gray-300" />
+            <span class="font-medium text-gray-300">Notifications</span>
+            <Transition name="bounce">
+              <span
+                v-if="pendingCount > 0"
+                class="ml-auto text-xs font-semibold text-white rounded-full px-2 py-0.5"
+                style="background-color: var(--accent-red);"
+              >
+                {{ pendingCount }}
+              </span>
+            </Transition>
+          </button>
+          <!-- Notifications Dropdown -->
+          <Transition name="fade">
+            <div
+              v-if="notifOpen"
+              class="absolute left-4 right-4 top-full mt-2 bg-gray-800 border border-gray-700 rounded-xl shadow-2xl py-2 z-50 max-h-64 overflow-y-auto"
+              @click.stop
+            >
+              <div class="px-4 py-2 border-b border-gray-700 flex items-center justify-between sticky top-0 bg-gray-800">
+                <span class="text-sm text-gray-200">Validations en attente</span>
+                <span class="text-xs text-gray-400">{{ pendingUsers.length }} items</span>
+              </div>
+              <div v-if="pendingUsers.length === 0" class="p-4 text-sm text-gray-400">Aucune notification</div>
+              <div v-else class="divide-y divide-gray-700">
+                <button
+                  v-for="u in pendingUsers"
+                  :key="u.id"
+                  class="w-full text-left px-4 py-2 hover:bg-gray-700/60 transition flex items-center justify-between"
+                  @click="goToUsers"
+                >
+                  <div>
+                    <div class="text-white text-sm font-semibold">{{ u.first_name || '' }} {{ u.last_name || '' }}</div>
+                    <div class="text-xs text-gray-400">{{ u.email }}</div>
+                  </div>
+                  <span class="text-[11px] px-2 py-1 rounded-full" style="background-color: var(--accent-orange); color: #111827">
+                    pending
+                  </span>
+                </button>
+              </div>
+            </div>
+          </Transition>
+        </div>
+
+        <!-- Navigation Items -->
+        <nav class="flex-1 p-4 space-y-2 overflow-y-auto">
+          <RouterLink
+            v-for="item in sidebarItems"
+            :key="item.path"
+            :to="item.path"
+            class="flex items-center space-x-3 px-4 py-3 rounded-xl transition-all duration-200"
+            :class="isActive(item.path) 
+              ? 'bg-gray-700 text-white shadow-lg' 
+              : 'text-gray-300 hover:bg-gray-700/50 hover:text-white'"
+          >
+            <span :style="isActive(item.path) ? { color: 'var(--blue)' } : {}">
+              <component :is="item.icon" class="h-5 w-5" />
+            </span>
+            <span class="font-medium">{{ item.label }}</span>
+          </RouterLink>
+        </nav>
+      </div>
+    </aside>
+
+    <!-- Mobile Menu Toggle Button (visible only on mobile) -->
+    <div class="md:hidden fixed top-4 left-4 z-50">
+      <AnimatedMenuToggle :is-open="isMobileMenuOpen" @toggle="toggleMobileMenu" />
     </div>
-  </aside>
+  </div>
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue';
-import { useRoute, RouterLink } from 'vue-router';
-import { LayoutDashboard, Users, TrendingUp, FileText } from 'lucide-vue-next';
+import { computed, ref, onMounted, onBeforeUnmount, watch } from 'vue';
+import { useRoute, RouterLink, useRouter } from 'vue-router';
+import { LayoutDashboard, Users, TrendingUp, FileText, Shield, X, Bell, User, LogOut, Settings, ChevronDown } from 'lucide-vue-next';
 import AdminLogo from '../../assets/ADMIN.png';
+import { useAuthStore } from '@/stores/auth';
+import api from '@/services/api';
+import AnimatedMenuToggle from './AnimatedMenuToggle.vue';
 
 interface SidebarItem {
   path: string;
@@ -38,6 +361,32 @@ interface SidebarItem {
 }
 
 const route = useRoute();
+const router = useRouter();
+const auth = useAuthStore();
+const isProfileMenuOpen = ref(false);
+const notifOpen = ref(false);
+const isMobileMenuOpen = ref(false);
+const pendingCount = ref(0);
+const loadingNotif = ref(false);
+const authPendingUsers = ref<any[]>([]);
+const menuRef = ref<HTMLElement | null>(null);
+const notifRef = ref<HTMLElement | null>(null);
+let notifTimer: ReturnType<typeof setInterval> | null = null;
+
+const props = defineProps<{
+  isMobileOpen?: boolean;
+}>();
+
+const emit = defineEmits<{
+  'update:isMobileOpen': [value: boolean];
+  'close': [];
+  'toggle-mobile-menu': [];
+}>();
+
+// Synchroniser isMobileMenuOpen avec isMobileOpen
+watch(() => props.isMobileOpen, (newVal) => {
+  isMobileMenuOpen.value = newVal ?? false;
+});
 
 const sidebarItems: SidebarItem[] = [
   { path: '/admin', label: 'Dashboard', icon: LayoutDashboard },
@@ -46,14 +395,177 @@ const sidebarItems: SidebarItem[] = [
   { path: '/admin/transactions', label: 'Transactions', icon: FileText },
 ];
 
+const currentUser = computed(() => {
+  const u = auth.user;
+  if (!u) return { name: 'Admin', email: '' };
+  const name =
+    (u.first_name || u.last_name) ? `${u.first_name ?? ''} ${u.last_name ?? ''}`.trim() : u.name ?? 'Admin';
+  return { name: name || 'Admin', email: u.email ?? '' };
+});
+
+const pendingUsers = computed(() => (authPendingUsers.value ?? []).slice(0, 20));
+
 function isActive(path: string) {
   if (path === '/admin') {
     return route.path === '/admin';
   }
   return route.path.startsWith(path);
 }
+
+function closeMobileSidebar() {
+  isMobileMenuOpen.value = false;
+  emit('update:isMobileOpen', false);
+  emit('close');
+}
+
+function toggleMobileMenu() {
+  isMobileMenuOpen.value = !isMobileMenuOpen.value;
+  emit('update:isMobileOpen', isMobileMenuOpen.value);
+  emit('toggle-mobile-menu');
+}
+
+function toggleProfileMenu() {
+  isProfileMenuOpen.value = !isProfileMenuOpen.value;
+}
+
+function toggleNotif() {
+  notifOpen.value = !notifOpen.value;
+}
+
+function handleViewProfile() {
+  isProfileMenuOpen.value = false;
+  closeMobileSidebar();
+  router.push('/admin/profile');
+}
+
+async function handleLogout() {
+  isProfileMenuOpen.value = false;
+  closeMobileSidebar();
+  await auth.logout();
+  router.push('/signin');
+}
+
+function goToUsers() {
+  notifOpen.value = false;
+  closeMobileSidebar();
+  router.push('/admin/users');
+}
+
+async function fetchPending() {
+  if (loadingNotif.value) return;
+  loadingNotif.value = true;
+  try {
+    if (!auth.token) {
+      pendingCount.value = 0;
+      authPendingUsers.value = [];
+      return;
+    }
+    const users = await api.getAdminUsers();
+    const pending = users.filter((u) => u.status === 'pending_validation');
+    pendingCount.value = pending.length;
+    authPendingUsers.value = pending;
+  } catch (_) {
+    // silent fail to avoid blocking UI
+  } finally {
+    loadingNotif.value = false;
+  }
+}
+
+const handleClickOutside = (e: MouseEvent) => {
+  const target = e.target as Node;
+  if (menuRef.value && !menuRef.value.contains(target)) {
+    isProfileMenuOpen.value = false;
+  }
+  if (notifRef.value && !notifRef.value.contains(target)) {
+    notifOpen.value = false;
+  }
+};
+
+onMounted(() => {
+  document.addEventListener('mousedown', handleClickOutside);
+  (async () => {
+    if (!auth.user && auth.token) {
+      try { await auth.fetchCurrentUser(); } catch (_) {}
+    }
+    await fetchPending();
+    notifTimer = setInterval(fetchPending, 30000);
+  })();
+});
+
+onBeforeUnmount(() => {
+  document.removeEventListener('mousedown', handleClickOutside);
+  if (notifTimer) clearInterval(notifTimer);
+});
 </script>
 
 <style scoped>
-/* Sidebar styling is handled by Tailwind classes */
+/* Mobile Sidebar Transition */
+.mobile-sidebar-enter-active,
+.mobile-sidebar-leave-active {
+  transition: opacity 0.3s ease;
+}
+
+.mobile-sidebar-enter-active .fixed.inset-y-0,
+.mobile-sidebar-leave-active .fixed.inset-y-0 {
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.mobile-sidebar-enter-from .fixed.inset-y-0 {
+  transform: translateX(-100%);
+}
+
+.mobile-sidebar-leave-to .fixed.inset-y-0 {
+  transform: translateX(-100%);
+}
+
+.mobile-sidebar-enter-from,
+.mobile-sidebar-leave-to {
+  opacity: 0;
+}
+
+/* Fade Transition */
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+  transform: translateY(-5px);
+}
+
+/* Bounce Transition */
+.bounce-enter-active {
+  animation: bounce-in 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+}
+
+.bounce-leave-active {
+  animation: bounce-out 0.2s ease-in;
+}
+
+@keyframes bounce-in {
+  0% {
+    transform: scale(0) rotate(-180deg);
+    opacity: 0;
+  }
+  50% {
+    transform: scale(1.3) rotate(10deg);
+  }
+  100% {
+    transform: scale(1) rotate(0deg);
+    opacity: 1;
+  }
+}
+
+@keyframes bounce-out {
+  0% {
+    transform: scale(1) rotate(0deg);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(0) rotate(180deg);
+    opacity: 0;
+  }
+}
 </style>

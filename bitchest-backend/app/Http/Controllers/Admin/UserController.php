@@ -117,6 +117,37 @@ class UserController extends Controller
             'user' => $user,
         ]);
     }
+
+    public function update(Request $request, $id)
+    {
+        $user = User::findOrFail($id);
+
+        $request->validate([
+            'first_name' => 'sometimes|string|max:255',
+            'last_name' => 'sometimes|string|max:255',
+        ]);
+
+        $updates = [];
+        if ($request->has('first_name')) {
+            $updates['first_name'] = $request->first_name;
+        }
+        if ($request->has('last_name')) {
+            $updates['last_name'] = $request->last_name;
+        }
+
+        if (!empty($updates)) {
+            // Update name field as well
+            $fullName = trim(($updates['first_name'] ?? $user->first_name) . ' ' . ($updates['last_name'] ?? $user->last_name));
+            $updates['name'] = $fullName;
+            
+            $user->update($updates);
+        }
+
+        return response()->json([
+            'message' => 'User updated successfully',
+            'user' => $user->fresh()
+        ]);
+    }
     
 
 }

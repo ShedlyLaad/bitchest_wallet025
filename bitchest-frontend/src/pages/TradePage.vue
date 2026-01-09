@@ -62,8 +62,13 @@
                   <h3 class="text-lg font-semibold text-white">Cryptocurrencies</h3>
                   <p class="text-xs text-gray-400 mt-1">{{ filteredCryptos.length }} assets</p>
                 </div>
-                <div class="px-2 py-1 bg-green-500/20 border border-green-500/30 rounded-lg">
-                  <span class="text-xs font-medium text-green-400">Live</span>
+                <div class="flex items-center gap-2">
+                  <div class="relative">
+                    <div class="absolute -top-1 -right-1 w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+                    <div class="px-2 py-1 bg-green-500/20 border border-green-500/30 rounded-lg">
+                      <span class="text-xs font-medium text-green-400">Live</span>
+                    </div>
+                  </div>
                 </div>
               </div>
               <div class="relative">
@@ -137,7 +142,7 @@
                       <div class="text-right">
                         <div 
                           :class="[
-                            'text-white font-semibold text-sm group-hover:text-blue-300 transition-all duration-300',
+                            'text-white font-semibold text-sm group-hover:text-blue-300 transition-all duration-300 font-mono',
                             (crypto as any).isUpdating && (crypto as any).animationClass === 'price-up' ? 'text-green-400 animate-pulse' : '',
                             (crypto as any).isUpdating && (crypto as any).animationClass === 'price-down' ? 'text-red-400 animate-pulse' : ''
                           ]"
@@ -156,6 +161,7 @@
                             ↓
                           </span>
                         </div>
+                        <div class="text-xs text-gray-500 mt-0.5">{{ crypto.symbol }}</div>
                       </div>
                       
                       <!-- 24h Change -->
@@ -169,7 +175,7 @@
                             (crypto as any).isUpdating && (crypto as any).animationClass === 'change-up' ? 'animate-pulse-change scale-110' : ''
                           ]"
                         >
-                          <span>{{ (crypto.change24h ?? 0) >= 0 ? '+' : '' }}{{ Math.abs(crypto.change24h ?? 0).toFixed(2) }}%</span>
+                          <span>{{ formatPercentageChange(crypto.change24h ?? 0) }}</span>
                           <span 
                             v-if="(crypto as any).previousChange24h !== undefined && crypto.change24h !== undefined && 
                                   Math.abs(Number(crypto.change24h)) > Math.abs(Number((crypto as any).previousChange24h))"
@@ -595,6 +601,14 @@ function onQuantityChange() {
 function formatPrice(value: number): string {
   if (!value || isNaN(value) || value <= 0) return formatEUR(0);
   return formatEUR(value);
+}
+
+// Format percentage change with proper sign display
+function formatPercentageChange(value: number): string {
+  if (value === null || value === undefined || isNaN(value)) return '0.00%';
+  const numValue = Number(value);
+  const sign = numValue >= 0 ? '+' : '';
+  return `${sign}${numValue.toFixed(2)}%`;
 }
 
 async function loadPortfolio() {

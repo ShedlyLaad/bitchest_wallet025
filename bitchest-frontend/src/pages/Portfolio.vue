@@ -104,8 +104,12 @@
                 </div>
               </div>
               <div class="text-right">
-                <div class="font-bold text-sm" style="color: #01ff19;">+{{ holding.gainLossPercent.toFixed(2) }}%</div>
-                <div class="text-xs text-gray-400 font-mono">{{ formatEUR(holding.gainLoss) }}</div>
+                <div class="font-bold text-sm" style="color: #01ff19;">
+                  {{ holding.gainLossPercent >= 0 ? '+' : '' }}{{ holding.gainLossPercent.toFixed(2) }}%
+                </div>
+                <div class="text-xs text-gray-400 font-mono">
+                  {{ holding.gainLoss >= 0 ? '+' : '' }}{{ formatEUR(Math.abs(holding.gainLoss)) }}
+                </div>
               </div>
             </div>
           </div>
@@ -146,8 +150,12 @@
                 </div>
               </div>
               <div class="text-right">
-                <div class="font-bold text-sm" style="color: #ff5964;">{{ holding.gainLossPercent.toFixed(2) }}%</div>
-                <div class="text-xs text-gray-400 font-mono">{{ formatEUR(holding.gainLoss) }}</div>
+                <div class="font-bold text-sm" style="color: #ff5964;">
+                  {{ holding.gainLossPercent < 0 ? '-' : '' }}{{ Math.abs(holding.gainLossPercent).toFixed(2) }}%
+                </div>
+                <div class="text-xs text-gray-400 font-mono">
+                  {{ holding.gainLoss < 0 ? '-' : '' }}{{ formatEUR(Math.abs(holding.gainLoss)) }}
+                </div>
               </div>
             </div>
           </div>
@@ -208,7 +216,9 @@
               </div>
               <div class="font-semibold text-white">{{ bestPerformer?.symbol || 'N/A' }}</div>
             </div>
-            <div class="text-lg font-bold" style="color: #01ff19;">+{{ bestPerformer?.gainLossPercent.toFixed(2) || 0 }}%</div>
+            <div class="text-lg font-bold" :style="{ color: (bestPerformer?.gainLossPercent ?? 0) >= 0 ? '#01ff19' : '#ff5964' }">
+              {{ (bestPerformer?.gainLossPercent ?? 0) >= 0 ? '+' : '' }}{{ Math.abs(bestPerformer?.gainLossPercent ?? 0).toFixed(2) }}%
+            </div>
           </div>
         </div>
         <div v-else class="h-32 flex items-center justify-center text-gray-400">
@@ -274,7 +284,7 @@
 
                 <td class="px-6 py-5 whitespace-nowrap text-right">
                   <div class="font-semibold text-white text-base font-mono">{{ formatEUR(holding.currentPrice) }}</div>
-                  <div class="text-xs mt-0.5" :style="{ color: holding.priceChange >= 0 ? '#01ff19' : '#ff5964' }">
+                  <div class="text-xs mt-0.5 font-medium" :style="{ color: holding.priceChange >= 0 ? '#01ff19' : '#ff5964' }">
                     {{ holding.priceChange >= 0 ? '+' : '' }}{{ holding.priceChange.toFixed(2) }}%
                   </div>
                 </td>
@@ -334,31 +344,94 @@
 
         <!-- Modal Content -->
         <div class="p-6 space-y-5">
-          <!-- Quantity Input -->
-          <div>
-            <label class="block text-sm font-semibold text-gray-300 mb-2">
-              Quantity ({{ selectedHolding.symbol }})
-            </label>
-            <input
-              v-model="sellQuantity"
-              type="number"
-              :max="selectedHolding.quantity"
-              :step="0.00000001"
-              :min="0"
-              placeholder="0.00000000"
-              class="w-full bg-gray-900/50 border-2 border-gray-700 rounded-xl px-4 py-3.5 text-emerald-400 placeholder-gray-500/60 font-mono text-base font-semibold tracking-wide focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/30 transition-all duration-200"
-            />
-            <div class="mt-2 flex items-center justify-between text-sm">
-              <span class="text-gray-400">Current Price:</span>
-              <span class="text-white font-semibold font-mono">{{ formatEUR(selectedHolding.currentPrice) }}</span>
+          <!-- Quick Info Cards -->
+          <div class="grid grid-cols-2 gap-3">
+            <div class="bg-gradient-to-br from-gray-700/40 to-gray-800/40 rounded-lg p-3 border border-gray-600/30">
+              <div class="text-xs text-gray-400 mb-1">Available Balance</div>
+              <div class="text-sm font-bold text-white font-mono">{{ selectedHolding.quantity.toFixed(8) }}</div>
+              <div class="text-xs text-gray-500 mt-0.5">{{ selectedHolding.symbol }}</div>
+            </div>
+            <div class="bg-gradient-to-br from-gray-700/40 to-gray-800/40 rounded-lg p-3 border border-gray-600/30">
+              <div class="text-xs text-gray-400 mb-1">Current Price</div>
+              <div class="text-sm font-bold text-white font-mono">{{ formatEUR(selectedHolding.currentPrice) }}</div>
+              <div class="text-xs mt-0.5" :style="{ color: selectedHolding.priceChange >= 0 ? '#01ff19' : '#ff5964' }">
+                {{ selectedHolding.priceChange >= 0 ? '+' : '' }}{{ selectedHolding.priceChange.toFixed(2) }}%
+              </div>
             </div>
           </div>
 
-          <!-- Amount Display -->
-          <div class="bg-gray-700/30 rounded-xl p-4 border border-gray-700/50">
+          <!-- Quantity Input with Sell All Button -->
+          <div>
             <div class="flex items-center justify-between mb-2">
-              <span class="text-sm text-gray-400 font-medium">Estimated Value (EUR):</span>
-              <span class="text-xl font-bold text-white font-mono">{{ formatEUR(sellAmount) }}</span>
+              <label class="block text-sm font-semibold text-gray-300">
+                Quantity ({{ selectedHolding.symbol }})
+              </label>
+              <button
+                @click="sellAllQuantity"
+                class="group relative px-3 py-1.5 text-xs font-semibold rounded-lg transition-all duration-200 hover:scale-105 active:scale-95 overflow-hidden"
+                style="background: linear-gradient(135deg, rgba(255, 89, 100, 0.2), rgba(255, 89, 100, 0.15)); border: 1px solid rgba(255, 89, 100, 0.3); color: #ff5964;"
+              >
+                <span class="relative z-10 flex items-center gap-1.5">
+                  <svg class="w-3.5 h-3.5 transition-transform group-hover:rotate-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                  </svg>
+                  Sell All
+                </span>
+                <div class="absolute inset-0 bg-gradient-to-r from-red-500/0 via-red-500/0 to-red-500/0 group-hover:from-red-500/10 group-hover:via-red-500/5 group-hover:to-red-500/0 transition-all duration-300"></div>
+              </button>
+            </div>
+            <div class="relative">
+              <input
+                v-model="sellQuantity"
+                type="number"
+                :max="selectedHolding.quantity"
+                :step="0.00000001"
+                :min="0"
+                placeholder="0.00000000"
+                class="w-full bg-gray-900/50 border-2 border-gray-700 rounded-xl px-4 pr-24 py-3.5 text-emerald-400 placeholder-gray-500/60 font-mono text-base font-semibold tracking-wide focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/30 transition-all duration-200"
+              />
+              <div class="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-2">
+                <span class="text-xs text-gray-500 font-medium">{{ selectedHolding.symbol }}</span>
+                <div class="h-4 w-px bg-gray-600"></div>
+                <button
+                  @click="setHalfQuantity"
+                  class="px-2 py-1 text-xs font-medium text-gray-400 hover:text-white hover:bg-gray-700/50 rounded transition-colors"
+                  title="Set 50%"
+                >
+                  50%
+                </button>
+              </div>
+            </div>
+            <!-- Quantity Progress Bar -->
+            <div class="mt-2">
+              <div class="flex items-center justify-between text-xs text-gray-400 mb-1">
+                <span>Quantity entered</span>
+                <span>{{ quantityPercentage.toFixed(1) }}%</span>
+              </div>
+              <div class="w-full h-1.5 bg-gray-700/50 rounded-full overflow-hidden">
+                <div
+                  class="h-full rounded-full transition-all duration-300"
+                  :style="{
+                    width: `${Math.min(100, quantityPercentage)}%`,
+                    background: 'linear-gradient(90deg, rgba(255, 89, 100, 0.6), rgba(255, 89, 100, 0.8))'
+                  }"
+                ></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Enhanced Amount Display -->
+          <div class="bg-gradient-to-br from-gray-700/40 via-gray-800/40 to-gray-700/40 rounded-xl p-5 border border-gray-600/30 shadow-lg">
+            <div class="flex items-center justify-between mb-3">
+              <span class="text-sm text-gray-400 font-medium">Estimated Value (EUR)</span>
+              <div class="w-8 h-8 rounded-full bg-gray-700/50 flex items-center justify-center border border-gray-600/30">
+                <TrendingDown class="h-4 w-4 text-gray-400" />
+              </div>
+            </div>
+            <div class="text-3xl font-bold text-white font-mono mb-2">{{ formatEUR(sellAmount) }}</div>
+            <div class="flex items-center justify-between text-xs text-gray-500 pt-2 border-t border-gray-700/50">
+              <span>Quantity: {{ (parseFloat(sellQuantity) || 0).toFixed(8) }} {{ selectedHolding.symbol }}</span>
+              <span>Price: {{ formatEUR(selectedHolding.currentPrice) }}</span>
             </div>
           </div>
 
@@ -383,18 +456,31 @@
           </Transition>
 
           <!-- Action Buttons -->
-          <div class="flex gap-3 pt-2">
+          <div class="flex flex-col gap-3 pt-2">
+            <!-- Primary Sell Button -->
             <button
               @click="handleSell"
               :disabled="isSelling || !canSell"
-              class="flex-1 px-6 py-3 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold rounded-xl transition-all duration-200 hover:scale-[1.02] hover:shadow-xl active:scale-[0.98]"
-              style="background-color: #ff5964;"
+              class="group relative w-full px-6 py-4 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold rounded-xl transition-all duration-200 hover:scale-[1.02] hover:shadow-xl active:scale-[0.98] overflow-hidden"
+              style="background: linear-gradient(135deg, #ff5964, #ff4757); box-shadow: 0 4px 14px rgba(255, 89, 100, 0.3);"
             >
-              {{ isSelling ? 'Selling...' : 'Sell' }}
+              <span class="relative z-10 flex items-center justify-center gap-2">
+                <svg v-if="!isSelling" class="w-5 h-5 transition-transform group-hover:rotate-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                </svg>
+                <svg v-else class="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24">
+                  <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                  <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                {{ isSelling ? 'Processing Sale...' : `Sell ${(parseFloat(sellQuantity) || 0).toFixed(8)} ${selectedHolding.symbol}` }}
+              </span>
+              <div class="absolute inset-0 bg-gradient-to-r from-transparent via-white/0 to-transparent group-hover:via-white/10 transition-all duration-700 transform -translate-x-full group-hover:translate-x-full"></div>
             </button>
+            
+            <!-- Secondary Cancel Button -->
             <button
               @click="closeSellModal"
-              class="px-6 py-3 bg-gray-700 hover:bg-gray-600 text-white font-semibold rounded-xl transition-colors"
+              class="px-6 py-3 bg-gray-700/50 hover:bg-gray-600/50 border border-gray-600/50 text-white font-semibold rounded-xl transition-all duration-200 hover:scale-[1.01] active:scale-[0.99]"
             >
               Cancel
             </button>
@@ -447,8 +533,8 @@
               <div>
                 <span class="text-gray-400">Gain/Loss:</span>
                 <span :class="['ml-2 font-semibold font-mono', selectedHolding.gainLoss >= 0 ? 'text-green-400' : 'text-red-400']">
-                  {{ selectedHolding.gainLoss >= 0 ? '+' : '' }}{{ formatEUR(selectedHolding.gainLoss) }}
-                  ({{ selectedHolding.gainLossPercent >= 0 ? '+' : '' }}{{ selectedHolding.gainLossPercent.toFixed(2) }}%)
+                  {{ selectedHolding.gainLoss >= 0 ? '+' : '' }}{{ formatEUR(Math.abs(selectedHolding.gainLoss)) }}
+                  ({{ selectedHolding.gainLossPercent >= 0 ? '+' : '' }}{{ Math.abs(selectedHolding.gainLossPercent).toFixed(2) }}%)
                 </span>
               </div>
             </div>
@@ -683,12 +769,33 @@ const sellAmount = computed(() => {
   return qty * selectedHolding.value.currentPrice;
 });
 
+// Quantity percentage for progress bar
+const quantityPercentage = computed(() => {
+  if (!selectedHolding.value || !sellQuantity.value) return 0;
+  const qty = parseFloat(sellQuantity.value) || 0;
+  if (selectedHolding.value.quantity <= 0) return 0;
+  return (qty / selectedHolding.value.quantity) * 100;
+});
+
 // Can sell validation
 const canSell = computed(() => {
   if (!selectedHolding.value || !sellQuantity.value) return false;
   const qty = parseFloat(sellQuantity.value) || 0;
   return qty > 0 && qty <= selectedHolding.value.quantity;
 });
+
+// Set quantity to all available
+function sellAllQuantity() {
+  if (!selectedHolding.value) return;
+  sellQuantity.value = selectedHolding.value.quantity.toFixed(8);
+}
+
+// Set quantity to half (50%)
+function setHalfQuantity() {
+  if (!selectedHolding.value) return;
+  const halfQuantity = selectedHolding.value.quantity / 2;
+  sellQuantity.value = halfQuantity.toFixed(8);
+}
 
 function handleImageError(event: Event) {
   const target = event.target as HTMLImageElement;

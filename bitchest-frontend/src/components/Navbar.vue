@@ -52,8 +52,8 @@
                 <template v-else>
                   <span class="group-hover:hidden">Balance</span>
                   <div class="hidden group-hover:flex items-center space-x-1.5 animate-fade-in">
-                    <span class="text-base font-semibold">€</span>
-                    <span>{{ formattedBalance.replace('€', '').trim() }}</span>
+                    <span :style="{ color: accentGreen }" class="text-base font-semibold">€</span>
+                    <span :style="{ color: accentGreen }" class="font-semibold">{{ formattedBalance.replace('€', '').trim() }}</span>
                   </div>
                 </template>
               </div>
@@ -238,10 +238,12 @@ import BitchestLogo from '../assets/bitchest_logo.png';
 import { formatEUR } from '../utils/formatEUR';
 import { useAuthStore } from '@/stores/auth';
 import NotificationDropdown from './NotificationDropdown.vue';
+import { useThemeColors } from '@/hooks/useThemeColors';
 
 const route = useRoute();
 const router = useRouter();
 const auth = useAuthStore();
+const { accentGreen } = useThemeColors();
 
 const isMenuOpen = ref(false);
 const isProfileMenuOpen = ref(false);

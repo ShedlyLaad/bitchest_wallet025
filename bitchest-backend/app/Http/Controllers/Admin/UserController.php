@@ -9,6 +9,7 @@ use App\Models\Portfolio;
 use App\Models\Transaction;
 use App\Services\UniversalMailService;
 use App\Mail\VerifyEmailMailable;
+use Illuminate\Http\Request;
 
 class UserController extends Controller
 {
@@ -86,6 +87,7 @@ class UserController extends Controller
             'status' => User::STATUS_ACTIVE,
             'must_change_password' => false,
             'euro_balance' => 500.00,
+            'email_verified_at' => now(),
         ]);
     
       
@@ -95,7 +97,7 @@ class UserController extends Controller
     
         return response()->json([
             'message' => 'User approved and account activated',
-            'user' => $user
+            'user' => $user->fresh()
         ]);
     }
 

@@ -31,6 +31,7 @@ class User extends Authenticatable
         'profile_banner',
         'level',
         'experience_points',
+        'email_verified_at',
     ];
 
     protected $casts = [

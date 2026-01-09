@@ -4,7 +4,7 @@
       <div class="flex flex-col md:flex-row items-center justify-between gap-4">
         <!-- Logo and Company Info -->
         <div class="flex items-center gap-4">
-          <img :src="BitchestFooterLogo" alt="Bitchest Logo" class="h-8 w-auto" />
+          <img :src="BitchestFooterLogo" alt="Bitchest Logo" class="h-12 w-auto" />
           <div class="hidden sm:block h-6 w-px bg-gray-700"></div>
           <div class="hidden sm:block text-sm text-gray-400">
             <p class="font-medium text-gray-300">Soluyman, 108 Av. République</p>

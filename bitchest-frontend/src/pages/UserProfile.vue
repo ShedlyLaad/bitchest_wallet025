@@ -1,8 +1,22 @@
 <template>
-  <div class="min-h-screen bg-gray-900 text-white">
-    <div class="max-w-6xl mx-auto p-3 sm:p-6 space-y-4 sm:space-y-8">
-      <!-- Profile Banner -->
-      <div class="relative bg-gradient-to-br from-gray-800 via-gray-800 to-gray-900 rounded-2xl overflow-hidden border border-white/10 h-48 sm:h-64 backdrop-blur-sm">
+  <div class="min-h-screen bg-gray-900 text-white relative overflow-hidden">
+    <!-- Enhanced Animated Background -->
+    <div class="absolute inset-0 pointer-events-none z-0">
+      <div class="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-gray-900 via-gray-900 to-gray-950"></div>
+      <div 
+        class="absolute top-1/4 -left-40 w-96 h-96 rounded-full blur-3xl opacity-10 animate-pulse"
+        :style="{ backgroundColor: 'var(--blue-dark)' }"
+      ></div>
+      <div 
+        class="absolute bottom-1/4 -right-40 w-96 h-96 rounded-full blur-3xl opacity-10 animate-pulse delay-1000"
+        :style="{ backgroundColor: 'var(--purple)' }"
+      ></div>
+      <div class="absolute inset-0 opacity-[0.02]" style="background-image: linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.1) 1px, transparent 1px); background-size: 50px 50px;"></div>
+    </div>
+
+    <div class="max-w-6xl mx-auto p-3 sm:p-6 space-y-4 sm:space-y-8 relative z-10">
+      <!-- Enhanced Profile Banner -->
+      <div class="relative bg-gradient-to-br from-gray-800 via-gray-800 to-gray-900 rounded-2xl overflow-hidden border border-white/10 h-48 sm:h-64 backdrop-blur-sm shadow-2xl">
         <div 
           v-if="profileBannerUrl" 
           class="absolute inset-0 w-full h-full bg-cover bg-center"
@@ -40,8 +54,8 @@
         </div>
       </div>
 
-      <!-- Header -->
-      <div class="bg-white/5 backdrop-blur-xl rounded-2xl p-4 sm:p-8 border border-white/10 -mt-20 sm:-mt-24 relative z-10 shadow-2xl">
+      <!-- Enhanced Header -->
+      <div class="bg-gradient-to-br from-white/10 to-white/5 backdrop-blur-xl rounded-2xl p-4 sm:p-8 border border-white/10 -mt-20 sm:-mt-24 relative z-10 shadow-2xl">
         <div class="flex flex-col sm:flex-row items-start justify-between gap-4 sm:gap-6">
           <div class="flex flex-col sm:flex-row items-start gap-4 sm:gap-6 w-full sm:w-auto">
             <div class="relative">
@@ -208,20 +222,38 @@
         </div>
 
         <div class="mt-6 sm:mt-8 grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <div class="bg-white/5 backdrop-blur-sm rounded-xl p-5 border border-white/10 hover:border-white/20 transition-all group">
-            <div class="text-xs font-medium text-gray-400 uppercase tracking-wider mb-2">Account Balance</div>
+          <div class="group relative bg-gradient-to-br from-white/10 to-white/5 backdrop-blur-sm rounded-xl p-5 border border-white/10 hover:border-green-500/50 transition-all duration-300 hover:shadow-lg hover:shadow-green-500/20 hover:scale-105 overflow-hidden">
+            <div class="absolute inset-0 bg-gradient-to-r from-green-500/0 to-emerald-500/0 group-hover:from-green-500/10 group-hover:to-emerald-500/10 transition-all duration-300"></div>
+            <div class="relative flex items-center gap-3 mb-3">
+              <div class="p-2 bg-green-500/20 rounded-lg group-hover:bg-green-500/30 transition-colors">
+                <WalletIcon class="h-5 w-5 text-green-400" />
+              </div>
+              <div class="text-xs font-medium text-gray-400 uppercase tracking-wider">Account Balance</div>
+            </div>
             <div v-if="isBalanceLoading" class="h-8 w-32 bg-white/10 rounded-lg animate-pulse"></div>
             <div v-else class="text-3xl font-bold text-green-400 group-hover:scale-105 transition-transform">{{ formattedBalance }}</div>
           </div>
 
-          <div class="bg-white/5 backdrop-blur-sm rounded-xl p-5 border border-white/10 hover:border-white/20 transition-all group">
-            <div class="text-xs font-medium text-gray-400 uppercase tracking-wider mb-2">Total Transactions</div>
+          <div class="group relative bg-gradient-to-br from-white/10 to-white/5 backdrop-blur-sm rounded-xl p-5 border border-white/10 hover:border-blue-500/50 transition-all duration-300 hover:shadow-lg hover:shadow-blue-500/20 hover:scale-105 overflow-hidden">
+            <div class="absolute inset-0 bg-gradient-to-r from-blue-500/0 to-cyan-500/0 group-hover:from-blue-500/10 group-hover:to-cyan-500/10 transition-all duration-300"></div>
+            <div class="relative flex items-center gap-3 mb-3">
+              <div class="p-2 bg-blue-500/20 rounded-lg group-hover:bg-blue-500/30 transition-colors">
+                <Activity class="h-5 w-5 text-blue-400" />
+              </div>
+              <div class="text-xs font-medium text-gray-400 uppercase tracking-wider">Total Transactions</div>
+            </div>
             <div v-if="isTransactionsLoading" class="h-8 w-24 bg-white/10 rounded-lg animate-pulse"></div>
             <div v-else class="text-3xl font-bold text-blue-400 group-hover:scale-105 transition-transform">{{ totalTransactions }}</div>
           </div>
 
-          <div class="bg-white/5 backdrop-blur-sm rounded-xl p-5 border border-white/10 hover:border-white/20 transition-all group">
-            <div class="text-xs font-medium text-gray-400 uppercase tracking-wider mb-2">Verification Level</div>
+          <div class="group relative bg-gradient-to-br from-white/10 to-white/5 backdrop-blur-sm rounded-xl p-5 border border-white/10 hover:border-purple-500/50 transition-all duration-300 hover:shadow-lg hover:shadow-purple-500/20 hover:scale-105 overflow-hidden">
+            <div class="absolute inset-0 bg-gradient-to-r from-purple-500/0 to-pink-500/0 group-hover:from-purple-500/10 group-hover:to-pink-500/10 transition-all duration-300"></div>
+            <div class="relative flex items-center gap-3 mb-3">
+              <div class="p-2 bg-purple-500/20 rounded-lg group-hover:bg-purple-500/30 transition-colors">
+                <CheckIcon class="h-5 w-5 text-purple-400" />
+              </div>
+              <div class="text-xs font-medium text-gray-400 uppercase tracking-wider">Verification Level</div>
+            </div>
             <div v-if="isTransactionsLoading" class="h-8 w-20 bg-white/10 rounded-lg animate-pulse"></div>
             <div v-else class="text-3xl font-bold text-purple-400 group-hover:scale-105 transition-transform">{{ userLevel }}</div>
           </div>
@@ -229,8 +261,8 @@
       </div>
     </div>
 
-    <!-- Footer - Full Width -->
-    <FooterSection />
+    <!-- Footer - Enhanced -->
+    <UserFooter />
   </div>
 </template>
 
@@ -242,10 +274,11 @@ import {
   Edit3 as Edit3Icon,
   Camera as CameraIcon,
   Wallet as WalletIcon,
-  X as XIcon
+  X as XIcon,
+  Activity
 } from 'lucide-vue-next';
 
-import FooterSection from '../components/sectionsLanding/FooterSection.vue';
+import UserFooter from '@/components/UserFooter.vue';
 import { formatEUR } from '../utils/formatEUR';
 import { useAuthStore } from '@/stores/auth';
 import api from '@/services/api';

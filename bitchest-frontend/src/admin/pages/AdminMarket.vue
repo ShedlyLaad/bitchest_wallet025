@@ -1,11 +1,16 @@
 <template>
   <div class="space-y-4 sm:space-y-8">
     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-      <div>
-        <h1 class="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent">
-          Market Management
-        </h1>
-        <p class="text-gray-400 mt-1 text-sm sm:text-base">Monitor cryptocurrency prices</p>
+      <div class="flex items-center gap-3">
+        <div class="p-3 bg-gradient-to-br from-blue-600/20 to-blue-800/10 rounded-xl border border-blue-500/30 backdrop-blur-sm">
+          <TrendingUp class="h-6 w-6 text-blue-400" />
+        </div>
+        <div>
+          <h1 class="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-white via-gray-200 to-gray-300 bg-clip-text text-transparent">
+            Market Management
+          </h1>
+          <p class="text-gray-400 mt-1 text-sm sm:text-base">Monitor cryptocurrency prices</p>
+        </div>
       </div>
       <div class="flex items-center gap-3">
         <div class="text-xs text-gray-400 bg-gray-800/50 px-3 py-1.5 rounded-lg border border-gray-700/50">

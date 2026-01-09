@@ -331,7 +331,7 @@ export async function getUserCryptos(useCache: boolean = true) {
           change24h = Number(change24h.toFixed(2));
           
           return {
-            ...crypto,
+          ...crypto,
             price,
             change24h
           };
@@ -356,7 +356,7 @@ export async function getUserCryptos(useCache: boolean = true) {
     change24h = Number(change24h.toFixed(2));
     
     return {
-      ...crypto,
+    ...crypto,
       price,
       change24h
     };

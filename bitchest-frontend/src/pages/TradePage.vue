@@ -1,11 +1,30 @@
 <template>
-  <div class="min-h-screen bg-gray-900 text-white">
-    <div class="max-w-7xl mx-auto p-3 sm:p-6 space-y-4 sm:space-y-8">
-      <!-- Header -->
+  <div class="min-h-screen bg-gray-900 text-white relative overflow-hidden">
+    <!-- Enhanced Animated Background -->
+    <div class="absolute inset-0 pointer-events-none z-0">
+      <div class="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-gray-900 via-gray-900 to-gray-950"></div>
+      <div 
+        class="absolute top-1/4 -left-40 w-96 h-96 rounded-full blur-3xl opacity-10 animate-pulse"
+        :style="{ backgroundColor: 'var(--blue-dark)' }"
+      ></div>
+      <div 
+        class="absolute bottom-1/4 -right-40 w-96 h-96 rounded-full blur-3xl opacity-10 animate-pulse delay-1000"
+        :style="{ backgroundColor: 'var(--blue)' }"
+      ></div>
+      <div class="absolute inset-0 opacity-[0.02]" style="background-image: linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.1) 1px, transparent 1px); background-size: 50px 50px;"></div>
+    </div>
+
+    <div class="max-w-7xl mx-auto p-3 sm:p-6 space-y-4 sm:space-y-8 relative z-10">
+      <!-- Enhanced Header -->
       <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-        <div>
-          <h1 class="text-2xl sm:text-3xl font-bold">Trade Cryptocurrencies</h1>
-          <p class="text-gray-400 mt-1 text-sm sm:text-base">Buy and sell crypto with competitive rates</p>
+        <div class="flex items-center gap-3">
+          <div class="p-3 bg-gradient-to-br from-blue-600/20 to-blue-800/10 rounded-xl border border-blue-500/30 backdrop-blur-sm">
+            <TrendingUpIcon class="h-6 w-6 text-blue-400" />
+          </div>
+          <div>
+            <h1 class="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-white via-gray-200 to-gray-300 bg-clip-text text-transparent">Trade Cryptocurrencies</h1>
+            <p class="text-gray-400 mt-1 text-sm sm:text-base">Buy and sell crypto with competitive rates</p>
+          </div>
         </div>
 
         <div class="w-full sm:w-auto">
@@ -65,8 +84,8 @@
                 <div class="flex items-center gap-2">
                   <div class="relative">
                     <div class="absolute -top-1 -right-1 w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
-                    <div class="px-2 py-1 bg-green-500/20 border border-green-500/30 rounded-lg">
-                      <span class="text-xs font-medium text-green-400">Live</span>
+                <div class="px-2 py-1 bg-green-500/20 border border-green-500/30 rounded-lg">
+                  <span class="text-xs font-medium text-green-400">Live</span>
                     </div>
                   </div>
                 </div>
@@ -211,39 +230,52 @@
             />
           </div>
 
-          <!-- Trade Form -->
-          <div class="bg-gray-800 rounded-xl p-5 sm:p-6 border border-gray-700 shadow-lg">
-            <!-- Header with Order Type Toggle -->
+          <!-- Enhanced Trade Form -->
+          <div class="bg-gradient-to-br from-gray-800/60 to-gray-800/40 backdrop-blur-xl rounded-xl p-5 sm:p-6 border border-gray-700/50 shadow-lg hover:shadow-xl transition-all duration-300">
+            <!-- Enhanced Header with Order Type Toggle -->
             <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
-              <div>
-                <h3 class="text-xl sm:text-2xl font-bold text-white">Place Order</h3>
-                <p class="text-sm text-gray-400 mt-1">Trade {{ selectedCrypto?.symbol || 'crypto' }} instantly</p>
+              <div class="flex items-center gap-3">
+                <div class="p-2 bg-blue-500/20 rounded-lg">
+                  <TrendingUpIcon class="h-5 w-5 text-blue-400" />
+                </div>
+                <div>
+                  <h3 class="text-xl sm:text-2xl font-bold text-white">Place Order</h3>
+                  <p class="text-sm text-gray-400 mt-1">Trade {{ selectedCrypto?.symbol || 'crypto' }} instantly</p>
+                </div>
               </div>
 
-              <div class="flex bg-gray-700/50 rounded-xl p-1 border border-gray-600/50 shadow-inner">
+              <div class="flex bg-gray-700/50 rounded-xl p-1 border border-gray-600/50 shadow-inner backdrop-blur-sm">
                 <button 
                   @click="tradeType = 'buy'"
                   :class="[
-                    'px-5 py-2.5 rounded-lg font-semibold text-sm transition-all duration-200',
+                    'group relative px-5 py-2.5 rounded-lg font-semibold text-sm transition-all duration-200 overflow-hidden',
                     tradeType === 'buy' 
                       ? 'text-white shadow-lg transform scale-105' 
                       : 'text-gray-400 hover:text-gray-300'
                   ]"
                   :style="tradeType === 'buy' ? { backgroundColor: '#01ff19' } : {}"
                 >
-                  Buy
+                  <span class="relative z-10 flex items-center gap-2">
+                    <TrendingUpIcon class="h-4 w-4" />
+                    Buy
+                  </span>
+                  <div v-if="tradeType === 'buy'" class="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent transform -translate-x-full group-hover:translate-x-full transition-transform duration-700"></div>
                 </button>
                 <button 
                   @click="tradeType = 'sell'"
                   :class="[
-                    'px-5 py-2.5 rounded-lg font-semibold text-sm transition-all duration-200',
+                    'group relative px-5 py-2.5 rounded-lg font-semibold text-sm transition-all duration-200 overflow-hidden',
                     tradeType === 'sell' 
                       ? 'text-white shadow-lg transform scale-105' 
                       : 'text-gray-400 hover:text-gray-300'
                   ]"
                   :style="tradeType === 'sell' ? { backgroundColor: '#ff5964' } : {}"
                 >
-                  Sell
+                  <span class="relative z-10 flex items-center gap-2">
+                    <TrendingDownIcon class="h-4 w-4" />
+                    Sell
+                  </span>
+                  <div v-if="tradeType === 'sell'" class="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent transform -translate-x-full group-hover:translate-x-full transition-transform duration-700"></div>
                 </button>
               </div>
             </div>
@@ -252,11 +284,13 @@
               <!-- Left Column: Input Fields -->
               <div class="space-y-5">
                 <div>
-                  <label class="block text-sm font-semibold text-gray-300 mb-2.5 flex items-center gap-2">
+                  <label class="flex items-center gap-2 text-sm font-semibold text-gray-300 mb-2.5">
+                    <Euro class="h-4 w-4 text-gray-400" />
                     <span>Amount</span>
                     <span class="text-xs font-normal text-gray-500">(EUR)</span>
                   </label>
                   <div class="relative group">
+                    <div class="absolute inset-0 bg-gradient-to-r from-blue-500/0 to-purple-500/0 group-hover:from-blue-500/5 group-hover:to-purple-500/5 rounded-xl transition-all duration-300"></div>
                     <input 
                       type="number" 
                       v-model="amount" 
@@ -265,21 +299,29 @@
                       step="0.01"
                       min="0"
                       :class="[
-                        'amount-input w-full bg-gray-900/70 border-2 rounded-xl pl-4 pr-16 py-3.5 placeholder-gray-500/60 focus:outline-none focus:ring-2 focus:ring-blue-500/30 transition-all duration-200 font-semibold text-lg tracking-wide',
-                        isAmountExceedingBalance ? 'border-red-500 focus:border-red-500' : 'text-gray-100 border-gray-600 focus:border-blue-500'
+                        'relative w-full bg-gray-800/50 backdrop-blur-sm border-2 rounded-xl pl-12 pr-16 py-3.5 placeholder-gray-500/60 focus:outline-none focus:ring-2 transition-all duration-200 font-semibold text-lg tracking-wide',
+                        isAmountExceedingBalance 
+                          ? 'border-red-500/50 focus:border-red-500 focus:ring-red-500/30 text-red-400' 
+                          : 'text-gray-100 border-gray-700 focus:border-blue-500/50 focus:ring-blue-500/30'
                       ]"
-                      :style="isAmountExceedingBalance ? { color: '#ff5964' } : {}"
                     />
+                    <Euro class="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-500 group-focus-within:text-blue-400 transition-colors" />
                     <div class="absolute right-4 top-1/2 -translate-y-1/2 text-sm text-gray-400 font-semibold pointer-events-none">EUR</div>
+                  </div>
+                  <div v-if="isAmountExceedingBalance" class="mt-2 text-xs text-red-400 flex items-center gap-1.5">
+                    <AlertCircle class="h-3.5 w-3.5" />
+                    Insufficient balance
                   </div>
                 </div>
 
                 <div>
-                  <label class="block text-sm font-semibold text-gray-300 mb-2.5 flex items-center gap-2">
+                  <label class="flex items-center gap-2 text-sm font-semibold text-gray-300 mb-2.5">
+                    <TrendingUpIcon class="h-4 w-4 text-gray-400" />
                     <span>Quantity</span>
                     <span class="text-xs font-normal text-gray-500">({{ selectedCrypto?.symbol }})</span>
                   </label>
-                  <div class="relative">
+                  <div class="relative group">
+                    <div class="absolute inset-0 bg-gradient-to-r from-emerald-500/0 to-green-500/0 group-hover:from-emerald-500/5 group-hover:to-green-500/5 rounded-xl transition-all duration-300"></div>
                     <input 
                       type="number"
                       v-model="quantity"
@@ -287,9 +329,15 @@
                       placeholder="0.00000000" 
                       step="0.00000001"
                       min="0"
-                      class="w-full bg-gray-900/50 border-2 border-gray-700 rounded-xl pl-4 pr-20 py-3.5 text-emerald-400 placeholder-gray-500/60 font-mono text-base font-semibold tracking-wide focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/30 transition-all duration-200" 
+                      :max="tradeType === 'sell' && availableQuantity !== null ? availableQuantity : undefined"
+                      class="relative w-full bg-gray-800/50 backdrop-blur-sm border-2 border-gray-700 rounded-xl pl-12 pr-20 py-3.5 text-emerald-400 placeholder-gray-500/60 font-mono text-base font-semibold tracking-wide focus:outline-none focus:border-emerald-500/50 focus:ring-2 focus:ring-emerald-500/30 transition-all duration-200" 
                     />
+                    <TrendingUpIcon class="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-500 group-focus-within:text-emerald-400 transition-colors" />
                     <div class="absolute right-4 top-1/2 -translate-y-1/2 text-sm text-gray-400 font-semibold pointer-events-none">{{ selectedCrypto?.symbol }}</div>
+                  </div>
+                  <div v-if="tradeType === 'sell' && availableQuantity !== null && parseFloat(quantity || '0') > availableQuantity" class="mt-2 text-xs text-red-400 flex items-center gap-1.5">
+                    <AlertCircle class="h-3.5 w-3.5" />
+                    Exceeds available quantity
                   </div>
                 </div>
 
@@ -335,12 +383,12 @@
                   </div>
                 </div>
 
-                <!-- Action Button -->
+                <!-- Enhanced Action Button -->
                 <button 
                   @click="handleTrade"
                   :disabled="!amount || isTrading || !canTrade"
                   :class="[
-                    'w-full py-4 rounded-xl font-bold text-base transition-all duration-200 transform',
+                    'group relative w-full py-4 rounded-xl font-bold text-base transition-all duration-200 transform overflow-hidden',
                     isTrading || (!amount || !canTrade)
                       ? 'opacity-50 cursor-not-allowed' 
                       : 'hover:scale-[1.02] hover:shadow-xl active:scale-[0.98]'
@@ -350,16 +398,18 @@
                     boxShadow: (!isTrading && amount && canTrade) ? (tradeType === 'buy' ? '0 10px 30px rgba(1, 255, 25, 0.3)' : '0 10px 30px rgba(255, 89, 100, 0.3)') : 'none'
                   }"
                 >
-                  <span v-if="isTrading" class="flex items-center justify-center gap-2">
+                  <span v-if="isTrading" class="relative z-10 flex items-center justify-center gap-2">
                     <svg class="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                       <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                       <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                     </svg>
                     Processing...
                   </span>
-                  <span v-else>
+                  <span v-else class="relative z-10 flex items-center justify-center gap-2">
+                    <component :is="tradeType === 'buy' ? TrendingUpIcon : TrendingDownIcon" class="h-5 w-5 transition-transform group-hover:scale-110" />
                     {{ tradeType === 'buy' ? 'Buy' : 'Sell' }} {{ selectedCrypto?.symbol || '' }}
                   </span>
+                  <div v-if="!isTrading && amount && canTrade" class="absolute inset-0 bg-gradient-to-r from-transparent via-white/0 to-transparent group-hover:via-white/10 transition-all duration-700 transform -translate-x-full group-hover:translate-x-full"></div>
                 </button>
                 
                 <!-- Error Message -->
@@ -412,7 +462,9 @@ import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
 import {
   Search as SearchIcon,
   TrendingUp as TrendingUpIcon,
-  TrendingDown as TrendingDownIcon
+  TrendingDown as TrendingDownIcon,
+  Euro,
+  AlertCircle
 } from 'lucide-vue-next';
 
 import ProfessionalTradingChart from '../components/ProfessionalTradingChart.vue';
@@ -465,26 +517,44 @@ const filteredCryptos = computed(() => {
   return cryptocurrencies.value.filter((c) => c.name.toLowerCase().includes(q) || c.symbol.toLowerCase().includes(q));
 });
 
+// Precise quantity calculation from amount (with proper rounding)
 const calculateQuantity = computed(() => {
   const amountValue = parseFloat(amount.value) || 0;
   const price = selectedCrypto.value?.price || 0;
-  if (!price) return 0;
-  return amountValue / price;
+  if (!price || price <= 0) return 0;
+  // Round to 8 decimals for crypto precision
+  return Math.round((amountValue / price) * 100000000) / 100000000;
 });
 
+// Precise amount calculation from quantity (with proper rounding)
 const calculateAmount = computed(() => {
   const quantityValue = parseFloat(quantity.value) || 0;
   const price = selectedCrypto.value?.price || 0;
-  if (!price) return 0;
-  return quantityValue * price;
+  if (!price || price <= 0) return 0;
+  // Round to 2 decimals for EUR precision
+  return Math.round((quantityValue * price) * 100) / 100;
 });
 
-// Check if amount exceeds balance (for buy orders)
+// Check if amount exceeds balance (for buy orders) with precise calculations
 const isAmountExceedingBalance = computed(() => {
   if (tradeType.value !== 'buy') return false;
+  
   const amountValue = parseFloat(amount.value) || 0;
-  const calculatedAmount = calculateAmount.value;
-  const finalAmount = amountValue || calculatedAmount;
+  const quantityValue = parseFloat(quantity.value) || 0;
+  const price = selectedCrypto.value?.price || 0;
+  
+  if (!price || price <= 0) return false;
+  
+  // Calculate final amount precisely
+  let finalAmount: number;
+  if (quantityValue > 0) {
+    finalAmount = Math.round((quantityValue * price) * 100) / 100;
+  } else if (amountValue > 0) {
+    finalAmount = amountValue;
+  } else {
+    return false;
+  }
+  
   const balance = auth.user?.euro_balance ?? 0;
   return finalAmount > balance;
 });
@@ -526,17 +596,34 @@ const availableQuantity = computed(() => {
   return position?.quantity ?? 0;
 });
 
-// Check if trade can be executed
+// Check if trade can be executed with precise calculations
 const canTrade = computed(() => {
   if (!selectedCrypto.value) return false;
   
-  // Check if either amount or quantity is provided
+  // Get precise calculated values
   const amountValue = parseFloat(amount.value) || 0;
   const quantityValue = parseFloat(quantity.value) || 0;
-  const finalAmount = amountValue || calculateAmount.value;
-  const finalQuantity = quantityValue || calculateQuantity.value;
+  const price = selectedCrypto.value.price || 0;
   
-  if (finalAmount <= 0 && finalQuantity <= 0) return false;
+  if (!price || price <= 0) return false;
+  
+  // Determine which value was entered by user and calculate the other precisely
+  let finalAmount: number;
+  let finalQuantity: number;
+  
+  if (quantityValue > 0) {
+    // User entered quantity - calculate amount precisely
+    finalQuantity = quantityValue;
+    finalAmount = Math.round((finalQuantity * price) * 100) / 100;
+  } else if (amountValue > 0) {
+    // User entered amount - calculate quantity precisely
+    finalAmount = amountValue;
+    finalQuantity = Math.round((finalAmount / price) * 100000000) / 100000000;
+  } else {
+    return false;
+  }
+  
+  if (finalAmount <= 0 || finalQuantity <= 0) return false;
   
   if (tradeType.value === 'buy') {
     const balance = auth.user?.euro_balance ?? 0;
@@ -547,23 +634,34 @@ const canTrade = computed(() => {
   }
 });
 
-// Handle amount input change
+// Handle amount input change with precise calculations
 function onAmountChange() {
   if (isQuantityInputActive.value) return;
   isAmountInputActive.value = true;
   const amountValue = parseFloat(amount.value) || 0;
   const price = selectedCrypto.value?.price || 0;
+  
   if (price > 0 && amountValue > 0) {
-    quantity.value = (amountValue / price).toFixed(8);
+    // Calculate precise quantity: amount / price, rounded to 8 decimals
+    const calculatedQuantity = Math.round((amountValue / price) * 100000000) / 100000000;
+    quantity.value = calculatedQuantity.toFixed(8);
+    
+    // Recalculate amount from quantity to ensure consistency (handles floating point precision)
+    const recalculatedAmount = Math.round((calculatedQuantity * price) * 100) / 100;
+    if (Math.abs(amountValue - recalculatedAmount) > 0.01) {
+      // Update amount to the recalculated precise value
+      amount.value = recalculatedAmount.toFixed(2);
+    }
   } else {
     quantity.value = '';
   }
+  
   setTimeout(() => {
     isAmountInputActive.value = false;
   }, 100);
 }
 
-// Handle quantity input change
+// Handle quantity input change with precise calculations
 function onQuantityChange() {
   if (isAmountInputActive.value) return;
   isQuantityInputActive.value = true;
@@ -574,18 +672,38 @@ function onQuantityChange() {
   if (tradeType.value === 'sell' && availableQuantity.value !== null) {
     const maxQuantity = availableQuantity.value;
     if (quantityValue > maxQuantity) {
-      quantity.value = maxQuantity.toFixed(8);
-      const finalQuantity = maxQuantity;
+      // Cap to maximum available
+      const cappedQuantity = maxQuantity;
+      quantity.value = cappedQuantity.toFixed(8);
+      
       if (price > 0) {
-        amount.value = (finalQuantity * price).toFixed(2);
+        // Calculate precise amount: quantity * price, rounded to 2 decimals
+        const calculatedAmount = Math.round((cappedQuantity * price) * 100) / 100;
+        amount.value = calculatedAmount.toFixed(2);
       }
     } else if (price > 0 && quantityValue > 0) {
-      amount.value = (quantityValue * price).toFixed(2);
+      // Calculate precise amount: quantity * price, rounded to 2 decimals
+      const calculatedAmount = Math.round((quantityValue * price) * 100) / 100;
+      amount.value = calculatedAmount.toFixed(2);
+      
+      // Recalculate quantity from amount to ensure consistency
+      const recalculatedQuantity = Math.round((calculatedAmount / price) * 100000000) / 100000000;
+      if (Math.abs(quantityValue - recalculatedQuantity) > 0.00000001) {
+        quantity.value = recalculatedQuantity.toFixed(8);
+      }
     } else {
       amount.value = '';
     }
   } else if (price > 0 && quantityValue > 0) {
-    amount.value = (quantityValue * price).toFixed(2);
+    // Calculate precise amount: quantity * price, rounded to 2 decimals
+    const calculatedAmount = Math.round((quantityValue * price) * 100) / 100;
+    amount.value = calculatedAmount.toFixed(2);
+    
+    // Recalculate quantity from amount to ensure consistency
+    const recalculatedQuantity = Math.round((calculatedAmount / price) * 100000000) / 100000000;
+    if (Math.abs(quantityValue - recalculatedQuantity) > 0.00000001) {
+      quantity.value = recalculatedQuantity.toFixed(8);
+    }
   } else {
     amount.value = '';
   }
@@ -634,29 +752,64 @@ async function handleTrade() {
     const price = selectedCrypto.value.price || 0;
     if (!price || price <= 0) {
       tradeError.value = 'Invalid crypto price. Please refresh the market data.';
+      isTrading.value = false;
       return;
     }
     
-    // Get final quantity (either from quantity input or calculated from amount)
+    // Calculate final quantity and amount with precise calculations
     const quantityValue = parseFloat(quantity.value) || 0;
     const amountValue = parseFloat(amount.value) || 0;
-    const finalQuantity = quantityValue || (amountValue / price);
-    const finalAmount = amountValue || (quantityValue * price);
     
-    if (finalQuantity <= 0) {
-      tradeError.value = 'Please enter a valid quantity greater than 0';
+    let finalQuantity: number;
+    let finalAmount: number;
+    
+    // Priority: If quantity is entered, use it; otherwise calculate from amount
+    if (quantityValue > 0) {
+      // User entered quantity - calculate amount from quantity
+      finalQuantity = quantityValue;
+      // Calculate exact amount: quantity * price, rounded to 2 decimals for EUR
+      finalAmount = Math.round((finalQuantity * price) * 100) / 100;
+      // Update amount field to reflect the exact calculated amount
+      amount.value = finalAmount.toFixed(2);
+    } else if (amountValue > 0) {
+      // User entered amount - calculate quantity from amount
+      finalAmount = amountValue;
+      // Calculate exact quantity: amount / price, rounded to 8 decimals for crypto
+      finalQuantity = Math.round((finalAmount / price) * 100000000) / 100000000;
+      // Update quantity field to reflect the exact calculated quantity
+      quantity.value = finalQuantity.toFixed(8);
+    } else {
+      tradeError.value = 'Please enter either an amount (EUR) or quantity';
+      isTrading.value = false;
       return;
+    }
+    
+    // Validate calculated values
+    if (finalQuantity <= 0 || finalAmount <= 0) {
+      tradeError.value = 'Please enter a valid amount or quantity greater than 0';
+      isTrading.value = false;
+      return;
+    }
+    
+    // Re-validate: Ensure calculated values match (with small tolerance for floating point)
+    const recalculatedAmount = Math.round((finalQuantity * price) * 100) / 100;
+    const difference = Math.abs(finalAmount - recalculatedAmount);
+    if (difference > 0.01) {
+      // Recalculate to ensure consistency
+      finalAmount = recalculatedAmount;
+      amount.value = finalAmount.toFixed(2);
     }
     
     if (tradeType.value === 'buy') {
-      // Check balance
+      // Check balance with the exact calculated amount
       const balance = auth.user?.euro_balance ?? 0;
       if (balance < finalAmount) {
-        tradeError.value = `Insufficient balance. Available: ${formatEUR(balance)}`;
+        tradeError.value = `Insufficient balance. Available: ${formatEUR(balance)}, Required: ${formatEUR(finalAmount)}`;
+        isTrading.value = false;
         return;
       }
       
-      // Execute buy
+      // Execute buy with precise quantity
       const buyResponse = await buyCrypto({
         symbol: selectedCrypto.value.symbol,
         quantity: finalQuantity
@@ -670,12 +823,15 @@ async function handleTrade() {
         }
       }
       
-      tradeSuccess.value = `Successfully purchased ${finalQuantity.toFixed(8)} ${selectedCrypto.value.symbol}`;
+      tradeSuccess.value = `Successfully purchased ${finalQuantity.toFixed(8)} ${selectedCrypto.value.symbol} for ${formatEUR(finalAmount)}`;
       amount.value = '';
       quantity.value = '';
       
       // Reload portfolio to update available quantities and profit/loss (P&L dynamique)
       await loadPortfolio();
+      
+      // Reload market to update prices
+      await loadMarket();
     } else {
       // Sell - Validate quantity against portfolio
       const availableQty = availableQuantity.value ?? 0;
@@ -708,7 +864,7 @@ async function handleTrade() {
         }
       }
       
-      tradeSuccess.value = `Successfully sold ${finalQuantity.toFixed(8)} ${selectedCrypto.value.symbol}`;
+      tradeSuccess.value = `Successfully sold ${finalQuantity.toFixed(8)} ${selectedCrypto.value.symbol} for ${formatEUR(finalAmount)}`;
       amount.value = '';
       quantity.value = '';
       

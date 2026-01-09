@@ -1,10 +1,15 @@
 <template>
   <div class="space-y-4 sm:space-y-8">
-    <!-- Header -->
+    <!-- Enhanced Header -->
     <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-      <div>
-        <h1 class="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent">Users Management</h1>
-        <p class="text-gray-400 mt-1 text-sm sm:text-base">Manage platform users and their activities</p>
+      <div class="flex items-center gap-3">
+        <div class="p-3 bg-gradient-to-br from-blue-600/20 to-blue-800/10 rounded-xl border border-blue-500/30 backdrop-blur-sm">
+          <Users class="h-6 w-6 text-blue-400" />
+        </div>
+        <div>
+          <h1 class="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-white via-gray-200 to-gray-300 bg-clip-text text-transparent">Users Management</h1>
+          <p class="text-gray-400 mt-1 text-sm sm:text-base">Manage platform users and their activities</p>
+        </div>
       </div>
 
       <button
@@ -486,7 +491,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue';
-import { Plus, Trash2, Copy, Check, X, Wallet, TrendingUp, TrendingDown, Euro, Edit } from 'lucide-vue-next';
+import { Plus, Trash2, Copy, Check, X, Wallet, TrendingUp, TrendingDown, Euro, Edit, Users } from 'lucide-vue-next';
 import { approveUser, blockUser, createAdminUser, deleteUser as deleteUserApi, getAdminUsers, getAdminUserDetails, updateAdminUser } from '@/services/api';
 import { useAuthStore } from '@/stores/auth';
 import { formatEUR } from '@/utils/format';

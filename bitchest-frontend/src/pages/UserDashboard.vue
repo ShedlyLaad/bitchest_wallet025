@@ -1,11 +1,32 @@
 <template>
-  <div class="min-h-screen bg-gray-900 text-white">
-    <div class="max-w-7xl mx-auto p-4 sm:p-6 lg:p-8 space-y-6">
-      <!-- Header -->
-      <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-        <div>
-          <h1 class="text-2xl sm:text-3xl font-bold">Dashboard</h1>
-          <p class="text-gray-400 mt-1 text-sm sm:text-base">Welcome to your dashboard</p>
+  <div class="min-h-screen bg-gray-900 text-white relative overflow-hidden">
+    <!-- Enhanced Animated Background -->
+    <div class="absolute inset-0 pointer-events-none z-0">
+      <div class="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-gray-900 via-gray-900 to-gray-950"></div>
+      <div 
+        class="absolute top-1/4 -left-40 w-96 h-96 rounded-full blur-3xl opacity-10 animate-pulse"
+        :style="{ backgroundColor: 'var(--blue-dark)' }"
+      ></div>
+      <div 
+        class="absolute bottom-1/4 -right-40 w-96 h-96 rounded-full blur-3xl opacity-10 animate-pulse delay-1000"
+        :style="{ backgroundColor: 'var(--blue)' }"
+      ></div>
+      <div class="absolute inset-0 opacity-[0.02]" style="background-image: linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.1) 1px, transparent 1px); background-size: 50px 50px;"></div>
+    </div>
+
+    <div class="max-w-7xl mx-auto p-4 sm:p-6 lg:p-8 space-y-6 relative z-10">
+      <!-- Enhanced Header -->
+      <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
+        <div class="space-y-2">
+          <div class="flex items-center gap-3">
+            <div class="p-3 bg-gradient-to-br from-blue-600/20 to-blue-800/10 rounded-xl border border-blue-500/30 backdrop-blur-sm">
+              <Activity class="h-6 w-6 text-blue-400" />
+            </div>
+            <div>
+              <h1 class="text-3xl sm:text-4xl font-bold bg-gradient-to-r from-white via-gray-200 to-gray-300 bg-clip-text text-transparent">Dashboard</h1>
+              <p class="text-gray-400 mt-1 text-sm sm:text-base">Welcome to your financial overview</p>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -67,95 +88,140 @@
         </div>
       </div>
 
-      <!-- Tabs Section -->
-      <div class="bg-gray-800 rounded-xl p-4 sm:p-6 border border-gray-700">
-        <div class="flex space-x-4 border-b border-gray-700 pb-4 mb-4 overflow-x-auto">
+      <!-- Enhanced Tabs Section -->
+      <div class="bg-gradient-to-br from-gray-800/60 to-gray-800/40 backdrop-blur-xl rounded-2xl p-4 sm:p-6 border border-gray-700/50 shadow-lg hover:shadow-xl transition-all duration-300">
+        <div class="flex space-x-2 border-b border-gray-700/50 pb-4 mb-4 overflow-x-auto scrollbar-hide">
           <button 
             v-for="tab in tabs" 
             :key="tab.id" 
             @click="activeTab = tab.id" 
-            :class="['px-3 py-2 rounded-md whitespace-nowrap transition-colors', activeTab === tab.id ? 'bg-blue-600 text-white' : 'text-gray-300 hover:bg-gray-700']"
+            :class="[
+              'group relative px-4 py-2.5 rounded-xl whitespace-nowrap transition-all duration-300 font-medium',
+              activeTab === tab.id 
+                ? 'bg-gradient-to-r from-blue-600 to-blue-500 text-white shadow-lg shadow-blue-500/30 scale-105' 
+                : 'text-gray-300 hover:bg-gray-700/50 hover:text-white'
+            ]"
           >
             <span class="inline-flex items-center gap-2">
-              <component :is="tab.icon" class="h-4 w-4" />
+              <component :is="tab.icon" :class="['h-4 w-4 transition-transform', activeTab === tab.id ? 'scale-110' : 'group-hover:scale-110']" />
               {{ tab.label }}
             </span>
+            <div v-if="activeTab === tab.id" class="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-blue-400 to-purple-400 rounded-full"></div>
           </button>
         </div>
 
-        <!-- Overview Tab -->
-        <div v-if="activeTab === 'overview'" class="space-y-6">
-          <!-- Portfolio Distribution Chart -->
-          <div>
-            <h3 class="text-lg font-semibold mb-3">Portfolio Distribution</h3>
-            <div v-if="isLoadingPortfolio" class="flex justify-center items-center h-64">
-              <div class="h-8 w-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+        <!-- Enhanced Overview Tab -->
+        <Transition name="fade-slide">
+          <div v-if="activeTab === 'overview'" class="space-y-6">
+            <!-- Portfolio Distribution Chart -->
+            <div class="bg-gradient-to-br from-gray-700/40 to-gray-800/40 backdrop-blur-sm rounded-xl p-6 border border-gray-700/50">
+              <div class="flex items-center gap-3 mb-4">
+                <div class="p-2 bg-blue-500/20 rounded-lg">
+                  <Activity class="h-5 w-5 text-blue-400" />
+                </div>
+                <h3 class="text-lg font-semibold">Portfolio Distribution</h3>
+              </div>
+              <div v-if="isLoadingPortfolio" class="flex justify-center items-center h-64">
+                <div class="relative">
+                  <div class="h-12 w-12 border-4 border-blue-500/30 border-t-blue-500 rounded-full animate-spin"></div>
+                  <div class="absolute inset-0 h-12 w-12 border-4 border-transparent border-r-purple-500/30 rounded-full animate-spin" style="animation-direction: reverse; animation-duration: 1.5s;"></div>
+                </div>
+              </div>
+              <div v-else-if="pieChartData.series.length > 0" class="bg-gray-800/30 rounded-xl p-4 border border-gray-700/30">
+                <ApexChart
+                  type="pie"
+                  height="350"
+                  :options="pieChartOptions"
+                  :series="pieChartData.series"
+                />
+              </div>
+              <div v-else class="bg-gray-800/30 rounded-xl p-8 text-center border border-gray-700/30">
+                <div class="inline-block p-4 bg-gray-700/30 rounded-full mb-4">
+                  <Activity class="h-8 w-8 text-gray-500" />
+                </div>
+                <p class="text-gray-400">No portfolio data available. Start trading to see your distribution.</p>
+              </div>
             </div>
-            <div v-else-if="pieChartData.series.length > 0" class="bg-gray-700/30 rounded-lg p-4">
-              <ApexChart
-                type="pie"
-                height="350"
-                :options="pieChartOptions"
-                :series="pieChartData.series"
-              />
-            </div>
-            <div v-else class="bg-gray-700/30 rounded-lg p-8 text-center text-gray-400">
-              <p>No portfolio data available. Start trading to see your distribution.</p>
-            </div>
-          </div>
 
-          <!-- Recent Transactions -->
-          <div>
-            <h3 class="text-lg font-semibold mb-4">Recent Transactions</h3>
-            <div v-if="isLoadingTransactions" class="space-y-3">
-              <div v-for="i in 2" :key="i" class="bg-gray-700/30 rounded-lg p-4 h-20 animate-pulse"></div>
-            </div>
-            <div v-else-if="recentTransactions.length > 0" class="space-y-3">
-              <div 
-                v-for="tx in recentTransactions" 
-                :key="tx.id" 
-                class="bg-gray-700/30 rounded-lg p-4 flex items-center justify-between hover:bg-gray-700/50 transition-colors border border-gray-700/50"
-              >
-                <div class="flex items-center gap-4 flex-1">
-                  <div :class="[
-                    'w-10 h-10 rounded-lg flex items-center justify-center'
-                  ]" :style="tx.type === 'buy' ? { backgroundColor: 'rgba(1, 255, 25, 0.2)' } : { backgroundColor: 'rgba(255, 89, 100, 0.2)' }">
-                    <component 
-                      :is="tx.type === 'buy' ? TrendingUp : TrendingDown" 
-                      class="h-5 w-5"
-                      :style="{ color: tx.type === 'buy' ? '#01ff19' : '#ff5964' }"
-                    />
-                  </div>
-                  <div class="flex-1">
-                    <div class="font-semibold text-white mb-1">
-                      <span :style="{ color: tx.type === 'buy' ? '#01ff19' : '#ff5964' }">
-                        {{ tx.type.toUpperCase() }}
-                      </span>
-                      <span class="ml-2">{{ tx.portfolio?.crypto?.symbol || 'N/A' }}</span>
+            <!-- Enhanced Recent Transactions -->
+            <div class="bg-gradient-to-br from-gray-700/40 to-gray-800/40 backdrop-blur-sm rounded-xl p-6 border border-gray-700/50">
+              <div class="flex items-center gap-3 mb-4">
+                <div class="p-2 bg-green-500/20 rounded-lg">
+                  <History class="h-5 w-5 text-green-400" />
+                </div>
+                <h3 class="text-lg font-semibold">Recent Transactions</h3>
+              </div>
+              <div v-if="isLoadingTransactions" class="space-y-3">
+                <div v-for="i in 2" :key="i" class="bg-gray-700/30 rounded-xl p-4 h-20 animate-pulse border border-gray-700/30"></div>
+              </div>
+              <div v-else-if="recentTransactions.length > 0" class="space-y-3">
+                <div 
+                  v-for="tx in recentTransactions" 
+                  :key="tx.id" 
+                  class="group bg-gradient-to-br from-gray-700/40 to-gray-800/40 backdrop-blur-sm rounded-xl p-5 flex items-center justify-between hover:border-blue-500/50 transition-all duration-300 border border-gray-700/50 hover:shadow-lg hover:shadow-blue-500/10 hover:scale-[1.01]"
+                >
+                  <div class="flex items-center gap-4 flex-1">
+                    <div 
+                      class="w-12 h-12 rounded-xl flex items-center justify-center border-2 transition-all duration-300 group-hover:scale-110"
+                      :style="tx.type === 'buy' 
+                        ? { backgroundColor: 'rgba(1, 255, 25, 0.2)', borderColor: 'rgba(1, 255, 25, 0.3)' } 
+                        : { backgroundColor: 'rgba(255, 89, 100, 0.2)', borderColor: 'rgba(255, 89, 100, 0.3)' }"
+                    >
+                      <component 
+                        :is="tx.type === 'buy' ? TrendingUp : TrendingDown" 
+                        class="h-6 w-6"
+                        :style="{ color: tx.type === 'buy' ? '#01ff19' : '#ff5964' }"
+                      />
                     </div>
-                    <div class="text-sm text-gray-400">{{ new Date(tx.created_at).toLocaleString('fr-FR', { dateStyle: 'short', timeStyle: 'short' }) }}</div>
+                    <div class="flex-1">
+                      <div class="font-semibold text-white mb-1 flex items-center gap-2">
+                        <span 
+                          class="px-2 py-0.5 rounded-lg text-xs font-bold"
+                          :style="tx.type === 'buy' 
+                            ? { backgroundColor: 'rgba(1, 255, 25, 0.2)', color: '#01ff19', border: '1px solid rgba(1, 255, 25, 0.3)' } 
+                            : { backgroundColor: 'rgba(255, 89, 100, 0.2)', color: '#ff5964', border: '1px solid rgba(255, 89, 100, 0.3)' }"
+                        >
+                          {{ tx.type.toUpperCase() }}
+                        </span>
+                        <span>{{ tx.portfolio?.crypto?.symbol || 'N/A' }}</span>
+                      </div>
+                      <div class="text-sm text-gray-400 flex items-center gap-2">
+                        <Clock class="h-3.5 w-3.5" />
+                        {{ new Date(tx.created_at).toLocaleString('fr-FR', { dateStyle: 'short', timeStyle: 'short' }) }}
+                      </div>
+                    </div>
+                  </div>
+                  <div class="text-right">
+                    <div class="font-bold text-lg text-white">{{ formatEUR(tx.euro_amount) }}</div>
+                    <div class="text-sm text-gray-400 font-mono">{{ tx.quantity }} @ {{ formatEUR(tx.price_at_transaction) }}</div>
                   </div>
                 </div>
-                <div class="text-right">
-                  <div class="font-bold text-lg">{{ formatEUR(tx.euro_amount) }}</div>
-                  <div class="text-sm text-gray-400 font-mono">{{ tx.quantity }} @ {{ formatEUR(tx.price_at_transaction) }}</div>
+              </div>
+              <div v-else class="bg-gray-800/30 rounded-xl p-8 text-center border border-gray-700/30">
+                <div class="inline-block p-4 bg-gray-700/30 rounded-full mb-4">
+                  <History class="h-8 w-8 text-gray-500" />
+                </div>
+                <p class="text-gray-400">No transactions yet. Start trading to see your history.</p>
+              </div>
+            </div>
+
+            <!-- Enhanced Portfolio Holdings Table -->
+            <div class="bg-gradient-to-br from-gray-700/40 to-gray-800/40 backdrop-blur-sm rounded-xl p-6 border border-gray-700/50">
+              <div class="flex items-center gap-3 mb-4">
+                <div class="p-2 bg-purple-500/20 rounded-lg">
+                  <Wallet class="h-5 w-5 text-purple-400" />
+                </div>
+                <h3 class="text-lg font-semibold">Portfolio Holdings</h3>
+              </div>
+              <div v-if="isLoadingPortfolio" class="bg-gray-800/30 rounded-xl p-8 border border-gray-700/30">
+                <div class="flex justify-center">
+                  <div class="relative">
+                    <div class="h-12 w-12 border-4 border-blue-500/30 border-t-blue-500 rounded-full animate-spin"></div>
+                    <div class="absolute inset-0 h-12 w-12 border-4 border-transparent border-r-purple-500/30 rounded-full animate-spin" style="animation-direction: reverse; animation-duration: 1.5s;"></div>
+                  </div>
                 </div>
               </div>
-            </div>
-            <div v-else class="bg-gray-700/30 rounded-lg p-8 text-center text-gray-400 border border-gray-700/50">
-              <p>No transactions yet. Start trading to see your history.</p>
-            </div>
-          </div>
-
-          <!-- Portfolio Holdings Table -->
-          <div>
-            <h3 class="text-lg font-semibold mb-4">Portfolio Holdings</h3>
-            <div v-if="isLoadingPortfolio" class="bg-gray-700/30 rounded-lg p-8 border border-gray-700/50">
-              <div class="flex justify-center">
-                <div class="h-8 w-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
-              </div>
-            </div>
-            <div v-else-if="portfolioHoldings.length > 0" class="bg-gray-800/50 rounded-xl border border-gray-700/50 overflow-hidden">
+              <div v-else-if="portfolioHoldings.length > 0" class="bg-gray-800/50 rounded-xl border border-gray-700/50 overflow-hidden shadow-lg">
               <div class="overflow-x-auto">
                 <table class="w-full">
                   <thead class="bg-gray-700/50 border-b border-gray-700">
@@ -172,7 +238,7 @@
                     <tr 
                       v-for="holding in portfolioHoldings" 
                       :key="holding.id"
-                      class="hover:bg-gray-700/30 transition-colors"
+                      class="group hover:bg-gradient-to-r hover:from-gray-700/40 hover:to-gray-800/40 transition-all duration-300"
                     >
                       <td class="px-6 py-4 whitespace-nowrap">
                         <div class="flex items-center gap-3">
@@ -248,16 +314,21 @@
                 </table>
               </div>
             </div>
-            <div v-else class="bg-gray-700/30 rounded-lg p-8 text-center text-gray-400 border border-gray-700/50">
-              <p>No portfolio holdings. Start trading to build your portfolio.</p>
+              <div v-else class="bg-gray-800/30 rounded-xl p-8 text-center border border-gray-700/30">
+                <div class="inline-block p-4 bg-gray-700/30 rounded-full mb-4">
+                  <Wallet class="h-8 w-8 text-gray-500" />
+                </div>
+                <p class="text-gray-400">No portfolio holdings. Start trading to build your portfolio.</p>
+              </div>
             </div>
           </div>
-        </div>
+        </Transition>
 
-        <!-- Security Tab -->
-        <div v-else-if="activeTab === 'security'" class="space-y-6">
-          <!-- Account Status -->
-          <div class="bg-gray-700/30 rounded-xl border border-gray-700/50 p-6">
+        <!-- Enhanced Security Tab -->
+        <Transition name="fade-slide">
+          <div v-if="activeTab === 'security'" class="space-y-6">
+            <!-- Account Status -->
+            <div class="bg-gradient-to-br from-gray-700/40 to-gray-800/40 backdrop-blur-sm rounded-xl border border-gray-700/50 p-6 shadow-lg">
             <h3 class="text-lg font-semibold mb-4 flex items-center gap-2">
               <Shield class="h-5 w-5 text-blue-400" />
               Account Status
@@ -312,45 +383,57 @@
             </div>
           </div>
 
-          <!-- Change Password Form -->
-          <div class="bg-gray-700/30 rounded-xl border border-gray-700/50 p-6">
+            <!-- Enhanced Change Password Form -->
+            <div class="bg-gradient-to-br from-gray-700/40 to-gray-800/40 backdrop-blur-sm rounded-xl border border-gray-700/50 p-6 shadow-lg">
             <h3 class="text-lg font-semibold mb-4 flex items-center gap-2">
               <Shield class="h-5 w-5 text-blue-400" />
               Change Password
             </h3>
             <div class="space-y-4 max-w-2xl">
-              <div>
-                <label class="block text-sm font-medium text-gray-300 mb-2">
+              <div class="space-y-2">
+                <label class="flex items-center gap-2 text-sm font-semibold text-gray-300">
+                  <Shield class="h-4 w-4 text-gray-400" />
                   Current Password
                 </label>
-                <input
-                  v-model="passwordForm.currentPassword"
-                  type="password"
-                  placeholder="Enter your current password"
-                  class="w-full bg-gray-800 border border-gray-600 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                />
+                <div class="relative group">
+                  <div class="absolute inset-0 bg-gradient-to-r from-blue-500/0 to-purple-500/0 group-hover:from-blue-500/5 group-hover:to-purple-500/5 rounded-xl transition-all duration-300"></div>
+                  <input
+                    v-model="passwordForm.currentPassword"
+                    type="password"
+                    placeholder="Enter your current password"
+                    class="relative w-full bg-gray-800/50 backdrop-blur-sm border-2 border-gray-700 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all duration-200"
+                  />
+                </div>
               </div>
-              <div>
-                <label class="block text-sm font-medium text-gray-300 mb-2">
+              <div class="space-y-2">
+                <label class="flex items-center gap-2 text-sm font-semibold text-gray-300">
+                  <Shield class="h-4 w-4 text-gray-400" />
                   New Password
                 </label>
-                <input
-                  v-model="passwordForm.newPassword"
-                  type="password"
-                  placeholder="Enter your new password (min. 6 characters)"
-                  class="w-full bg-gray-800 border border-gray-600 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                />
+                <div class="relative group">
+                  <div class="absolute inset-0 bg-gradient-to-r from-blue-500/0 to-purple-500/0 group-hover:from-blue-500/5 group-hover:to-purple-500/5 rounded-xl transition-all duration-300"></div>
+                  <input
+                    v-model="passwordForm.newPassword"
+                    type="password"
+                    placeholder="Enter your new password (min. 6 characters)"
+                    class="relative w-full bg-gray-800/50 backdrop-blur-sm border-2 border-gray-700 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all duration-200"
+                  />
+                </div>
               </div>
-              <div>
-                <label class="block text-sm font-medium text-gray-300 mb-2">
+              <div class="space-y-2">
+                <label class="flex items-center gap-2 text-sm font-semibold text-gray-300">
+                  <Shield class="h-4 w-4 text-gray-400" />
                   Confirm New Password
                 </label>
-                <input
-                  v-model="passwordForm.confirmPassword"
-                  type="password"
-                  placeholder="Confirm your new password"
-                  class="w-full bg-gray-800 border border-gray-600 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                />
+                <div class="relative group">
+                  <div class="absolute inset-0 bg-gradient-to-r from-blue-500/0 to-purple-500/0 group-hover:from-blue-500/5 group-hover:to-purple-500/5 rounded-xl transition-all duration-300"></div>
+                  <input
+                    v-model="passwordForm.confirmPassword"
+                    type="password"
+                    placeholder="Confirm your new password"
+                    class="relative w-full bg-gray-800/50 backdrop-blur-sm border-2 border-gray-700 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all duration-200"
+                  />
+                </div>
               </div>
 
               <!-- Error Message -->
@@ -377,25 +460,31 @@
                 <button
                   @click="handleChangePassword"
                   :disabled="isChangingPassword || !canChangePassword"
-                  class="px-6 py-3 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold rounded-lg transition-colors"
+                  class="group relative px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-700 hover:to-blue-600 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold rounded-xl transition-all duration-200 transform hover:scale-105 hover:shadow-xl hover:shadow-blue-500/30 disabled:hover:scale-100 disabled:hover:shadow-none overflow-hidden"
                 >
-                  {{ isChangingPassword ? 'Changing...' : 'Change Password' }}
+                  <span class="relative z-10 flex items-center gap-2">
+                    <Shield class="h-4 w-4" />
+                    {{ isChangingPassword ? 'Changing...' : 'Change Password' }}
+                  </span>
+                  <div class="absolute inset-0 bg-gradient-to-r from-transparent via-white/0 to-transparent group-hover:via-white/10 transition-all duration-700 transform -translate-x-full group-hover:translate-x-full"></div>
                 </button>
                 <button
                   @click="resetPasswordForm"
-                  class="px-6 py-3 bg-gray-700 hover:bg-gray-600 text-white font-semibold rounded-lg transition-colors"
+                  class="px-6 py-3 bg-gray-700/50 hover:bg-gray-700 text-white font-semibold rounded-xl transition-all duration-200 transform hover:scale-105"
                 >
                   Cancel
                 </button>
               </div>
             </div>
           </div>
-        </div>
+          </div>
+        </Transition>
 
-        <!-- Payment Methods Tab -->
-        <div v-else-if="activeTab === 'payment'" class="space-y-6">
-          <!-- Unified Payment & History Section -->
-          <div class="bg-gray-800 rounded-xl border border-gray-700 overflow-hidden">
+        <!-- Enhanced Payment Methods Tab -->
+        <Transition name="fade-slide">
+          <div v-if="activeTab === 'payment'" class="space-y-6">
+            <!-- Unified Payment & History Section -->
+            <div class="bg-gradient-to-br from-gray-800/60 to-gray-800/40 backdrop-blur-xl rounded-2xl border border-gray-700/50 overflow-hidden shadow-lg">
             <!-- Header -->
             <div class="bg-gradient-to-r from-blue-600/20 to-purple-600/20 border-b border-gray-700 px-6 py-4">
               <div class="flex items-center justify-between">
@@ -557,10 +646,11 @@
               </div>
             </div>
           </div>
-        </div>
+          </div>
+        </Transition>
 
         <!-- Transaction History Tab -->
-        <div v-else-if="activeTab === 'history'">
+        <div v-if="activeTab === 'history'">
           <h3 class="text-lg font-semibold mb-3">Transaction History</h3>
           <div v-if="isLoadingTransactions" class="space-y-2">
             <div v-for="i in 5" :key="i" class="bg-gray-700/30 rounded-lg p-3 h-16 animate-pulse"></div>
@@ -621,12 +711,12 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue';
-import { Wallet, TrendingUp, TrendingDown, Activity, User, Shield, CreditCard, History, Plus, Calendar, Euro } from 'lucide-vue-next';
-import UserFooter from '../components/UserFooter.vue';
-import { formatEUR } from '../utils/formatEUR';
+import { Wallet, TrendingUp, TrendingDown, Activity, User, Shield, CreditCard, History, Plus, Calendar, Euro, Clock } from 'lucide-vue-next';
+import UserFooter from '@/components/UserFooter.vue';
+import { formatEUR } from '@/utils/formatEUR';
 import { useAuthStore } from '@/stores/auth';
 import { getPortfolio, getTransactionHistory, changePassword } from '@/services/api';
-import { getCryptoIcon } from '../utils/cryptoIcons';
+import { getCryptoIcon } from '@/utils/cryptoIcons';
 import ApexChart from 'vue3-apexcharts';
 import type { PortfolioResponse, Transaction, Paginated } from '@/types';
 
@@ -1028,8 +1118,35 @@ onUnmounted(() => {
   opacity: 0;
 }
 
+.fade-slide-enter-active {
+  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.fade-slide-leave-active {
+  transition: all 0.2s ease-in;
+}
+
+.fade-slide-enter-from {
+  transform: translateY(20px);
+  opacity: 0;
+}
+
+.fade-slide-leave-to {
+  transform: translateY(-20px);
+  opacity: 0;
+}
+
 /* Stat Card Styles */
 .stat-card {
   cursor: pointer;
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }
 </style>

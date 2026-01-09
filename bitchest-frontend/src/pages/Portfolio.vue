@@ -1,82 +1,159 @@
 <template>
-  <div class="min-h-screen bg-gray-900 text-white">
-    <div class="max-w-7xl mx-auto p-4 sm:p-6 lg:p-8 space-y-6">
-      <!-- Header -->
-      <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-        <div>
-          <h1 class="text-3xl sm:text-4xl font-bold mb-2">Portfolio</h1>
-          <p class="text-gray-400 text-sm sm:text-base">View and manage your cryptocurrency assets</p>
+  <div class="min-h-screen bg-gray-900 text-white relative overflow-hidden">
+    <!-- Enhanced Animated Background -->
+    <div class="absolute inset-0 pointer-events-none z-0">
+      <div class="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-gray-900 via-gray-900 to-gray-950"></div>
+      <div 
+        class="absolute top-1/4 -left-40 w-96 h-96 rounded-full blur-3xl opacity-10 animate-pulse"
+        :style="{ backgroundColor: 'var(--blue-dark)' }"
+      ></div>
+      <div 
+        class="absolute bottom-1/4 -right-40 w-96 h-96 rounded-full blur-3xl opacity-10 animate-pulse delay-1000"
+        :style="{ backgroundColor: 'var(--blue)' }"
+      ></div>
+      <div class="absolute inset-0 opacity-[0.02]" style="background-image: linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.1) 1px, transparent 1px); background-size: 50px 50px;"></div>
+    </div>
+
+    <div class="max-w-7xl mx-auto p-4 sm:p-6 lg:p-8 space-y-6 relative z-10">
+      <!-- Enhanced Header -->
+      <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
+        <div class="flex items-center gap-3">
+          <div class="p-3 bg-gradient-to-br from-blue-600/20 to-blue-800/10 rounded-xl border border-blue-500/30 backdrop-blur-sm">
+            <Wallet class="h-6 w-6 text-blue-400" />
+          </div>
+          <div>
+            <h1 class="text-3xl sm:text-4xl font-bold mb-2 bg-gradient-to-r from-white via-gray-200 to-gray-300 bg-clip-text text-transparent">Portfolio</h1>
+            <p class="text-gray-400 text-sm sm:text-base">View and manage your cryptocurrency assets</p>
+          </div>
         </div>
       </div>
 
-      <!-- Net Worth Section -->
-      <div class="bg-gradient-to-br from-gray-800 to-gray-800/95 rounded-2xl p-6 sm:p-8 border border-gray-700/50 shadow-xl">
-        <div class="text-gray-400 text-sm font-medium mb-2">Net Worth</div>
-        <div class="text-4xl sm:text-5xl font-bold text-white">{{ formatEUR(totalPortfolioValue) }}</div>
-        <div class="flex items-center gap-3 mt-3">
-          <component 
-            :is="totalPL >= 0 ? TrendingUp : TrendingDown" 
-            class="h-5 w-5"
-            :style="{ color: totalPL >= 0 ? '#01ff19' : '#ff5964' }"
-          />
-          <div class="text-lg font-semibold" :style="{ color: totalPL >= 0 ? '#01ff19' : '#ff5964' }">
-            {{ totalPL >= 0 ? '+' : '' }}{{ formatEUR(Math.abs(totalPL)) }}
+      <!-- Enhanced Net Worth Section -->
+      <div class="group relative bg-gradient-to-br from-gray-800/60 to-gray-800/40 backdrop-blur-xl rounded-2xl p-6 sm:p-8 border border-gray-700/50 shadow-xl hover:shadow-2xl hover:shadow-blue-500/20 transition-all duration-300 overflow-hidden">
+        <div class="absolute inset-0 bg-gradient-to-r from-blue-500/0 to-purple-500/0 group-hover:from-blue-500/5 group-hover:to-purple-500/5 transition-all duration-300"></div>
+        <div class="relative">
+          <div class="flex items-center gap-2 mb-3">
+            <div class="p-2 bg-blue-500/20 rounded-lg">
+              <TrendingUp class="h-5 w-5 text-blue-400" />
+            </div>
+            <div class="text-gray-400 text-sm font-medium">Net Worth</div>
           </div>
-          <div class="text-gray-400 text-sm">
-            ({{ totalPLPercent.toFixed(2) }}%)
+          <div class="text-4xl sm:text-5xl font-bold text-white mb-4 transition-transform duration-300 group-hover:scale-105">{{ formatEUR(totalPortfolioValue) }}</div>
+          <div class="flex items-center gap-3 mt-3">
+            <div 
+              class="p-2 rounded-lg transition-all duration-300 group-hover:scale-110"
+              :style="totalPL >= 0 
+                ? { backgroundColor: 'rgba(1, 255, 25, 0.2)', border: '1px solid rgba(1, 255, 25, 0.3)' } 
+                : { backgroundColor: 'rgba(255, 89, 100, 0.2)', border: '1px solid rgba(255, 89, 100, 0.3)' }"
+            >
+              <component 
+                :is="totalPL >= 0 ? TrendingUp : TrendingDown" 
+                class="h-5 w-5"
+                :style="{ color: totalPL >= 0 ? '#01ff19' : '#ff5964' }"
+              />
+            </div>
+            <div class="text-lg font-semibold" :style="{ color: totalPL >= 0 ? '#01ff19' : '#ff5964' }">
+              {{ totalPL >= 0 ? '+' : '' }}{{ formatEUR(Math.abs(totalPL)) }}
+            </div>
+            <div class="px-3 py-1 rounded-lg text-sm font-medium" :style="totalPLPercent >= 0 
+              ? { backgroundColor: 'rgba(1, 255, 25, 0.2)', color: '#01ff19', border: '1px solid rgba(1, 255, 25, 0.3)' } 
+              : { backgroundColor: 'rgba(255, 89, 100, 0.2)', color: '#ff5964', border: '1px solid rgba(255, 89, 100, 0.3)' }">
+              ({{ totalPLPercent >= 0 ? '+' : '' }}{{ totalPLPercent.toFixed(2) }}%)
+            </div>
           </div>
         </div>
       </div>
 
-      <!-- Performance Stats Grid -->
+      <!-- Enhanced Performance Stats Grid -->
       <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
         <!-- Total Assets -->
-        <div class="bg-gray-800/50 rounded-xl border border-gray-700/50 p-6 shadow-lg">
-          <div class="text-gray-400 text-sm font-medium mb-2">Total Assets</div>
-          <div class="text-3xl font-bold text-white">{{ portfolioHoldings.length }}</div>
-          <div class="text-xs text-gray-500 mt-1">Cryptocurrencies</div>
+        <div class="group relative bg-gradient-to-br from-gray-800/60 to-gray-800/40 backdrop-blur-sm rounded-xl border border-gray-700/50 p-6 shadow-lg hover:shadow-xl hover:shadow-blue-500/20 transition-all duration-300 hover:scale-105 hover:border-blue-500/50 overflow-hidden">
+          <div class="absolute inset-0 bg-gradient-to-r from-blue-500/0 to-cyan-500/0 group-hover:from-blue-500/10 group-hover:to-cyan-500/10 transition-all duration-300"></div>
+          <div class="relative flex items-center gap-3 mb-3">
+            <div class="p-2 bg-blue-500/20 rounded-lg group-hover:bg-blue-500/30 transition-colors">
+              <Activity class="h-5 w-5 text-blue-400" />
+            </div>
+            <div class="text-gray-400 text-sm font-medium">Total Assets</div>
+          </div>
+          <div class="text-3xl font-bold text-white mb-1 transition-transform duration-300 group-hover:scale-110">{{ portfolioHoldings.length }}</div>
+          <div class="text-xs text-gray-500">Cryptocurrencies</div>
         </div>
 
         <!-- Total Invested -->
-        <div class="bg-gray-800/50 rounded-xl border border-gray-700/50 p-6 shadow-lg">
-          <div class="text-gray-400 text-sm font-medium mb-2">Total Invested</div>
-          <div class="text-2xl font-bold text-white">{{ formatEUR(totalInvested) }}</div>
-          <div class="text-xs text-gray-500 mt-1">Initial capital</div>
+        <div class="group relative bg-gradient-to-br from-gray-800/60 to-gray-800/40 backdrop-blur-sm rounded-xl border border-gray-700/50 p-6 shadow-lg hover:shadow-xl hover:shadow-purple-500/20 transition-all duration-300 hover:scale-105 hover:border-purple-500/50 overflow-hidden">
+          <div class="absolute inset-0 bg-gradient-to-r from-purple-500/0 to-pink-500/0 group-hover:from-purple-500/10 group-hover:to-pink-500/10 transition-all duration-300"></div>
+          <div class="relative flex items-center gap-3 mb-3">
+            <div class="p-2 bg-purple-500/20 rounded-lg group-hover:bg-purple-500/30 transition-colors">
+              <TrendingUp class="h-5 w-5 text-purple-400" />
+            </div>
+            <div class="text-gray-400 text-sm font-medium">Total Invested</div>
+          </div>
+          <div class="text-2xl font-bold text-white mb-1 transition-transform duration-300 group-hover:scale-110">{{ formatEUR(totalInvested) }}</div>
+          <div class="text-xs text-gray-500">Initial capital</div>
         </div>
 
         <!-- Return on Investment -->
-        <div class="bg-gray-800/50 rounded-xl border border-gray-700/50 p-6 shadow-lg">
-          <div class="text-gray-400 text-sm font-medium mb-2">ROI</div>
-          <div class="flex items-center gap-2">
-            <component 
-              :is="totalPLPercent >= 0 ? TrendingUp : TrendingDown" 
-              class="h-5 w-5"
-              :style="{ color: totalPLPercent >= 0 ? '#01ff19' : '#ff5964' }"
-            />
-            <div class="text-2xl font-bold" :style="{ color: totalPLPercent >= 0 ? '#01ff19' : '#ff5964' }">
+        <div class="group relative bg-gradient-to-br from-gray-800/60 to-gray-800/40 backdrop-blur-sm rounded-xl border border-gray-700/50 p-6 shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 overflow-hidden" :style="totalPLPercent >= 0 
+          ? { boxShadow: '0 10px 30px rgba(1, 255, 25, 0.2)' } 
+          : { boxShadow: '0 10px 30px rgba(255, 89, 100, 0.2)' }" :class="totalPLPercent >= 0 ? 'hover:border-green-500/50' : 'hover:border-red-500/50'">
+          <div class="absolute inset-0 transition-all duration-300" :style="totalPLPercent >= 0 
+            ? { background: 'linear-gradient(to right, rgba(1, 255, 25, 0), rgba(1, 255, 25, 0))' } 
+            : { background: 'linear-gradient(to right, rgba(255, 89, 100, 0), rgba(255, 89, 100, 0))' }" :class="totalPLPercent >= 0 ? 'group-hover:from-green-500/10 group-hover:to-emerald-500/10' : 'group-hover:from-red-500/10 group-hover:to-pink-500/10'"></div>
+          <div class="relative flex items-center gap-3 mb-3">
+            <div class="p-2 rounded-lg group-hover:scale-110 transition-all duration-300" :style="totalPLPercent >= 0 
+              ? { backgroundColor: 'rgba(1, 255, 25, 0.2)', border: '1px solid rgba(1, 255, 25, 0.3)' } 
+              : { backgroundColor: 'rgba(255, 89, 100, 0.2)', border: '1px solid rgba(255, 89, 100, 0.3)' }">
+              <component 
+                :is="totalPLPercent >= 0 ? TrendingUp : TrendingDown" 
+                class="h-5 w-5"
+                :style="{ color: totalPLPercent >= 0 ? '#01ff19' : '#ff5964' }"
+              />
+            </div>
+            <div class="text-gray-400 text-sm font-medium">ROI</div>
+          </div>
+          <div class="flex items-center gap-2 mb-1">
+            <div class="text-2xl font-bold transition-transform duration-300 group-hover:scale-110" :style="{ color: totalPLPercent >= 0 ? '#01ff19' : '#ff5964' }">
               {{ totalPLPercent >= 0 ? '+' : '' }}{{ totalPLPercent.toFixed(2) }}%
             </div>
           </div>
-          <div class="text-xs text-gray-500 mt-1">Return on investment</div>
+          <div class="text-xs text-gray-500">Return on investment</div>
         </div>
 
         <!-- Average Gain/Loss -->
-        <div class="bg-gray-800/50 rounded-xl border border-gray-700/50 p-6 shadow-lg">
-          <div class="text-gray-400 text-sm font-medium mb-2">Avg P/L per Asset</div>
-          <div class="text-2xl font-bold" :style="{ color: averagePLPerAsset >= 0 ? '#01ff19' : '#ff5964' }">
+        <div class="group relative bg-gradient-to-br from-gray-800/60 to-gray-800/40 backdrop-blur-sm rounded-xl border border-gray-700/50 p-6 shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 overflow-hidden" :style="averagePLPerAsset >= 0 
+          ? { boxShadow: '0 10px 30px rgba(1, 255, 25, 0.2)' } 
+          : { boxShadow: '0 10px 30px rgba(255, 89, 100, 0.2)' }" :class="averagePLPerAsset >= 0 ? 'hover:border-green-500/50' : 'hover:border-red-500/50'">
+          <div class="absolute inset-0 transition-all duration-300" :style="averagePLPerAsset >= 0 
+            ? { background: 'linear-gradient(to right, rgba(1, 255, 25, 0), rgba(1, 255, 25, 0))' } 
+            : { background: 'linear-gradient(to right, rgba(255, 89, 100, 0), rgba(255, 89, 100, 0))' }" :class="averagePLPerAsset >= 0 ? 'group-hover:from-green-500/10 group-hover:to-emerald-500/10' : 'group-hover:from-red-500/10 group-hover:to-pink-500/10'"></div>
+          <div class="relative flex items-center gap-3 mb-3">
+            <div class="p-2 rounded-lg group-hover:scale-110 transition-all duration-300" :style="averagePLPerAsset >= 0 
+              ? { backgroundColor: 'rgba(1, 255, 25, 0.2)', border: '1px solid rgba(1, 255, 25, 0.3)' } 
+              : { backgroundColor: 'rgba(255, 89, 100, 0.2)', border: '1px solid rgba(255, 89, 100, 0.3)' }">
+              <component 
+                :is="averagePLPerAsset >= 0 ? TrendingUp : TrendingDown" 
+                class="h-5 w-5"
+                :style="{ color: averagePLPerAsset >= 0 ? '#01ff19' : '#ff5964' }"
+              />
+            </div>
+            <div class="text-gray-400 text-sm font-medium">Avg P/L per Asset</div>
+          </div>
+          <div class="text-2xl font-bold mb-1 transition-transform duration-300 group-hover:scale-110" :style="{ color: averagePLPerAsset >= 0 ? '#01ff19' : '#ff5964' }">
             {{ averagePLPerAsset >= 0 ? '+' : '' }}{{ formatEUR(Math.abs(averagePLPerAsset)) }}
           </div>
-          <div class="text-xs text-gray-500 mt-1">Per cryptocurrency</div>
+          <div class="text-xs text-gray-500">Per cryptocurrency</div>
         </div>
       </div>
 
       <!-- Top Performers & Diversification -->
       <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <!-- Top Gainers -->
-        <div class="bg-gray-800/50 rounded-xl border border-gray-700/50 p-6 shadow-lg">
+        <!-- Enhanced Top Gainers -->
+        <div class="bg-gradient-to-br from-gray-800/60 to-gray-800/40 backdrop-blur-sm rounded-xl border border-gray-700/50 p-6 shadow-lg hover:shadow-xl hover:shadow-green-500/20 transition-all duration-300">
           <h2 class="text-xl font-bold mb-4 flex items-center gap-2">
-            <TrendingUp class="h-5 w-5" style="color: #01ff19;" />
-            Top Gainers
+            <div class="p-2 bg-green-500/20 rounded-lg">
+              <TrendingUp class="h-5 w-5 text-green-400" />
+            </div>
+            <span>Top Gainers</span>
           </h2>
           <div v-if="isLoadingPortfolio" class="flex justify-center items-center h-48">
             <div class="h-8 w-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
@@ -85,7 +162,7 @@
               <div
               v-for="holding in topGainers"
               :key="holding.id"
-              class="flex items-center justify-between p-3 bg-gray-700/30 rounded-lg hover:bg-gray-700/50 transition-colors"
+              class="group flex items-center justify-between p-4 bg-gradient-to-br from-gray-700/40 to-gray-800/40 backdrop-blur-sm rounded-xl border border-gray-700/50 hover:border-green-500/50 hover:shadow-lg hover:shadow-green-500/10 transition-all duration-300 hover:scale-[1.02]"
             >
               <div class="flex items-center gap-3 flex-1">
                 <div class="w-8 h-8 bg-gray-700 rounded-full flex items-center justify-center flex-shrink-0 overflow-hidden" :data-symbol="holding.symbol">
@@ -118,11 +195,13 @@
           </div>
         </div>
 
-        <!-- Top Losers -->
-        <div class="bg-gray-800/50 rounded-xl border border-gray-700/50 p-6 shadow-lg">
+        <!-- Enhanced Top Losers -->
+        <div class="bg-gradient-to-br from-gray-800/60 to-gray-800/40 backdrop-blur-sm rounded-xl border border-gray-700/50 p-6 shadow-lg hover:shadow-xl hover:shadow-red-500/20 transition-all duration-300">
           <h2 class="text-xl font-bold mb-4 flex items-center gap-2">
-            <TrendingDown class="h-5 w-5" style="color: #ff5964;" />
-            Top Losers
+            <div class="p-2 bg-red-500/20 rounded-lg">
+              <TrendingDown class="h-5 w-5 text-red-400" />
+            </div>
+            <span>Top Losers</span>
           </h2>
           <div v-if="isLoadingPortfolio" class="flex justify-center items-center h-48">
             <div class="h-8 w-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
@@ -131,7 +210,7 @@
               <div
               v-for="holding in topLosers"
               :key="holding.id"
-              class="flex items-center justify-between p-3 bg-gray-700/30 rounded-lg hover:bg-gray-700/50 transition-colors"
+              class="group flex items-center justify-between p-4 bg-gradient-to-br from-gray-700/40 to-gray-800/40 backdrop-blur-sm rounded-xl border border-gray-700/50 hover:border-red-500/50 hover:shadow-lg hover:shadow-red-500/10 transition-all duration-300 hover:scale-[1.02]"
             >
               <div class="flex items-center gap-3 flex-1">
                 <div class="w-8 h-8 bg-gray-700 rounded-full flex items-center justify-center flex-shrink-0 overflow-hidden" :data-symbol="holding.symbol">
@@ -175,8 +254,13 @@
           <div class="h-8 w-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
         </div>
         <div v-else-if="portfolioHoldings.length > 0" class="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div class="bg-gray-700/30 rounded-lg p-4">
-            <div class="text-gray-400 text-sm mb-2">Largest Position</div>
+          <div class="group bg-gradient-to-br from-gray-700/40 to-gray-800/40 backdrop-blur-sm rounded-xl border border-gray-700/50 p-4 shadow-lg hover:shadow-xl hover:shadow-blue-500/20 transition-all duration-300 hover:scale-105 hover:border-blue-500/50">
+            <div class="flex items-center gap-2 mb-3">
+              <div class="p-1.5 bg-blue-500/20 rounded-lg group-hover:bg-blue-500/30 transition-colors">
+                <TrendingUp class="h-4 w-4 text-blue-400" />
+              </div>
+              <div class="text-gray-400 text-sm font-medium">Largest Position</div>
+            </div>
             <div class="flex items-center gap-2 mb-1">
               <div class="w-6 h-6 bg-gray-600 rounded-full flex items-center justify-center overflow-hidden" :data-symbol="largestPosition?.symbol">
                 <img
@@ -192,17 +276,29 @@
             </div>
             <div class="text-lg font-bold text-white">{{ largestPosition?.portfolioPercent.toFixed(2) || 0 }}%</div>
           </div>
-          <div class="bg-gray-700/30 rounded-lg p-4">
-            <div class="text-gray-400 text-sm mb-2">Portfolio Concentration</div>
-            <div class="text-lg font-bold text-white">{{ concentrationIndex.toFixed(2) }}</div>
-            <div class="text-xs text-gray-500 mt-1">
-              <span :style="{ color: concentrationIndex < 0.5 ? '#01ff19' : concentrationIndex < 0.7 ? '#fbbf24' : '#ff5964' }">
-                {{ concentrationIndex < 0.5 ? 'Well Diversified' : concentrationIndex < 0.7 ? 'Moderate' : 'Highly Concentrated' }}
-              </span>
+          <div class="group bg-gradient-to-br from-gray-700/40 to-gray-800/40 backdrop-blur-sm rounded-xl border border-gray-700/50 p-4 shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 hover:border-purple-500/50">
+            <div class="flex items-center gap-2 mb-3">
+              <div class="p-1.5 bg-purple-500/20 rounded-lg group-hover:bg-purple-500/30 transition-colors">
+                <Activity class="h-4 w-4 text-purple-400" />
+              </div>
+              <div class="text-gray-400 text-sm font-medium">Portfolio Concentration</div>
+            </div>
+            <div class="text-lg font-bold text-white mb-2 transition-transform duration-300 group-hover:scale-110">{{ concentrationIndex.toFixed(2) }}</div>
+            <div class="text-xs font-medium mt-1 px-2 py-1 rounded-lg inline-block" :style="{ 
+              backgroundColor: concentrationIndex < 0.5 ? 'rgba(1, 255, 25, 0.2)' : concentrationIndex < 0.7 ? 'rgba(251, 191, 36, 0.2)' : 'rgba(255, 89, 100, 0.2)',
+              color: concentrationIndex < 0.5 ? '#01ff19' : concentrationIndex < 0.7 ? '#fbbf24' : '#ff5964',
+              border: `1px solid ${concentrationIndex < 0.5 ? 'rgba(1, 255, 25, 0.3)' : concentrationIndex < 0.7 ? 'rgba(251, 191, 36, 0.3)' : 'rgba(255, 89, 100, 0.3)'}`
+            }">
+              {{ concentrationIndex < 0.5 ? 'Well Diversified' : concentrationIndex < 0.7 ? 'Moderate' : 'Highly Concentrated' }}
             </div>
           </div>
-          <div class="bg-gray-700/30 rounded-lg p-4">
-            <div class="text-gray-400 text-sm mb-2">Best Performer</div>
+          <div class="group bg-gradient-to-br from-gray-700/40 to-gray-800/40 backdrop-blur-sm rounded-xl border border-gray-700/50 p-4 shadow-lg hover:shadow-xl hover:shadow-green-500/20 transition-all duration-300 hover:scale-105 hover:border-green-500/50">
+            <div class="flex items-center gap-2 mb-3">
+              <div class="p-1.5 bg-green-500/20 rounded-lg group-hover:bg-green-500/30 transition-colors">
+                <TrendingUp class="h-4 w-4 text-green-400" />
+              </div>
+              <div class="text-gray-400 text-sm font-medium">Best Performer</div>
+            </div>
             <div class="flex items-center gap-2 mb-1">
               <div class="w-6 h-6 bg-gray-600 rounded-full flex items-center justify-center overflow-hidden" :data-symbol="bestPerformer?.symbol">
                 <img
@@ -226,12 +322,15 @@
         </div>
       </div>
 
-      <!-- Assets Section -->
-      <div class="bg-gray-800/50 rounded-xl border border-gray-700/50 overflow-hidden shadow-lg">
+      <!-- Enhanced Assets Section -->
+      <div class="bg-gradient-to-br from-gray-800/60 to-gray-800/40 backdrop-blur-xl rounded-xl border border-gray-700/50 overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300">
         <div class="p-6 border-b border-gray-700/50 bg-gradient-to-r from-gray-800/80 to-gray-800/60">
-          <h2 class="text-xl font-bold flex items-center gap-2">
-            Assets
-            <div class="w-4 h-4 rounded-full bg-gray-600 flex items-center justify-center cursor-help" title="Your cryptocurrency holdings">
+          <h2 class="text-xl font-bold flex items-center gap-3">
+            <div class="p-2 bg-blue-500/20 rounded-lg">
+              <Wallet class="h-5 w-5 text-blue-400" />
+            </div>
+            <span>Assets</span>
+            <div class="w-4 h-4 rounded-full bg-gray-600/50 flex items-center justify-center cursor-help border border-gray-700/50" title="Your cryptocurrency holdings">
               <span class="text-xs text-gray-400">i</span>
             </div>
           </h2>
@@ -257,7 +356,7 @@
               <tr
                 v-for="holding in portfolioHoldings"
                 :key="holding.id"
-                class="hover:bg-gray-700/20 transition-colors"
+                class="group hover:bg-gradient-to-r hover:from-gray-700/30 hover:to-gray-800/30 transition-all duration-300"
               >
                 <td class="px-6 py-5 whitespace-nowrap cursor-pointer" @click="showPurchaseDetails(holding)">
                   <div class="flex items-center gap-3">
@@ -364,8 +463,8 @@
           <div>
             <div class="flex items-center justify-between mb-2">
               <label class="block text-sm font-semibold text-gray-300">
-                Quantity ({{ selectedHolding.symbol }})
-              </label>
+              Quantity ({{ selectedHolding.symbol }})
+            </label>
               <button
                 @click="sellAllQuantity"
                 class="group relative px-3 py-1.5 text-xs font-semibold rounded-lg transition-all duration-200 hover:scale-105 active:scale-95 overflow-hidden"
@@ -381,15 +480,15 @@
               </button>
             </div>
             <div class="relative">
-              <input
-                v-model="sellQuantity"
-                type="number"
-                :max="selectedHolding.quantity"
-                :step="0.00000001"
-                :min="0"
-                placeholder="0.00000000"
+            <input
+              v-model="sellQuantity"
+              type="number"
+              :max="selectedHolding.quantity"
+              :step="0.00000001"
+              :min="0"
+              placeholder="0.00000000"
                 class="w-full bg-gray-900/50 border-2 border-gray-700 rounded-xl px-4 pr-24 py-3.5 text-emerald-400 placeholder-gray-500/60 font-mono text-base font-semibold tracking-wide focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/30 transition-all duration-200"
-              />
+            />
               <div class="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-2">
                 <span class="text-xs text-gray-500 font-medium">{{ selectedHolding.symbol }}</span>
                 <div class="h-4 w-px bg-gray-600"></div>

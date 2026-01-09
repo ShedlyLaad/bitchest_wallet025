@@ -1,12 +1,17 @@
 <template>
-  <div class="space-y-4 sm:space-y-8">
-    <!-- Header -->
+  <div class="space-y-4 sm:space-y-8 relative">
+    <!-- Enhanced Header -->
     <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-2">
-      <div>
-        <h1 class="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent">
-          Admin Dashboard
-        </h1>
-        <p class="text-gray-400 mt-1 text-sm sm:text-base">Monitor and manage your platform</p>
+      <div class="flex items-center gap-3">
+        <div class="p-3 bg-gradient-to-br from-blue-600/20 to-blue-800/10 rounded-xl border border-blue-500/30 backdrop-blur-sm">
+          <BarChart3 class="h-6 w-6 text-blue-400" />
+        </div>
+        <div>
+          <h1 class="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-white via-gray-200 to-gray-300 bg-clip-text text-transparent">
+            Admin Dashboard
+          </h1>
+          <p class="text-gray-400 mt-1 text-sm sm:text-base">Monitor and manage your platform</p>
+        </div>
       </div>
       <select
         v-model="timeFilter"
@@ -421,6 +426,7 @@ import {
   TrendingUp,
   AlertCircle,
   Coins,
+  BarChart3,
 } from 'lucide-vue-next';
 import { useRouter } from 'vue-router';
 import type { Transaction } from '@/types';

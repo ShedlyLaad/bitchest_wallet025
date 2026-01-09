@@ -275,25 +275,35 @@ const highPrice = computed(() => marketData.value.high);
 const lowPrice = computed(() => marketData.value.low);
 const volume = computed(() => marketData.value.volume);
 
-// Calculate price change - Utiliser directement change24h de Coinbase (déjà validé côté backend)
-// Le backend limite déjà change24h à -50% à +200%, donc on peut l'utiliser directement
+// Helper function for rounding (définie avant utilisation)
+function round(value: number, decimals: number): number {
+  if (isNaN(value) || !isFinite(value)) return 0;
+  return Number(value.toFixed(decimals));
+}
+
+// Calculate price change - Utiliser directement change24h du backend (déjà validé)
+// Le backend limite déjà change24h à -99% à +200%, donc on peut l'utiliser directement
 const priceChange = computed(() => {
-  // Utiliser change24h directement depuis Coinbase (déjà validé backend)
+  // Utiliser change24h directement depuis le backend (déjà validé)
   if (props.change24h !== undefined && props.change24h !== null && !isNaN(props.change24h)) {
-    return (currentPrice.value * props.change24h) / 100;
+    const changePercent = Math.max(-99.0, Math.min(200.0, Number(props.change24h)));
+    return (currentPrice.value * changePercent) / 100;
   }
   // Fallback: calculer depuis l'historique si change24h n'est pas disponible
   return currentPrice.value - openPrice.value;
 });
 
 const priceChangePercent = computed(() => {
-  // Utiliser change24h directement depuis Coinbase (déjà validé backend)
+  // Utiliser change24h directement depuis le backend (déjà validé et limité entre -99% et +200%)
   if (props.change24h !== undefined && props.change24h !== null && !isNaN(props.change24h)) {
-    return props.change24h;
+    // S'assurer que la valeur est dans les limites réalistes (double vérification frontend)
+    const value = Number(props.change24h);
+    return Math.max(-99.0, Math.min(200.0, round(value, 2)));
   }
   // Fallback: calculer depuis l'historique si change24h n'est pas disponible
   if (openPrice.value === 0) return 0;
-  return ((currentPrice.value - openPrice.value) / openPrice.value) * 100;
+  const calculated = ((currentPrice.value - openPrice.value) / openPrice.value) * 100;
+  return Math.max(-99.0, Math.min(200.0, round(calculated, 2)));
 });
 
 // Format date label based on timeframe
@@ -475,8 +485,12 @@ const chartSeries = computed(() => {
 });
 
 const formatPrice = (value: number): string => {
+  if (!value || isNaN(value) || value <= 0) {
+    return props.currency === 'EUR' ? '€0.00' : '$0.00';
+  }
+  
   if (props.currency === 'EUR') {
-    return new Intl.NumberFormat('en-GB', {
+    return new Intl.NumberFormat('fr-FR', {
       style: 'currency',
       currency: 'EUR',
       minimumFractionDigits: 2,
@@ -667,10 +681,11 @@ const chartOptions = computed<ApexOptions>(() => {
         
         const dateLabel = formatDateLabel(date, selectedTimeframe.value);
         
+        const formattedValue = formatPrice(value);
         return `
           <div class="px-2 py-1.5 bg-gray-800 border border-gray-600 rounded text-xs">
             <div class="text-gray-400 mb-1">${dateLabel}</div>
-            <div class="text-white font-semibold">${formatPrice(value)}</div>
+            <div class="text-white font-semibold">${formattedValue}</div>
           </div>
         `;
       },

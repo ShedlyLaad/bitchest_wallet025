@@ -71,7 +71,7 @@
                     </div>
                     <div class="text-right">
                       <div class="text-2xl font-bold text-white group-hover:scale-110 transition-transform duration-300">
-                        ${{ formatPrice(crypto.price || 0) }}
+                        €{{ formatPrice(crypto.price || 0) }}
                       </div>
                       <div 
                         class="text-sm font-medium transition-colors duration-300 flex items-center justify-end gap-1"
@@ -184,20 +184,22 @@ const getCryptoColor = (symbol: string): string => {
   return colorMap[symbol.toUpperCase()] || '#35a7ff';
 };
 
-// Format price
+// Format price (EUR format)
 const formatPrice = (price: number): string => {
+  if (!price || isNaN(price) || price <= 0) return '0.00';
+  
   if (price >= 1000) {
-    return new Intl.NumberFormat('en-US', {
+    return new Intl.NumberFormat('fr-FR', {
       minimumFractionDigits: 2,
       maximumFractionDigits: 2
     }).format(price);
   } else if (price >= 1) {
-    return new Intl.NumberFormat('en-US', {
+    return new Intl.NumberFormat('fr-FR', {
       minimumFractionDigits: 2,
       maximumFractionDigits: 4
     }).format(price);
   } else {
-    return new Intl.NumberFormat('en-US', {
+    return new Intl.NumberFormat('fr-FR', {
       minimumFractionDigits: 4,
       maximumFractionDigits: 8
     }).format(price);
@@ -206,24 +208,27 @@ const formatPrice = (price: number): string => {
 
 // Format percentage
 const formatPercentage = (value: number): string => {
+  if (value === null || value === undefined || isNaN(value)) return '0.00';
   return Math.abs(value).toFixed(2);
 };
 
 // Format market cap
 const formatMarketCap = (value: number): string => {
-  if (value >= 1e12) return `$${(value / 1e12).toFixed(2)}T`;
-  if (value >= 1e9) return `$${(value / 1e9).toFixed(2)}B`;
-  if (value >= 1e6) return `$${(value / 1e6).toFixed(2)}M`;
-  if (value >= 1e3) return `$${(value / 1e3).toFixed(2)}K`;
-  return `$${value.toFixed(2)}`;
+  if (!value || isNaN(value) || value <= 0) return '€0';
+  if (value >= 1e12) return `€${(value / 1e12).toFixed(2)}T`;
+  if (value >= 1e9) return `€${(value / 1e9).toFixed(2)}B`;
+  if (value >= 1e6) return `€${(value / 1e6).toFixed(2)}M`;
+  if (value >= 1e3) return `€${(value / 1e3).toFixed(2)}K`;
+  return `€${value.toFixed(2)}`;
 };
 
 // Format volume
 const formatVolume = (value: number): string => {
-  if (value >= 1e9) return `$${(value / 1e9).toFixed(2)}B`;
-  if (value >= 1e6) return `$${(value / 1e6).toFixed(2)}M`;
-  if (value >= 1e3) return `$${(value / 1e3).toFixed(2)}K`;
-  return `$${value.toFixed(2)}`;
+  if (!value || isNaN(value) || value <= 0) return '€0';
+  if (value >= 1e9) return `€${(value / 1e9).toFixed(2)}B`;
+  if (value >= 1e6) return `€${(value / 1e6).toFixed(2)}M`;
+  if (value >= 1e3) return `€${(value / 1e3).toFixed(2)}K`;
+  return `€${value.toFixed(2)}`;
 };
 
 // Handle image error
@@ -238,7 +243,23 @@ const loadCryptos = async () => {
     loading.value = true;
     // Use public route that doesn't require authentication
     const { data } = await api.get<CryptoCurrency[]>('/api/public/market');
-    cryptos.value = Array.isArray(data) ? data.slice(0, 8) : []; // Limit to 8 cryptos
+    
+    if (Array.isArray(data) && data.length > 0) {
+      // Normaliser et formater les données
+      cryptos.value = data.slice(0, 8).map((crypto: any) => ({
+        id: crypto.id ?? null,
+        symbol: crypto.symbol ?? '',
+        name: crypto.name ?? '',
+        price: typeof crypto.price === 'number' ? Number(crypto.price) : Number(crypto.price || 0),
+        change24h: typeof crypto.change24h === 'number' 
+          ? Number(crypto.change24h) 
+          : Number(crypto.change24h || 0),
+        marketCap: typeof crypto.marketCap === 'number' ? Number(crypto.marketCap) : Number(crypto.marketCap || 0),
+        volume24h: typeof crypto.volume24h === 'number' ? Number(crypto.volume24h) : Number(crypto.volume24h || 0),
+      }));
+    } else {
+      cryptos.value = [];
+    }
   } catch (error: any) {
     console.error('Error loading cryptos:', error);
     // Fallback to empty array if API fails

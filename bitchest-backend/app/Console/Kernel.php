@@ -9,14 +9,15 @@ class Kernel extends ConsoleKernel
 {
     protected function schedule(Schedule $schedule)
     {
-        // Update crypto prices from Coinbase API every 24 hours
+        // Update crypto prices from Coinbase API every 24 hours at midnight
         $schedule->command('crypto:update-prices')
             ->daily()
             ->at('00:00')
             ->withoutOverlapping()
-            ->onOneServer();
+            ->onOneServer()
+            ->appendOutputTo(storage_path('logs/crypto-update.log'));
 
-        // Generate crypto prices hourly (for crypto_price_records)
+        // Generate crypto prices hourly (for crypto_price_records historique)
         $schedule->call(function (\App\Services\CotationGeneratorService $service) {
             $service->generateDaily();
         })->hourly();
@@ -27,7 +28,10 @@ class Kernel extends ConsoleKernel
             ->withoutOverlapping();
     }
 
-    protected function commands()
+    /**
+     * Register the commands for the application.
+     */
+    protected function commands(): void
     {
         $this->load(__DIR__.'/Commands');
     }

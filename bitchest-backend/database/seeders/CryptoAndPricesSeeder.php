@@ -13,8 +13,8 @@ class CryptoAndPricesSeeder extends Seeder
 {
     public function run(): void
     {
-        $now = Carbon::now();
         $coinbaseAPIService = app(CoinbaseAPIService::class);
+        $now = Carbon::now();
 
         // Récupérer toutes les cryptos actives de la base de données
         // (créées par CryptoCurrencySeeder)
@@ -25,67 +25,63 @@ class CryptoAndPricesSeeder extends Seeder
             return;
         }
 
-        // Récupérer tous les prix depuis Coinbase
+        Log::info("🚀 Initialisation des prix actuels pour " . $cryptos->count() . " cryptos...");
+
+        // Récupérer tous les prix actuels depuis Coinbase
         $symbols = $cryptos->pluck('symbol')->toArray();
         $liveData = $coinbaseAPIService->getMultipleCryptoData($symbols);
 
         foreach ($cryptos as $crypto) {
-            // Récupérer le prix depuis l'API Coinbase uniquement
-            $symbol = strtoupper($crypto->symbol);
-            $apiData = $liveData[$symbol] ?? null;
+            Log::info("📊 Initialisation du prix pour {$crypto->symbol} ({$crypto->name})...");
+            
+            // Déterminer le prix actuel
+            $currentPrice = $this->getCurrentPrice($crypto, $liveData);
+            
+            // Créer uniquement le prix d'aujourd'hui
+            CryptoPriceRecord::create([
+                'crypto_currency_id' => $crypto->id,
+                'price' => $currentPrice,
+                'recorded_at' => $now,
+                'created_at' => $now,
+                'updated_at' => $now,
+            ]);
+            
+            Log::info("✅ Prix initialisé pour {$crypto->symbol}: {$currentPrice} EUR");
+        }
 
-            if ($apiData && isset($apiData['price']) && $apiData['price'] > 0) {
-                // Utiliser le prix de l'API Coinbase
-                $price = $apiData['price'];
-                Log::info("Prix récupéré depuis Coinbase pour {$crypto->symbol}: {$price} EUR");
-                
-                // Insérer le prix dans crypto_price_records (table unifiée)
-                CryptoPriceRecord::create([
-                    'crypto_currency_id' => $crypto->id,
-                    'price' => $price,
-                    'recorded_at' => $now,
-                    'created_at' => $now,
-                    'updated_at' => $now,
-                ]);
-            } else {
-                // Si l'API échoue ou la crypto n'est pas supportée, utiliser le dernier prix de l'historique
-                $lastPrice = CryptoPriceRecord::where('crypto_currency_id', $crypto->id)
-                    ->latest('recorded_at')
-                    ->value('price');
-                
-                if ($lastPrice) {
-                    // Vérifier si la crypto est supportée par Coinbase pour le message de log
-                    $isSupported = $coinbaseAPIService->isSupported($crypto->symbol);
-                    if (!$isSupported) {
-                        Log::info("Crypto {$crypto->symbol} non supportée par Coinbase. Utilisation du prix local: {$lastPrice} EUR");
-                    } else {
-                        Log::info("Coinbase API indisponible pour {$crypto->symbol}. Utilisation du prix local: {$lastPrice} EUR");
-                    }
-                    
-                    CryptoPriceRecord::create([
-                        'crypto_currency_id' => $crypto->id,
-                        'price' => $lastPrice,
-                        'recorded_at' => $now,
-                        'created_at' => $now,
-                        'updated_at' => $now,
-                    ]);
-                } else {
-                    // Si aucun prix n'existe, générer un prix initial avec getFirstCotation
-                    $basePrice = $this->getFirstCotation($crypto->name ?? $crypto->symbol);
-                    $basePrice = max(0.00000001, round($basePrice, 8));
-                    
-                    Log::info("Aucun prix historique pour {$crypto->symbol}. Génération d'un prix initial: {$basePrice} EUR");
-                    
-                    CryptoPriceRecord::create([
-                        'crypto_currency_id' => $crypto->id,
-                        'price' => $basePrice,
-                        'recorded_at' => $now,
-                        'created_at' => $now,
-                        'updated_at' => $now,
-                    ]);
-            }
+        Log::info("🎉 Prix actuels initialisés avec succès pour toutes les cryptos!");
+    }
+
+    /**
+     * Détermine le prix actuel pour une crypto
+     * Essaie Coinbase d'abord, sinon utilise getFirstCotation
+     */
+    private function getCurrentPrice(CryptoCurrency $crypto, array $liveData): float
+    {
+        $symbol = strtoupper($crypto->symbol);
+        $apiData = $liveData[$symbol] ?? null;
+
+        if ($apiData && isset($apiData['price']) && $apiData['price'] > 0) {
+            // Utiliser le prix Coinbase directement
+            $currentPrice = (float) $apiData['price'];
+            $currentPrice = max(0.00000001, round($currentPrice, 8));
+            
+            Log::info("  Prix récupéré depuis Coinbase pour {$crypto->symbol}: {$currentPrice} EUR");
+            return $currentPrice;
         }
+
+        // Fallback: utiliser getFirstCotation
+        $currentPrice = $this->getFirstCotation($crypto->name ?? $crypto->symbol);
+        $currentPrice = max(0.00000001, round($currentPrice, 8));
+        
+        $isSupported = app(CoinbaseAPIService::class)->isSupported($crypto->symbol);
+        if (!$isSupported) {
+            Log::info("  Crypto {$crypto->symbol} non supportée par Coinbase. Prix généré: {$currentPrice} EUR");
+        } else {
+            Log::info("  Coinbase API indisponible pour {$crypto->symbol}. Prix généré: {$currentPrice} EUR");
         }
+        
+        return $currentPrice;
     }
 
     /**

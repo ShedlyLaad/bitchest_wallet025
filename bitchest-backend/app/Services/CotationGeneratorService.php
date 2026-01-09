@@ -17,113 +17,6 @@ class CotationGeneratorService
         $this->coinbaseAPIService = $coinbaseAPIService;
     }
 
-    /**
-     * Génère l'historique de prix pour tous les cryptos sur $days derniers jours.
-     * Si $force = true, supprime les anciennes cotations pour chaque crypto avant génération.
-     * Si $useCoinPaprika = true, utilise Coinbase API au lieu de la génération aléatoire.
-     * 
-     * @param int $days Nombre de jours d'historique
-     * @param bool $force Supprimer les anciennes données
-     * @param bool $useCoinPaprika Utiliser Coinbase API
-     * @param Carbon|null $startDate Date de début (optionnel, par défaut: il y a $days jours)
-     * @param Carbon|null $endDate Date de fin (optionnel, par défaut: aujourd'hui)
-     */
-    public function generateHistory(int $days = 30, bool $force = false, bool $useCoinPaprika = false, ?Carbon $startDate = null, ?Carbon $endDate = null): void
-    {
-        $cryptos = CryptoCurrency::all();
-
-        // Définir les dates si non fournies
-        $startDate = $startDate ?? Carbon::now()->subDays($days)->startOfDay();
-        $endDate = $endDate ?? Carbon::now()->endOfDay();
-
-        foreach ($cryptos as $crypto) {
-            if ($force) {
-                CryptoPriceRecord::where('crypto_currency_id', $crypto->id)->delete();
-            }
-
-            // Utiliser Coinbase si demandé et disponible
-            if ($useCoinPaprika && $this->coinbaseAPIService) {
-                $this->generateHistoryFromCoinbase($crypto, $startDate, $endDate);
-            } else {
-                // Génération aléatoire (méthode originale)
-                $this->generateHistoryRandom($crypto, $days);
-            }
-        }
-    }
-
-    /**
-     * Génère l'historique depuis Coinbase API
-     * Note: Coinbase ne fournit pas d'historique directement, on utilise le fallback local
-     */
-    private function generateHistoryFromCoinbase(CryptoCurrency $crypto, Carbon $startDate, Carbon $endDate): void
-    {
-        Log::info("Génération historique depuis Coinbase pour {$crypto->symbol}");
-
-        $historicalData = $this->coinbaseAPIService->getHistoricalPrices(
-            $crypto->symbol,
-            $startDate,
-            $endDate
-        );
-
-        if (empty($historicalData)) {
-            Log::info("Coinbase ne fournit pas d'historique directement pour {$crypto->symbol}, utilisation de getFirstCotation/getCotationFor (cahier des charges)");
-            $this->generateHistoryRandom($crypto, $startDate->diffInDays($endDate), $startDate, $endDate);
-            return;
-        }
-
-        foreach ($historicalData as $data) {
-            CryptoPriceRecord::create([
-                'crypto_currency_id' => $crypto->id,
-                'price' => max(0.00000001, round($data['price'], 8)),
-                'recorded_at' => $data['date'],
-            ]);
-        }
-
-        Log::info("Historique Coinbase généré pour {$crypto->symbol}: " . count($historicalData) . " entrées");
-    }
-
-    /**
-     * Génère l'historique avec méthode getFirstCotation/getCotationFor (selon cahier des charges)
-     * 
-     * @param CryptoCurrency $crypto La crypto-monnaie
-     * @param int $days Nombre de jours
-     * @param Carbon|null $startDate Date de début (optionnel)
-     * @param Carbon|null $endDate Date de fin (optionnel)
-     */
-    private function generateHistoryRandom(CryptoCurrency $crypto, int $days, ?Carbon $startDate = null, ?Carbon $endDate = null): void
-    {
-        // Définir les dates si non fournies
-        if (!$startDate || !$endDate) {
-            $startDate = Carbon::now()->subDays($days)->startOfDay();
-            $endDate = Carbon::now()->endOfDay();
-        }
-
-        // Détermine un prix de base initial avec getFirstCotation (cahier des charges)
-            $base = $this->getFirstCotation($crypto->name ?? $crypto->symbol);
-
-        $currentDate = $startDate->copy();
-        $price = $base;
-                
-        // Génère un point par jour sur la période spécifiée
-        while ($currentDate->lte($endDate)) {
-            // Applique la variation quotidienne avec getCotationFor (cahier des charges)
-                $variation = $this->getCotationFor($crypto->name ?? $crypto->symbol);
-                $price = $base + $variation;
-                
-            // S'assurer que le prix est toujours positif (cahier des charges)
-                $price = max(0.00000001, round($price, 8));
-
-                CryptoPriceRecord::create([
-                    'crypto_currency_id' => $crypto->id,
-                    'price' => $price,
-                'recorded_at' => $currentDate->copy()->addHours(rand(0, 23))->addMinutes(rand(0, 59)),
-                ]);
-
-            // La valeur de base évolue pour la journée suivante
-                $base = $price;
-            $currentDate->addDay();
-        }
-    }
 
     /**
      * Génère une nouvelle cotation "aujourd'hui" pour chaque crypto (exécutable cron)
@@ -192,7 +85,7 @@ class CotationGeneratorService
     /**
      * Retourne l'historique sous forme de collection [timestamp, price]
      */
-    public function getHistorical(string $symbol, int $days = 30): Collection
+    public function getHistorical(string $symbol, int $days = 7): Collection
     {
         $crypto = CryptoCurrency::where('symbol', $symbol)->firstOrFail();
 

@@ -14,7 +14,7 @@ return new class extends Migration
             $table->foreignId('portfolio_id')->nullable()->constrained()->onDelete('cascade');
             $table->foreignId('crypto_currency_id')->nullable()->constrained()->onDelete('set null');
             
-            $table->enum('type', ['profit', 'loss', 'price_alert', 'portfolio_update'])->default('portfolio_update');
+            $table->enum('type', ['profit', 'loss', 'price_alert', 'portfolio_update', 'level_up'])->default('portfolio_update');
             $table->string('title');
             $table->text('message');
             $table->string('crypto_symbol')->nullable();
@@ -24,6 +24,8 @@ return new class extends Migration
             $table->decimal('gain_loss_percent', 10, 2)->nullable();
             $table->decimal('current_price', 18, 8)->nullable();
             $table->decimal('previous_price', 18, 8)->nullable();
+            $table->integer('level')->nullable();
+            $table->string('level_name')->nullable();
             
             $table->boolean('is_read')->default(false);
             $table->timestamp('read_at')->nullable();

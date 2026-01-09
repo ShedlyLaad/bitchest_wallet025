@@ -4,99 +4,35 @@ namespace App\Services;
 
 use App\Models\CryptoCurrency;
 use App\Models\CryptoPriceRecord;
+use Illuminate\Support\Facades\Log;
 use Carbon\Carbon;
 
 class CryptoService
 {
     private CoinbaseAPIService $coinbaseAPIService;
+    private CryptoDataCompressionService $compressionService;
 
-    public function __construct(CoinbaseAPIService $coinbaseAPIService)
-    {
+    public function __construct(
+        CoinbaseAPIService $coinbaseAPIService,
+        CryptoDataCompressionService $compressionService
+    ) {
         $this->coinbaseAPIService = $coinbaseAPIService;
+        $this->compressionService = $compressionService;
     }
 
     /**
      * Retourne les prix actuels des 10 cryptos avec données live depuis Coinbase API
+     * Utilise le service de compression pour optimiser les performances
      * Met à jour automatiquement crypto_price_records avec les données de l'API
+     * 
+     * @param bool $forceRefresh Forcer le rafraîchissement du cache
      */
-    public function getCurrentPrices()
+    public function getCurrentPrices(bool $forceRefresh = false)
     {
-        $cryptos = CryptoCurrency::where('is_active', true)->get();
-        $symbols = $cryptos->pluck('symbol')->toArray();
-
-        // Récupérer toutes les données depuis Coinbase API (gratuite)
-        // Seules les cryptos supportées par Coinbase seront récupérées
-        $liveData = $this->coinbaseAPIService->getMultipleCryptoData($symbols);
-
-        return $cryptos->map(function ($crypto) use ($liveData) {
-            $symbol = $crypto->symbol;
-            $upperSymbol = strtoupper($symbol);
-            
-            // Chercher les données live pour ce symbole (essayer le symbole exact et sa version uppercase)
-            $data = $liveData[$upperSymbol] ?? $liveData[$symbol] ?? null;
-
-            // Si Coinbase a retourné des données valides, les utiliser
-            if ($data && isset($data['price']) && $data['price'] > 0) {
-                $currentPrice = (float) $data['price'];
-                
-                // Enregistrer dans crypto_price_records (table unifiée)
-                CryptoPriceRecord::create([
-                    'crypto_currency_id' => $crypto->id,
-                    'price' => $currentPrice,
-                    'recorded_at' => Carbon::now(),
-                ]);
-
-                // Calculer change24h depuis l'historique : comparer le prix actuel avec le prix d'il y a 24h
-                $change24h = $this->calculateChange24h($crypto->id, $currentPrice);
-
-                // Données live depuis Coinbase - format normalisé pour garantir l'identité entre Client et Admin
-                return [
-                    'id' => $crypto->id,
-                    'symbol' => $crypto->symbol,
-                    'name' => $crypto->name,
-                    'price' => $currentPrice,
-                    'change24h' => $change24h,
-                    'marketCap' => isset($data['marketCap']) ? (float) $data['marketCap'] : 0.0,
-                    'volume24h' => isset($data['volume24h']) ? (float) $data['volume24h'] : 0.0,
-                ];
-            }
-
-            // Fallback: utiliser les données de la base de données si Coinbase échoue ou crypto non supportée
-            
-            $price = CryptoPriceRecord::where('crypto_currency_id', $crypto->id)
-                ->latest('recorded_at')
-                ->value('price');
-            
-            // Si toujours pas de prix, utiliser un prix par défaut basé sur le symbole
-            if ($price === null) {
-                // Générer un prix initial si aucune donnée n'existe
-                $basePrice = $this->generateInitialPrice($crypto->symbol, $crypto->name);
-                $price = $basePrice;
-                
-                // Créer une entrée dans crypto_price_records pour éviter ce problème à l'avenir
-                CryptoPriceRecord::create([
-                    'crypto_currency_id' => $crypto->id,
-                    'price' => $basePrice,
-                    'recorded_at' => Carbon::now(),
-                ]);
-            }
-
-            // Calculer change24h depuis l'historique si disponible (fallback quand API échoue)
-            $change24h = $this->calculateChange24h($crypto->id, $price);
-
-            // Format normalisé pour garantir l'identité entre Client et Admin
-            return [
-                'id' => $crypto->id,
-                'symbol' => $crypto->symbol,
-                'name' => $crypto->name,
-                'price' => $price !== null ? (float) $price : 0.0,
-                'change24h' => round((float) $change24h, 2),
-                'marketCap' => 0.0,
-                'volume24h' => 0.0,
-            ];
-        });
+        // Utiliser le service de compression pour optimiser les performances
+        return $this->compressionService->getCompressedCryptoData($forceRefresh);
     }
-
+    
     /**
      * Retourne le prix actuel d'une crypto avec données live
      */
@@ -123,9 +59,9 @@ class CryptoService
     }
 
     /**
-     * Récupère un historique des prix (ex : 30 jours)
+     * Récupère un historique des prix depuis la base de données
      */
-    public function getHistoricalPrices(string $symbol, int $days)
+    public function getHistoricalPrices(string $symbol, int $days = 7)
     {
         $crypto = CryptoCurrency::where('symbol', $symbol)->firstOrFail();
 
@@ -192,12 +128,13 @@ class CryptoService
      * Génère des prix pour simuler le marché
      * (utilisé par Admin) - Délègue à CotationGeneratorService
      * Utilise getFirstCotation et getCotationFor selon le cahier des charges
+     * Note: Les prix sont générés progressivement via generateDaily() planifié
      */
     public function generateInitialPrices()
     {
-        $cotationService = app(\App\Services\CotationGeneratorService::class);
-        // Générer 30 jours avec getFirstCotation/getCotationFor (cahier des charges)
-        $cotationService->generateHistory(30, true, false);
+        // Les prix sont générés progressivement via generateDaily() planifié dans Kernel
+        // Pas besoin de génération en masse d'historique
+        \Illuminate\Support\Facades\Log::info("generateInitialPrices appelé - les prix sont générés progressivement via generateDaily()");
     }
 
     /**

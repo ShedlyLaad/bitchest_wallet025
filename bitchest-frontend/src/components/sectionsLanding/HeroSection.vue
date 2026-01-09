@@ -139,22 +139,22 @@
                 class="absolute rounded-full flex items-center justify-center"
                 :style="ringStyle(i - 1)"
               >
+              <div
+                v-for="(crypto, j) in cryptoIcons"
+                :key="`ring-${i}-icon-${j}-${crypto.symbol}`"
+                class="absolute"
+                :style="iconOnRingStyle(i - 1, j, cryptoIcons.length)"
+              >
                 <div
-                  v-for="(crypto, j) in cryptoIcons"
-                  :key="`ring-${i}-icon-${j}`"
-                  class="absolute"
-                  :style="iconOnRingStyle(i - 1, j, cryptoIcons.length)"
+                  class="w-8 h-8 rounded-full flex items-center justify-center"
+                  :style="{
+                    background: `linear-gradient(145deg, ${crypto.color}40, ${crypto.color}20)`,
+                    boxShadow: `0 0 15px ${crypto.color}30`
+                  }"
                 >
-                  <div
-                    class="w-8 h-8 rounded-full flex items-center justify-center"
-                    :style="{
-                      background: `linear-gradient(145deg, ${crypto.color}40, ${crypto.color}20)`,
-                      boxShadow: `0 0 15px ${crypto.color}30`
-                    }"
-                  >
-                    <img :src="crypto.icon" :alt="crypto.symbol" class="w-4 h-4" />
-                  </div>
+                  <img :src="crypto.icon" :alt="crypto.symbol" class="w-4 h-4" @error="(e: any) => e.target.style.display = 'none'" />
                 </div>
+              </div>
               </div>
             </div>
 
@@ -181,24 +181,30 @@
                     </div>
                   </div>
 
-                  <div class="flex-1 grid grid-cols-2 gap-3">
+                  <div v-if="!loadingCryptos && cryptoIcons.length > 0" class="flex-1 grid grid-cols-2 gap-3">
                     <div
                       v-for="(crypto, idx) in cryptoIcons.slice(0,4)"
-                      :key="`small-${idx}`"
+                      :key="`small-${idx}-${crypto.price}-${crypto.change24h}`"
                       class="rounded-xl p-3 backdrop-blur-sm bg-white/5 border border-white/5 transition-colors cursor-pointer hover:-translate-y-1"
                       :style="{ borderColor: hoveredIndex === idx ? crypto.color : '', backgroundColor: hoveredIndex === idx ? crypto.color + '15' : '' }"
                       @mouseenter="hoveredIndex = idx"
                       @mouseleave="hoveredIndex = -1"
                     >
                       <div class="flex items-center gap-2">
-                        <img :src="crypto.icon" :alt="crypto.symbol" class="w-6 h-6" />
+                        <img :src="crypto.icon" :alt="crypto.symbol" class="w-6 h-6" @error="(e: any) => e.target.style.display = 'none'" />
                         <div class="text-sm font-medium text-white">{{ crypto.symbol }}</div>
                       </div>
-                      <div class="mt-2 text-xs font-mono text-gray-300">${{ crypto.price.toFixed(2) }}</div>
-                      <div :class="['mt-1 text-xs', crypto.change24h >= 0 ? 'text-green-400' : 'text-red-400']">
-                        {{ crypto.change24h >= 0 ? '↑' : '↓' }} {{ Math.abs(crypto.change24h) }}%
+                      <div class="mt-2 text-xs font-mono text-gray-300">€{{ (crypto.price || 0).toFixed(2) }}</div>
+                      <div :class="['mt-1 text-xs', (crypto.change24h || 0) >= 0 ? 'text-green-400' : 'text-red-400']">
+                        {{ (crypto.change24h || 0) >= 0 ? '↑' : '↓' }} {{ Math.abs(crypto.change24h || 0).toFixed(2) }}%
                       </div>
                     </div>
+                  </div>
+                  <div v-else-if="loadingCryptos" class="flex-1 flex items-center justify-center">
+                    <div class="text-gray-400 text-sm">Chargement des prix...</div>
+                  </div>
+                  <div v-else class="flex-1 flex items-center justify-center">
+                    <div class="text-gray-400 text-sm">Données non disponibles</div>
                   </div>
 
                   <!-- Animated rings inside card (decorative) -->
@@ -211,12 +217,12 @@
                     >
                       <div
                         v-for="(crypto, j) in cryptoIcons"
-                        :key="`card-ring-${i}-icon-${j}`"
+                        :key="`card-ring-${i}-icon-${j}-${crypto.symbol}`"
                         class="absolute"
                         :style="cardIconOnRingStyle(i - 1, j, cryptoIcons.length)"
                       >
                         <div class="w-8 h-8 rounded-full flex items-center justify-center" :style="{ background: `linear-gradient(145deg, ${crypto.color}40, ${crypto.color}20)`, boxShadow: `0 0 15px ${crypto.color}30` }">
-                          <img :src="crypto.icon" :alt="crypto.symbol" class="w-4 h-4" />
+                          <img :src="crypto.icon" :alt="crypto.symbol" class="w-4 h-4" @error="(e: any) => e.target.style.display = 'none'" />
                         </div>
                       </div>
                     </div>
@@ -235,7 +241,7 @@
             </div>
 
             <!-- Floating avatars -->
-            <div v-for="(_, i) in cryptoIcons" :key="`float-${i}`" class="absolute flex items-center justify-center pointer-events-auto"
+            <div v-for="(crypto, i) in cryptoIcons" :key="`float-${i}-${crypto.symbol}`" class="absolute flex items-center justify-center pointer-events-auto"
                  :style="floatingStyle(i)">
               <div class="w-20 h-20 rounded-full flex items-center justify-center" :style="{ transform: 'translate(-50%,-50%)', left: '50%', top: '50%' }">
                 <!-- empty wrapper just to hold the position -->
@@ -253,7 +259,15 @@
 
 <script setup lang="ts">
 import { ref, reactive, onMounted, onBeforeUnmount, computed } from 'vue';
-import { cryptocurrencies } from '../../data/cryptoData';
+import axios from 'axios';
+import type { CryptoCurrency } from '../../types';
+import { getCryptoIcon } from '../../utils/cryptoIcons';
+
+const baseURL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8000';
+const api = axios.create({
+  baseURL,
+  withCredentials: true
+});
 
 // Utility: color map
 const getColorForCrypto = (symbol: string) => {
@@ -265,7 +279,9 @@ const getColorForCrypto = (symbol: string) => {
     ADA: '#0033AD',
     LTC: '#345D9D',
     XEM: '#67B2E8',
-    XLM: '#14B6E7'
+    XLM: '#14B6E7',
+    MIOTA: '#00d4ff',
+    DASH: '#008de4'
   };
   return colors[symbol] || '#627EEA';
 };
@@ -277,19 +293,43 @@ const entered = ref(false);
 const titleBgPos = ref('0% 50%');
 const lightPulse = ref(1);
 const hoveredIndex = ref<number>(-1);
+const loadingCryptos = ref(true);
 
-// Prepare crypto icons (first 8)
-const cryptoIcons = cryptocurrencies.slice(0, 8).map(c => ({
-  icon: c.icon,
-  color: getColorForCrypto(c.symbol),
-  symbol: c.symbol,
-  price: c.price,
-  change24h: c.change24h,
-  name: c.name
-}));
+// Crypto data from API
+const cryptoData = ref<CryptoCurrency[]>([]);
 
-// total balance - calculated dynamically
-const totalBalance = computed(() => cryptoIcons.reduce((acc, crypto) => acc + (crypto.price || 0), 0));
+// Prepare crypto icons (first 8) from API data
+const cryptoIcons = computed(() => {
+  return cryptoData.value.slice(0, 8).map(c => ({
+    icon: getCryptoIcon(c.symbol),
+    color: getColorForCrypto(c.symbol),
+    symbol: c.symbol,
+    price: c.price || 0,
+    change24h: c.change24h || 0,
+    name: c.name
+  }));
+});
+
+// total balance - calculated dynamically from API data
+const totalBalance = computed(() => cryptoIcons.value.reduce((acc, crypto) => acc + (crypto.price || 0), 0));
+
+// Load cryptos from API (public route for landing page)
+const loadCryptos = async () => {
+  try {
+    loadingCryptos.value = true;
+    const { data } = await api.get<CryptoCurrency[]>('/api/public/market');
+    cryptoData.value = Array.isArray(data) ? data.map(c => ({
+      ...c,
+      price: typeof c.price === 'number' ? Number(c.price) : Number(c.price || 0),
+      change24h: typeof c.change24h === 'number' ? Number(c.change24h) : Number(c.change24h || 0)
+    })) : [];
+  } catch (error: any) {
+    console.error('Error loading cryptos for HeroSection:', error);
+    cryptoData.value = [];
+  } finally {
+    loadingCryptos.value = false;
+  }
+};
 
 // Function to format numbers in currency format
 const formatCurrency = (value: number) => {
@@ -386,8 +426,11 @@ const titleAnimate = () => {
   titleRafId = requestAnimationFrame(titleAnimate);
 };
 
-onMounted(() => {
+onMounted(async () => {
   entered.value = true;
+
+  // Load crypto data from API
+  await loadCryptos();
 
   // pointer events on container (covers mouse + touch + pen)
   if (containerRef.value) {
@@ -422,6 +465,9 @@ onBeforeUnmount(() => {
 
 // Helpers for ring styles & icon placement
 const ringStyle = (index: number) => {
+  if (cryptoIcons.value.length === 0) {
+    return { opacity: 0, display: 'none' };
+  }
   const size = 400 + index * 100;
   const deg = 90 + index * 30;
   const rotateDur = 30 + index * 10;
@@ -437,6 +483,7 @@ const ringStyle = (index: number) => {
 };
 
 const iconOnRingStyle = (ringIndex: number, iconIndex: number, total: number) => {
+  if (total === 0) return {};
   const angle = (iconIndex * Math.PI * 2) / total;
   const radius = (400 + ringIndex * 100) / 2;
   const x = Math.cos(angle) * radius;
@@ -451,6 +498,9 @@ const iconOnRingStyle = (ringIndex: number, iconIndex: number, total: number) =>
 };
 
 const cardRingStyle = (index: number) => {
+  if (cryptoIcons.value.length === 0) {
+    return { opacity: 0, display: 'none' };
+  }
   const size = 400 + index * 100;
   const deg = 90 + index * 30;
   const rotateDur = 30 + index * 10;
@@ -466,6 +516,7 @@ const cardRingStyle = (index: number) => {
 };
 
 const cardIconOnRingStyle = (ringIndex: number, iconIndex: number, total: number) => {
+  if (total === 0) return {};
   const angle = (iconIndex * Math.PI * 2) / total;
   const radius = (400 + ringIndex * 100) / 2;
   const x = Math.cos(angle) * radius;
@@ -481,7 +532,8 @@ const cardIconOnRingStyle = (ringIndex: number, iconIndex: number, total: number
 
 // Floating avatars style
 const floatingStyle = (i: number) => {
-  const angle = (i * Math.PI * 2) / cryptoIcons.length;
+  if (cryptoIcons.value.length === 0) return { opacity: 0 };
+  const angle = (i * Math.PI * 2) / cryptoIcons.value.length;
   const radius = 280;
   const x = Math.cos(angle) * radius;
   const y = Math.sin(angle) * radius;

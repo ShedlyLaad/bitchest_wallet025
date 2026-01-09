@@ -11,7 +11,6 @@ class PortfolioFactory extends Factory
         return [
             'user_id' => \App\Models\User::factory(),
             'crypto_currency_id' => \App\Models\CryptoCurrency::factory(),
-            'euro_balance' => fake()->randomFloat(2, 0, 10000),
             'total_crypto_value' => fake()->randomFloat(8, 0, 100000),
         ];
     }

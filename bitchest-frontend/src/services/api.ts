@@ -262,20 +262,44 @@ export async function deleteNotification(id: number) {
 export async function getMarket(useCache: boolean = true) {
   const cacheKey = 'market';
   
+  // Fonction helper pour normaliser les données
+  const normalizeData = (data: CryptoCurrency[]) => {
+    if (!Array.isArray(data)) return [];
+    return data.map(crypto => {
+      const price = typeof crypto.price === 'number' && !isNaN(crypto.price) && crypto.price > 0
+        ? Number(Number(crypto.price).toFixed(8))
+        : 0;
+      let change24h = typeof crypto.change24h === 'number' && !isNaN(crypto.change24h)
+        ? Number(crypto.change24h)
+        : 0;
+      // Limiter entre -99% et +200% (double vérification frontend)
+      if (change24h < -99) change24h = -99;
+      if (change24h > 200) change24h = 200;
+      change24h = Number(change24h.toFixed(2));
+      
+      return {
+        ...crypto,
+        price,
+        change24h
+      };
+    });
+  };
+  
   if (useCache) {
     return cacheService.preload(
       cacheKey,
       async () => {
         const { data } = await api.get<CryptoCurrency[]>('/api/market');
-        return data;
+        return normalizeData(data);
       },
       { ttl: 60 * 60 * 1000 } // 1 heure
     );
   }
   
   const { data } = await api.get<CryptoCurrency[]>('/api/market');
-  cacheService.set(cacheKey, data, { ttl: 60 * 60 * 1000 }); // 1 heure
-  return data;
+  const normalizedData = normalizeData(data);
+  cacheService.set(cacheKey, normalizedData, { ttl: 60 * 60 * 1000 }); // 1 heure
+  return normalizedData;
 }
 
 /**
@@ -293,24 +317,50 @@ export async function getUserCryptos(useCache: boolean = true) {
       cacheKey,
       async () => {
         const { data } = await api.get<CryptoCurrency[]>('/api/user/cryptos');
-        // S'assurer que les valeurs sont correctement formatées
-        return Array.isArray(data) ? data.map(crypto => ({
-          ...crypto,
-          price: typeof crypto.price === 'number' ? Number(crypto.price.toFixed(8)) : Number(crypto.price || 0),
-          change24h: typeof crypto.change24h === 'number' ? Number(crypto.change24h.toFixed(2)) : Number(crypto.change24h || 0)
-        })) : data;
+        // S'assurer que les valeurs sont correctement formatées et validées
+        return Array.isArray(data) ? data.map(crypto => {
+          const price = typeof crypto.price === 'number' && !isNaN(crypto.price) && crypto.price > 0
+            ? Number(Number(crypto.price).toFixed(8))
+            : 0;
+          let change24h = typeof crypto.change24h === 'number' && !isNaN(crypto.change24h)
+            ? Number(crypto.change24h)
+            : 0;
+          // Limiter entre -99% et +200% (double vérification frontend)
+          if (change24h < -99) change24h = -99;
+          if (change24h > 200) change24h = 200;
+          change24h = Number(change24h.toFixed(2));
+          
+          return {
+            ...crypto,
+            price,
+            change24h
+          };
+        }) : data;
       },
       { ttl: 60 * 60 * 1000 } // 1 heure
     );
   }
   
   const { data } = await api.get<CryptoCurrency[]>('/api/user/cryptos');
-  // S'assurer que les valeurs sont correctement formatées
-  const formattedData = Array.isArray(data) ? data.map(crypto => ({
-    ...crypto,
-    price: typeof crypto.price === 'number' ? Number(crypto.price.toFixed(8)) : Number(crypto.price || 0),
-    change24h: typeof crypto.change24h === 'number' ? Number(crypto.change24h.toFixed(2)) : Number(crypto.change24h || 0)
-  })) : data;
+  // S'assurer que les valeurs sont correctement formatées et validées
+  const formattedData = Array.isArray(data) ? data.map(crypto => {
+    const price = typeof crypto.price === 'number' && !isNaN(crypto.price) && crypto.price > 0
+      ? Number(Number(crypto.price).toFixed(8))
+      : 0;
+    let change24h = typeof crypto.change24h === 'number' && !isNaN(crypto.change24h)
+      ? Number(crypto.change24h)
+      : 0;
+    // Limiter entre -99% et +200% (double vérification frontend)
+    if (change24h < -99) change24h = -99;
+    if (change24h > 200) change24h = 200;
+    change24h = Number(change24h.toFixed(2));
+    
+    return {
+      ...crypto,
+      price,
+      change24h
+    };
+  }) : data;
   cacheService.set(cacheKey, formattedData, { ttl: 60 * 60 * 1000 }); // 1 heure
   return formattedData;
 }

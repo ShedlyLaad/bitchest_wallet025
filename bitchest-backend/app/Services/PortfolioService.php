@@ -33,15 +33,17 @@ class PortfolioService
         // --- SELL ---
         elseif ($type === 'sell') {
             // Calculer la quantité totale détenue AVANT cette transaction
-            // On exclut la transaction actuelle en utilisant son ID
-            $totalBuyQuantity = \App\Models\Transaction::where('portfolio_id', $portfolio->id)
-                ->where('type', 'buy')
-                ->where('id', '!=', $transaction->id)
-                ->sum('quantity');
-            $totalSellQuantity = \App\Models\Transaction::where('portfolio_id', $portfolio->id)
-                ->where('type', 'sell')
-                ->where('id', '!=', $transaction->id)
-                ->sum('quantity');
+            // Utiliser le cache puis soustraire la transaction actuelle
+            $totalBuyQuantity = \App\Models\Transaction::getCachedQuantity($portfolio->id, 'buy');
+            $totalSellQuantity = \App\Models\Transaction::getCachedQuantity($portfolio->id, 'sell');
+            
+            // Soustraire la transaction actuelle car elle n'est pas encore dans le cache
+            if ($transaction->type === 'buy') {
+                $totalBuyQuantity -= (float) $transaction->quantity;
+            } elseif ($transaction->type === 'sell') {
+                $totalSellQuantity -= (float) $transaction->quantity;
+            }
+            
             $totalQuantityBefore = $totalBuyQuantity - $totalSellQuantity;
             
             // Calculer la valeur moyenne investie par unité AVANT la vente
@@ -60,6 +62,11 @@ class PortfolioService
         }
 
         $portfolio->save();
+        
+        // Invalider le cache du portfolio après mise à jour
+        \Illuminate\Support\Facades\Cache::forget("portfolio:{$portfolio->id}:total_cost");
+        \Illuminate\Support\Facades\Cache::forget("portfolio:{$portfolio->id}:buy_count");
+        \Illuminate\Support\Facades\Cache::forget("portfolio:{$portfolio->id}:purchase_details");
     }
 
     /**
@@ -78,26 +85,32 @@ class PortfolioService
             ->get();
 
         // Enrichir chaque portfolio avec quantité détenue, prix courant, valeur courante, gain/perte
+        // Utiliser Redis cache pour des performances optimales
         return $portfolios->map(function ($portfolio) {
-            // Récupérer toutes les transactions d'achat (selon cahier des charges)
-            $buyTransactions = \App\Models\Transaction::where('portfolio_id', $portfolio->id)
-                ->where('type', 'buy')
-                ->orderBy('created_at')
-                ->get();
+            // Utiliser le cache Redis pour les quantités (beaucoup plus rapide)
+            $totalBuyQuantity = (float) \App\Models\Transaction::getCachedQuantity($portfolio->id, 'buy');
+            $totalSellQuantity = (float) \App\Models\Transaction::getCachedQuantity($portfolio->id, 'sell');
             
-            // Calculer le coût total de TOUS les achats (selon cahier des charges)
-            // Exemple : (1 × 10000) + (0.5 × 18000) + (0.5 × 20000) = 29000 euros
-            $totalCost = $buyTransactions->sum(function ($tx) {
-                return (float) $tx->quantity * (float) $tx->price_at_transaction;
+            // Pour le calcul du coût total, on a besoin des détails des transactions d'achat
+            // On utilise un cache séparé pour cela
+            $cacheKey = "portfolio:{$portfolio->id}:total_cost";
+            $totalCost = \Illuminate\Support\Facades\Cache::remember($cacheKey, 300, function () use ($portfolio) {
+                $buyTransactions = \App\Models\Transaction::where('portfolio_id', $portfolio->id)
+                    ->where('type', 'buy')
+                    ->get();
+                
+                return (float) $buyTransactions->sum(function ($tx) {
+                    return (float) $tx->quantity * (float) $tx->price_at_transaction;
+                });
             });
             
-            // Calculer la quantité totale achetée
-            $totalBuyQuantity = (float) $buyTransactions->sum('quantity');
-            
-            // Calculer la quantité totale vendue
-            $totalSellQuantity = (float) \App\Models\Transaction::where('portfolio_id', $portfolio->id)
-                ->where('type', 'sell')
-                ->sum('quantity');
+            // Pour le nombre de transactions d'achat
+            $cacheKeyCount = "portfolio:{$portfolio->id}:buy_count";
+            $buyTransactionsCount = \Illuminate\Support\Facades\Cache::remember($cacheKeyCount, 300, function () use ($portfolio) {
+                return \App\Models\Transaction::where('portfolio_id', $portfolio->id)
+                    ->where('type', 'buy')
+                    ->count();
+            });
             
             // Quantité actuellement possédée (selon cahier des charges)
             // Exemple : 1 + 0.5 + 0.5 = 2 BTC
@@ -142,8 +155,8 @@ class PortfolioService
             $portfolio->gain_loss = round($gainLoss, 8);
             $portfolio->gain_loss_percent = $gainLossPercent !== null ? round($gainLossPercent, 2) : null;
             
-            // Informations sur les transactions
-            $portfolio->buy_transactions_count = $buyTransactions->count();
+            // Informations sur les transactions (utiliser les valeurs mises en cache)
+            $portfolio->buy_transactions_count = $buyTransactionsCount;
             $portfolio->total_buy_quantity = $totalBuyQuantity;
             $portfolio->total_sell_quantity = $totalSellQuantity;
 
@@ -169,21 +182,24 @@ class PortfolioService
         }
         
         // Récupérer toutes les transactions d'achat avec leurs détails
-        $buyTransactions = \App\Models\Transaction::where('portfolio_id', $portfolio->id)
-            ->where('type', 'buy')
-            ->orderBy('created_at')
-            ->get()
-            ->map(function ($tx) {
-                return [
-                    'id' => $tx->id,
-                    'date' => $tx->created_at->format('Y-m-d'),
-                    'datetime' => $tx->created_at->toIso8601String(),
-                    'quantity' => (float) $tx->quantity,
-                    'price' => (float) $tx->price_at_transaction,
-                    'total_cost' => (float) $tx->quantity * (float) $tx->price_at_transaction,
-                ];
-            });
+        // Utiliser le cache Redis pour des performances optimales
+        $cacheKey = "portfolio:{$portfolio->id}:purchase_details";
         
-        return $buyTransactions;
+        return \Illuminate\Support\Facades\Cache::remember($cacheKey, 300, function () use ($portfolio) {
+            return \App\Models\Transaction::where('portfolio_id', $portfolio->id)
+                ->where('type', 'buy')
+                ->orderBy('created_at')
+                ->get()
+                ->map(function ($tx) {
+                    return [
+                        'id' => $tx->id,
+                        'date' => $tx->created_at->format('Y-m-d'),
+                        'datetime' => $tx->created_at->toIso8601String(),
+                        'quantity' => (float) $tx->quantity,
+                        'price' => (float) $tx->price_at_transaction,
+                        'total_cost' => (float) $tx->quantity * (float) $tx->price_at_transaction,
+                    ];
+                });
+        });
     }
 }

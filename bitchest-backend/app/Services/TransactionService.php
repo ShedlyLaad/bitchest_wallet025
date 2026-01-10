@@ -53,14 +53,10 @@ class TransactionService
 
             // --- Vérification quantité pour les ventes ---
             if ($type === 'sell') {
-                // Calculer la quantité totale détenue
-                $totalBuyQuantity = Transaction::where('portfolio_id', $portfolio->id)
-                    ->where('type', 'buy')
-                    ->sum('quantity');
-                $totalSellQuantity = Transaction::where('portfolio_id', $portfolio->id)
-                    ->where('type', 'sell')
-                    ->sum('quantity');
-                $totalQuantity = (float) $totalBuyQuantity - (float) $totalSellQuantity;
+                // Utiliser le cache Redis pour les quantités (beaucoup plus rapide)
+                $totalBuyQuantity = Transaction::getCachedQuantity($portfolio->id, 'buy');
+                $totalSellQuantity = Transaction::getCachedQuantity($portfolio->id, 'sell');
+                $totalQuantity = $totalBuyQuantity - $totalSellQuantity;
 
                 if ($totalQuantity < $quantity) {
                     throw new \InvalidArgumentException("Quantité insuffisante pour la vente. Vous possédez seulement {$totalQuantity}.");
@@ -80,6 +76,8 @@ class TransactionService
                 'price_at_transaction'=> $price,
                 'euro_amount'         => $amount,
             ]);
+
+            // Le cache est automatiquement invalidé via le hook booted() du modèle Transaction
 
             // --- MAJ portefeuille ---
             $this->portfolioService->updatePortfolio(

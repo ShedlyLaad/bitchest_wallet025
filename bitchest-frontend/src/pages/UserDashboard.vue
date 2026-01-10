@@ -650,59 +650,232 @@
         </Transition>
 
         <!-- Transaction History Tab -->
-        <div v-if="activeTab === 'history'">
-          <h3 class="text-lg font-semibold mb-3">Transaction History</h3>
-          <div v-if="isLoadingTransactions" class="space-y-2">
-            <div v-for="i in 5" :key="i" class="bg-gray-700/30 rounded-lg p-3 h-16 animate-pulse"></div>
-          </div>
-          <div v-else-if="transactions.length > 0" class="space-y-2">
-            <div 
-              v-for="tx in transactions" 
-              :key="tx.id" 
-              class="bg-gray-700/30 rounded-lg p-3 flex items-center justify-between hover:bg-gray-700/50 transition-colors"
-            >
-              <div>
-                <div class="font-medium">
-                  <span :style="{ color: tx.type === 'buy' ? '#01ff19' : '#ff5964' }">
-                    {{ tx.type.toUpperCase() }}
-                  </span>
-                  {{ tx.portfolio?.crypto?.symbol || 'N/A' }}
+        <Transition name="fade-slide">
+          <div v-if="activeTab === 'history'" class="space-y-6">
+            <div class="bg-gradient-to-br from-gray-700/40 to-gray-800/40 backdrop-blur-sm rounded-xl p-6 border border-gray-700/50">
+              <div class="flex items-center gap-3 mb-4">
+                <div class="p-2 bg-blue-500/20 rounded-lg">
+                  <History class="h-5 w-5 text-blue-400" />
                 </div>
-                <div class="text-sm text-gray-400">{{ new Date(tx.created_at).toLocaleDateString() }} {{ new Date(tx.created_at).toLocaleTimeString() }}</div>
+                <h3 class="text-lg font-semibold">Transaction History</h3>
               </div>
-              <div class="text-right">
-                <div class="font-semibold">{{ formatEUR(tx.euro_amount) }}</div>
-                <div class="text-sm text-gray-400">{{ tx.quantity }} @ {{ formatEUR(tx.price_at_transaction) }}</div>
+              
+              <div v-if="isLoadingTransactions" class="space-y-3">
+                <div v-for="i in 5" :key="i" class="bg-gray-700/30 rounded-xl p-4 h-20 animate-pulse border border-gray-700/30"></div>
+              </div>
+              <div v-else-if="transactions.length > 0" class="space-y-3">
+                <div 
+                  v-for="tx in transactions" 
+                  :key="tx.id" 
+                  @click="openTransactionDetails(tx)"
+                  class="group bg-gradient-to-br from-gray-700/40 to-gray-800/40 backdrop-blur-sm rounded-xl p-4 flex items-center justify-between hover:border-blue-500/50 hover:shadow-lg hover:shadow-blue-500/10 hover:scale-[1.01] transition-all duration-300 border border-gray-700/50 cursor-pointer"
+                >
+                  <div class="flex items-center gap-4 flex-1">
+                    <div 
+                      class="w-12 h-12 rounded-xl flex items-center justify-center border-2 transition-all duration-300 group-hover:scale-110 flex-shrink-0"
+                      :style="tx.type === 'buy' 
+                        ? { backgroundColor: 'rgba(1, 255, 25, 0.2)', borderColor: 'rgba(1, 255, 25, 0.3)' } 
+                        : { backgroundColor: 'rgba(255, 89, 100, 0.2)', borderColor: 'rgba(255, 89, 100, 0.3)' }"
+                    >
+                      <component 
+                        :is="tx.type === 'buy' ? TrendingUp : TrendingDown" 
+                        class="h-6 w-6"
+                        :style="{ color: tx.type === 'buy' ? '#01ff19' : '#ff5964' }"
+                      />
+                    </div>
+                    <div class="flex-1 min-w-0">
+                      <div class="font-semibold text-white mb-1 flex items-center gap-2">
+                        <span 
+                          class="px-2 py-0.5 rounded-lg text-xs font-bold"
+                          :style="tx.type === 'buy' 
+                            ? { backgroundColor: 'rgba(1, 255, 25, 0.2)', color: '#01ff19', border: '1px solid rgba(1, 255, 25, 0.3)' } 
+                            : { backgroundColor: 'rgba(255, 89, 100, 0.2)', color: '#ff5964', border: '1px solid rgba(255, 89, 100, 0.3)' }"
+                        >
+                          {{ tx.type.toUpperCase() }}
+                        </span>
+                        <span>{{ tx.portfolio?.crypto?.symbol || 'N/A' }}</span>
+                      </div>
+                      <div class="text-sm text-gray-400 flex items-center gap-2">
+                        <Clock class="h-3.5 w-3.5" />
+                        {{ new Date(tx.created_at).toLocaleString('fr-FR', { dateStyle: 'short', timeStyle: 'short' }) }}
+                      </div>
+                    </div>
+                  </div>
+                  <div class="text-right ml-4">
+                    <div class="font-bold text-lg text-white">{{ formatEUR(tx.euro_amount) }}</div>
+                    <div class="text-sm text-gray-400 font-mono">{{ tx.quantity }} @ {{ formatEUR(tx.price_at_transaction) }}</div>
+                  </div>
+                </div>
+
+                <!-- Pagination -->
+                <div v-if="pagination.last_page > 1" class="flex items-center justify-between pt-4 border-t border-gray-700">
+                  <button
+                    @click="loadTransactions(pagination.current_page - 1)"
+                    :disabled="pagination.current_page === 1"
+                    class="px-4 py-2 bg-gray-700 rounded-lg hover:bg-gray-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    Previous
+                  </button>
+                  <span class="text-sm text-gray-400">
+                    Page {{ pagination.current_page }} of {{ pagination.last_page }}
+                  </span>
+                  <button
+                    @click="loadTransactions(pagination.current_page + 1)"
+                    :disabled="pagination.current_page === pagination.last_page"
+                    class="px-4 py-2 bg-gray-700 rounded-lg hover:bg-gray-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    Next
+                  </button>
+                </div>
+              </div>
+              <div v-else class="bg-gray-800/30 rounded-xl p-8 text-center border border-gray-700/30">
+                <div class="inline-block p-4 bg-gray-700/30 rounded-full mb-4">
+                  <History class="h-8 w-8 text-gray-500" />
+                </div>
+                <p class="text-gray-400">No transaction history available. Start trading to see your history.</p>
+              </div>
+            </div>
+          </div>
+        </Transition>
+      </div>
+    </div>
+
+    <!-- Transaction Details Modal -->
+    <Transition name="modal">
+      <div
+        v-if="selectedTransaction"
+        class="fixed inset-0 z-50 flex items-center justify-center p-4"
+        @click.self="closeTransactionDetails"
+      >
+        <!-- Backdrop with blur -->
+        <div class="absolute inset-0 bg-black/60 backdrop-blur-md"></div>
+        
+        <!-- Modal Content -->
+        <div class="relative z-10 bg-gradient-to-br from-gray-800/95 to-gray-900/95 backdrop-blur-xl rounded-2xl border border-gray-700/50 shadow-2xl max-w-md w-full max-h-[90vh] overflow-hidden flex flex-col">
+          <!-- Header -->
+          <div class="px-6 py-5 flex items-center justify-between border-b border-gray-700/50">
+            <div class="flex items-center gap-3">
+              <div
+                :class="[
+                  'w-10 h-10 rounded-xl flex items-center justify-center transition-all',
+                  selectedTransaction.type === 'buy'
+                    ? 'bg-green-500/20 text-green-400 border border-green-500/30'
+                    : 'bg-red-500/20 text-red-400 border border-red-500/30'
+                ]"
+              >
+                <component 
+                  :is="selectedTransaction.type === 'buy' ? TrendingUp : TrendingDown" 
+                  class="h-5 w-5"
+                />
+              </div>
+              <div>
+                <h2 class="text-xl font-semibold text-white">Transaction Details</h2>
+                <!-- <p class="text-xs text-gray-400 mt-0.5">ID: #{{ selectedTransaction.id }}</p> -->
+              </div>
+            </div>
+            <button
+              @click="closeTransactionDetails"
+              class="w-8 h-8 flex items-center justify-center text-gray-400 hover:text-white hover:bg-gray-700/50 rounded-lg transition-colors"
+            >
+              <X class="h-4 w-4" />
+            </button>
+          </div>
+          
+          <!-- Content -->
+          <div class="overflow-y-auto flex-1 p-6 space-y-5">
+            <!-- Type Badge -->
+            <div class="flex justify-center">
+              <span
+                :class="[
+                  'px-4 py-2 rounded-xl text-sm font-bold uppercase',
+                  selectedTransaction.type === 'buy'
+                    ? 'bg-green-500/10 text-green-400 border border-green-500/20'
+                    : 'bg-red-500/10 text-red-400 border border-red-500/20'
+                ]"
+              >
+                {{ selectedTransaction.type }}
+              </span>
+            </div>
+
+            <!-- Crypto Info -->
+            <div class="space-y-3">
+              <div class="text-xs font-medium text-gray-400 uppercase tracking-wider">Cryptocurrency</div>
+              <div class="flex items-center gap-3 p-4 bg-gray-700/30 rounded-xl border border-gray-700/50">
+                <div class="w-12 h-12 rounded-lg bg-gray-700/50 flex items-center justify-center border border-gray-600/50 overflow-hidden flex-shrink-0" :data-symbol="selectedTransaction.portfolio?.crypto?.symbol">
+                  <img
+                    v-if="getCryptoIcon(selectedTransaction.portfolio?.crypto?.symbol || '')"
+                    :src="getCryptoIcon(selectedTransaction.portfolio?.crypto?.symbol || '')"
+                    :alt="selectedTransaction.portfolio?.crypto?.symbol || 'N/A'"
+                    class="w-full h-full object-contain p-2"
+                    @error="handleImageError($event)"
+                  />
+                  <span v-else class="text-sm font-semibold text-white">
+                    {{ selectedTransaction.portfolio?.crypto?.symbol?.charAt(0) || '?' }}
+                  </span>
+                </div>
+                <div class="flex-1 min-w-0">
+                  <div class="text-lg font-semibold text-white truncate">
+                    {{ selectedTransaction.portfolio?.crypto?.symbol || 'N/A' }}
+                  </div>
+                  <div class="text-sm text-gray-400 truncate">
+                    {{ selectedTransaction.portfolio?.crypto?.name || 'N/A' }}
+                  </div>
+                </div>
               </div>
             </div>
 
-            <!-- Pagination -->
-            <div v-if="pagination.last_page > 1" class="flex items-center justify-between pt-4 border-t border-gray-700">
-              <button
-                @click="loadTransactions(pagination.current_page - 1)"
-                :disabled="pagination.current_page === 1"
-                class="px-4 py-2 bg-gray-700 rounded-lg hover:bg-gray-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                Previous
-              </button>
-              <span class="text-sm text-gray-400">
-                Page {{ pagination.current_page }} of {{ pagination.last_page }}
-              </span>
-              <button
-                @click="loadTransactions(pagination.current_page + 1)"
-                :disabled="pagination.current_page === pagination.last_page"
-                class="px-4 py-2 bg-gray-700 rounded-lg hover:bg-gray-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                Next
-              </button>
+            <!-- Transaction Details -->
+            <div class="space-y-3">
+              <div class="text-xs font-medium text-gray-400 uppercase tracking-wider">Details</div>
+              <div class="grid grid-cols-2 gap-3">
+                <div class="p-4 bg-gray-700/30 rounded-xl border border-gray-700/50">
+                  <div class="text-xs text-gray-400 mb-1.5">Quantity</div>
+                  <div class="text-base font-semibold text-white font-mono">
+                    {{ parseFloat(selectedTransaction.quantity.toString()).toFixed(8) }}
+                  </div>
+                </div>
+                <div class="p-4 bg-gray-700/30 rounded-xl border border-gray-700/50">
+                  <div class="text-xs text-gray-400 mb-1.5">Price per Unit</div>
+                  <div class="text-base font-semibold text-white font-mono">
+                    {{ formatEUR(selectedTransaction.price_at_transaction) }}
+                  </div>
+                </div>
+                <div class="p-4 bg-gray-700/30 rounded-xl border border-gray-700/50 col-span-2">
+                  <div class="text-xs text-gray-400 mb-1.5">Date & Time</div>
+                  <div class="text-sm font-medium text-white flex items-center gap-2">
+                    <Clock class="h-4 w-4 text-gray-400" />
+                    {{ new Date(selectedTransaction.created_at).toLocaleString('fr-FR', { 
+                      dateStyle: 'long', 
+                      timeStyle: 'medium' 
+                    }) }}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Total Amount -->
+            <div class="pt-4 border-t border-gray-700/50">
+              <div class="flex items-center justify-between p-4 bg-gradient-to-r from-gray-700/30 to-gray-800/30 rounded-xl border border-gray-700/50">
+                <div class="text-sm font-medium text-gray-400">Total Amount</div>
+                <div class="text-2xl font-bold text-white">
+                  {{ formatEUR(selectedTransaction.euro_amount) }}
+                </div>
+              </div>
             </div>
           </div>
-          <div v-else class="bg-gray-700/30 rounded-lg p-8 text-center text-gray-400">
-            <p>No transaction history available.</p>
+
+          <!-- Footer -->
+          <div class="px-6 py-4 border-t border-gray-700/50 flex justify-end">
+            <button
+              @click="closeTransactionDetails"
+              class="px-6 py-2 bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-700 hover:to-blue-600 text-white rounded-xl text-sm font-medium transition-all duration-200 transform hover:scale-105 hover:shadow-lg hover:shadow-blue-500/30"
+            >
+              Close
+            </button>
           </div>
         </div>
       </div>
-    </div>
+    </Transition>
 
     <!-- Footer - Minimal -->
     <UserFooter />
@@ -711,7 +884,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue';
-import { Wallet, TrendingUp, TrendingDown, Activity, User, Shield, CreditCard, History, Plus, Calendar, Euro, Clock } from 'lucide-vue-next';
+import { Wallet, TrendingUp, TrendingDown, Activity, User, Shield, CreditCard, History, Plus, Calendar, Euro, Clock, X } from 'lucide-vue-next';
 import UserFooter from '@/components/UserFooter.vue';
 import { formatEUR } from '@/utils/formatEUR';
 import { useAuthStore } from '@/stores/auth';
@@ -732,6 +905,7 @@ const pagination = ref({
   per_page: 10,
   total: 0
 });
+const selectedTransaction = ref<Transaction | null>(null);
 
 const tabs = [
   { id: 'overview', label: 'Overview', icon: User },
@@ -1098,6 +1272,14 @@ onMounted(async () => {
   }, 86400000);
 });
 
+function openTransactionDetails(transaction: Transaction) {
+  selectedTransaction.value = transaction;
+}
+
+function closeTransactionDetails() {
+  selectedTransaction.value = null;
+}
+
 onUnmounted(() => {
   if (portfolioRefreshTimer) clearInterval(portfolioRefreshTimer);
 });
@@ -1148,5 +1330,46 @@ onUnmounted(() => {
 .scrollbar-hide {
   -ms-overflow-style: none;
   scrollbar-width: none;
+}
+
+/* Modal Transitions */
+.modal-enter-active,
+.modal-leave-active {
+  transition: opacity 0.3s ease;
+}
+
+.modal-enter-active .relative.z-10,
+.modal-leave-active .relative.z-10 {
+  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.3s ease;
+}
+
+.modal-enter-from,
+.modal-leave-to {
+  opacity: 0;
+}
+
+.modal-enter-from .relative.z-10,
+.modal-leave-to .relative.z-10 {
+  transform: scale(0.9);
+  opacity: 0;
+}
+
+/* Custom scrollbar for modal */
+.overflow-y-auto::-webkit-scrollbar {
+  width: 6px;
+}
+
+.overflow-y-auto::-webkit-scrollbar-track {
+  background: rgba(31, 41, 55, 0.5);
+  border-radius: 3px;
+}
+
+.overflow-y-auto::-webkit-scrollbar-thumb {
+  background: rgba(107, 114, 128, 0.5);
+  border-radius: 3px;
+}
+
+.overflow-y-auto::-webkit-scrollbar-thumb:hover {
+  background: rgba(107, 114, 128, 0.7);
 }
 </style>

@@ -26,9 +26,10 @@
         </select>
         <input
           v-model="filters.symbol"
-          @input="debounceLoad"
-          placeholder="Filter by symbol..."
-          class="bg-gray-800/80 border border-gray-700 rounded-lg px-4 py-2.5 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all hover:bg-gray-800 text-sm w-40"
+          @keydown.enter="handleSymbolEnter"
+          @keydown.esc="handleSymbolEsc"
+          placeholder="Filter by symbol (e.g. BTC, ETH)..."
+          class="bg-gray-800/80 border border-gray-700 rounded-lg px-4 py-2.5 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all hover:bg-gray-800 text-sm w-48"
         />
       </div>
     </div>
@@ -350,7 +351,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, watch, onUnmounted } from 'vue';
 import { useRoute } from 'vue-router';
 import {
   AlertCircle,
@@ -410,14 +411,44 @@ function formatDateTime(date: string | Date) {
   });
 }
 
-function debounceLoad() {
-  if (debounceTimer) clearTimeout(debounceTimer);
+function handleSymbolEnter() {
+  // Annuler le debounce en cours et charger immédiatement
+  if (debounceTimer) {
+    clearTimeout(debounceTimer);
+    debounceTimer = null;
+  }
+  loadTransactions(1);
+}
+
+function handleSymbolEsc() {
+  // Réinitialiser le filtre et charger
+  filters.value.symbol = '';
+  if (debounceTimer) {
+    clearTimeout(debounceTimer);
+    debounceTimer = null;
+  }
+  loadTransactions(1);
+}
+
+function debounceLoad(resetPage: boolean = true) {
+  // Annuler le timer précédent si existant
+  if (debounceTimer) {
+    clearTimeout(debounceTimer);
+    debounceTimer = null;
+  }
+  
+  // Créer un nouveau timer avec debounce de 350ms
   debounceTimer = setTimeout(() => {
-    loadTransactions();
-  }, 500);
+    const targetPage = resetPage ? 1 : (pagination.value?.current_page || 1);
+    loadTransactions(targetPage);
+    debounceTimer = null;
+  }, 350);
 }
 
 async function loadTransactions(page: number = 1) {
+  // Éviter les requêtes multiples simultanées
+  if (loading.value) return;
+  
   loading.value = true;
   errorMessage.value = '';
   try {
@@ -425,9 +456,18 @@ async function loadTransactions(page: number = 1) {
       per_page: 25,
       page,
     };
-    if (filters.value.type) params.type = filters.value.type;
-    if (filters.value.symbol) params.symbol = filters.value.symbol;
-    if (filters.value.user_id) params.user_id = filters.value.user_id;
+    
+    // Ne pas envoyer les filtres vides
+    const filterType = filters.value.type;
+    if (filterType && filterType !== '') {
+      params.type = filterType as 'buy' | 'sell';
+    }
+    if (filters.value.symbol && filters.value.symbol.trim() !== '') {
+      params.symbol = filters.value.symbol.trim().toUpperCase(); // Normaliser en majuscules
+    }
+    if (filters.value.user_id) {
+      params.user_id = filters.value.user_id;
+    }
 
     const data = await getAdminTransactions(params);
     transactions.value = data.data || [];
@@ -444,6 +484,8 @@ async function loadTransactions(page: number = 1) {
   } catch (e: any) {
     errorMessage.value = e?.response?.data?.message || 'Unable to load transactions';
     console.error('Error loading transactions:', e);
+    transactions.value = [];
+    pagination.value = null;
   } finally {
     loading.value = false;
   }
@@ -474,6 +516,32 @@ function closeDetails() {
     window.history.replaceState({}, '', route.path);
   }
 }
+
+// Watch pour le filtre symbol avec debounce automatique
+watch(() => filters.value.symbol, (newValue, oldValue) => {
+  // Ne pas déclencher lors du montage initial (oldValue est undefined)
+  if (oldValue === undefined) return;
+  
+  // Ne pas déclencher si la valeur est identique
+  if (newValue === oldValue) return;
+  
+  // Déclencher le debounce avec réinitialisation à la page 1
+  debounceLoad(true);
+});
+
+// Watch pour le filtre type (sans debounce car changement via select)
+watch(() => filters.value.type, () => {
+  // Réinitialiser à la page 1 et charger immédiatement
+  loadTransactions(1);
+}, { immediate: false });
+
+// Nettoyer le timer lors du démontage
+onUnmounted(() => {
+  if (debounceTimer) {
+    clearTimeout(debounceTimer);
+    debounceTimer = null;
+  }
+});
 
 onMounted(async () => {
   const auth = useAuthStore();

@@ -97,13 +97,10 @@ class TransactionController extends Controller
             'crypto_currency_id' => $crypto->id,
         ], ['total_crypto_value' => 0]);
 
-        $totalBuyQuantity = TransactionModel::where('portfolio_id', $portfolio->id)
-            ->where('type', 'buy')
-            ->sum('quantity');
-        $totalSellQuantity = TransactionModel::where('portfolio_id', $portfolio->id)
-            ->where('type', 'sell')
-            ->sum('quantity');
-        $totalQuantity = (float) $totalBuyQuantity - (float) $totalSellQuantity;
+        // Utiliser le cache Redis pour des performances optimales
+        $totalBuyQuantity = TransactionModel::getCachedQuantity($portfolio->id, 'buy');
+        $totalSellQuantity = TransactionModel::getCachedQuantity($portfolio->id, 'sell');
+        $totalQuantity = $totalBuyQuantity - $totalSellQuantity;
 
         if ($totalQuantity < (float) $request->quantity) {
             return response()->json(['message' => "Quantité insuffisante pour la vente. Vous possédez seulement {$totalQuantity}."], 400);
@@ -135,19 +132,28 @@ class TransactionController extends Controller
 
     /**
      * Retourne l'historique des transactions pour l'utilisateur authentifié
+     * Utilise Redis cache pour un affichage instantané
      */
     public function history(Request $request)
     {
         $user = auth()->user();
-
-        $query = Transaction::with(['portfolio.crypto'])
-            ->whereHas('portfolio', function ($q) use ($user) {
-                $q->where('user_id', $user->id);
-            });
-
         $perPage = (int) $request->input('per_page', 50);
+        $page = (int) $request->input('page', 1);
 
-        $transactions = $query->orderBy('created_at', 'desc')->paginate($perPage);
+        // Clé de cache unique pour cette requête
+        $cacheKey = "transaction:user:{$user->id}:history:page:{$page}:perpage:{$perPage}";
+        
+        // TTL de cache : 2 minutes pour l'historique
+        $cacheTTL = 120;
+
+        $transactions = \Illuminate\Support\Facades\Cache::remember($cacheKey, $cacheTTL, function () use ($user, $perPage) {
+            $query = Transaction::with(['portfolio.crypto'])
+                ->whereHas('portfolio', function ($q) use ($user) {
+                    $q->where('user_id', $user->id);
+                });
+
+            return $query->orderBy('created_at', 'desc')->paginate($perPage);
+        });
 
         return response()->json($transactions);
     }

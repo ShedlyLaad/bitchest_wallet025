@@ -419,273 +419,292 @@
       </div>
     </div>
 
-    <!-- Sell Modal -->
-    <div v-if="showSellModal && selectedHolding" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm" @click="closeSellModal">
+    <!-- Sell Modal - Optimized and Minimalist -->
+    <Transition name="modal">
       <div
-        class="bg-gray-800 rounded-xl border border-gray-700 w-full max-w-md overflow-hidden shadow-2xl"
-        @click.stop
+        v-if="showSellModal && selectedHolding"
+        class="fixed inset-0 z-50 flex items-center justify-center p-4"
+        @click.self="closeSellModal"
       >
-        <!-- Modal Header -->
-        <div class="flex items-center justify-between p-6 border-b border-gray-700 bg-gradient-to-r from-gray-800 to-gray-800/80">
-          <div class="flex items-center gap-3">
-            <div class="w-10 h-10 rounded-lg flex items-center justify-center" style="background-color: rgba(255, 89, 100, 0.2);">
-              <TrendingDown class="h-5 w-5" style="color: #ff5964;" />
-            </div>
-            <div>
-              <h2 class="text-xl font-bold">Sell {{ selectedHolding.symbol }}</h2>
-              <p class="text-sm text-gray-400">Available: {{ selectedHolding.quantity.toFixed(8) }} {{ selectedHolding.symbol }}</p>
-            </div>
-          </div>
-          <button @click="closeSellModal" class="p-2 hover:bg-gray-700 rounded-lg transition-colors" aria-label="Close">
-            <X class="h-5 w-5" />
-          </button>
-        </div>
-
-        <!-- Modal Content -->
-        <div class="p-6 space-y-5">
-          <!-- Quick Info Cards -->
-          <div class="grid grid-cols-2 gap-3">
-            <div class="bg-gradient-to-br from-gray-700/40 to-gray-800/40 rounded-lg p-3 border border-gray-600/30">
-              <div class="text-xs text-gray-400 mb-1">Available Balance</div>
-              <div class="text-sm font-bold text-white font-mono">{{ selectedHolding.quantity.toFixed(8) }}</div>
-              <div class="text-xs text-gray-500 mt-0.5">{{ selectedHolding.symbol }}</div>
-            </div>
-            <div class="bg-gradient-to-br from-gray-700/40 to-gray-800/40 rounded-lg p-3 border border-gray-600/30">
-              <div class="text-xs text-gray-400 mb-1">Current Price</div>
-              <div class="text-sm font-bold text-white font-mono">{{ formatEUR(selectedHolding.currentPrice) }}</div>
-              <div class="text-xs mt-0.5" :style="{ color: selectedHolding.priceChange >= 0 ? '#01ff19' : '#ff5964' }">
-                {{ selectedHolding.priceChange >= 0 ? '+' : '' }}{{ selectedHolding.priceChange.toFixed(2) }}%
-              </div>
-            </div>
-          </div>
-
-          <!-- Quantity Input with Sell All Button -->
-          <div>
-            <div class="flex items-center justify-between mb-2">
-              <label class="block text-sm font-semibold text-gray-300">
-              Quantity ({{ selectedHolding.symbol }})
-            </label>
-              <button
-                @click="sellAllQuantity"
-                class="group relative px-3 py-1.5 text-xs font-semibold rounded-lg transition-all duration-200 hover:scale-105 active:scale-95 overflow-hidden"
-                style="background: linear-gradient(135deg, rgba(255, 89, 100, 0.2), rgba(255, 89, 100, 0.15)); border: 1px solid rgba(255, 89, 100, 0.3); color: #ff5964;"
+        <!-- Backdrop with blur -->
+        <div class="absolute inset-0 bg-black/60 backdrop-blur-md"></div>
+        
+        <!-- Modal Content - Compact -->
+        <div class="relative z-10 bg-gradient-to-br from-gray-800/95 to-gray-900/95 backdrop-blur-xl rounded-2xl border border-gray-700/50 shadow-2xl w-full max-w-sm overflow-hidden">
+          <!-- Modal Header - Compact -->
+          <div class="px-5 py-4 flex items-center justify-between border-b border-gray-700/50">
+            <div class="flex items-center gap-3">
+              <div
+                class="w-9 h-9 rounded-xl flex items-center justify-center transition-all"
+                style="background-color: rgba(255, 89, 100, 0.2); border: 1px solid rgba(255, 89, 100, 0.3);"
               >
-                <span class="relative z-10 flex items-center gap-1.5">
-                  <svg class="w-3.5 h-3.5 transition-transform group-hover:rotate-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
-                  </svg>
-                  Sell All
-                </span>
-                <div class="absolute inset-0 bg-gradient-to-r from-red-500/0 via-red-500/0 to-red-500/0 group-hover:from-red-500/10 group-hover:via-red-500/5 group-hover:to-red-500/0 transition-all duration-300"></div>
-              </button>
-            </div>
-            <div class="relative">
-            <input
-              v-model="sellQuantity"
-              type="number"
-              :max="selectedHolding.quantity"
-              :step="0.00000001"
-              :min="0"
-              placeholder="0.00000000"
-                class="w-full bg-gray-900/50 border-2 border-gray-700 rounded-xl px-4 pr-24 py-3.5 text-emerald-400 placeholder-gray-500/60 font-mono text-base font-semibold tracking-wide focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/30 transition-all duration-200"
-            />
-              <div class="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-2">
-                <span class="text-xs text-gray-500 font-medium">{{ selectedHolding.symbol }}</span>
-                <div class="h-4 w-px bg-gray-600"></div>
-                <button
-                  @click="setHalfQuantity"
-                  class="px-2 py-1 text-xs font-medium text-gray-400 hover:text-white hover:bg-gray-700/50 rounded transition-colors"
-                  title="Set 50%"
-                >
-                  50%
-                </button>
+                <TrendingDown class="h-4 w-4" style="color: #ff5964;" />
+              </div>
+              <div>
+                <h2 class="text-lg font-semibold text-white">Sell {{ selectedHolding.symbol }}</h2>
+                <p class="text-xs text-gray-400 mt-0.5">Available: {{ selectedHolding.quantity.toFixed(8) }}</p>
               </div>
             </div>
-            <!-- Quantity Progress Bar -->
-            <div class="mt-2">
-              <div class="flex items-center justify-between text-xs text-gray-400 mb-1">
-                <span>Quantity entered</span>
-                <span>{{ quantityPercentage.toFixed(1) }}%</span>
-              </div>
-              <div class="w-full h-1.5 bg-gray-700/50 rounded-full overflow-hidden">
-                <div
-                  class="h-full rounded-full transition-all duration-300"
-                  :style="{
-                    width: `${Math.min(100, quantityPercentage)}%`,
-                    background: 'linear-gradient(90deg, rgba(255, 89, 100, 0.6), rgba(255, 89, 100, 0.8))'
-                  }"
-                ></div>
-              </div>
-            </div>
-          </div>
-
-          <!-- Enhanced Amount Display -->
-          <div class="bg-gradient-to-br from-gray-700/40 via-gray-800/40 to-gray-700/40 rounded-xl p-5 border border-gray-600/30 shadow-lg">
-            <div class="flex items-center justify-between mb-3">
-              <span class="text-sm text-gray-400 font-medium">Estimated Value (EUR)</span>
-              <div class="w-8 h-8 rounded-full bg-gray-700/50 flex items-center justify-center border border-gray-600/30">
-                <TrendingDown class="h-4 w-4 text-gray-400" />
-              </div>
-            </div>
-            <div class="text-3xl font-bold text-white font-mono mb-2">{{ formatEUR(sellAmount) }}</div>
-            <div class="flex items-center justify-between text-xs text-gray-500 pt-2 border-t border-gray-700/50">
-              <span>Quantity: {{ (parseFloat(sellQuantity) || 0).toFixed(8) }} {{ selectedHolding.symbol }}</span>
-              <span>Price: {{ formatEUR(selectedHolding.currentPrice) }}</span>
-            </div>
-          </div>
-
-          <!-- Error Message -->
-          <Transition name="slide-fade">
-            <div v-if="sellError" class="border-2 backdrop-blur-sm rounded-xl p-4" style="background-color: rgba(255, 89, 100, 0.15); border-color: rgba(255, 89, 100, 0.5);">
-              <div class="flex items-start gap-3">
-                <div class="w-2 h-2 rounded-full mt-2 flex-shrink-0" style="background-color: #ff5964;"></div>
-                <p class="text-sm font-medium" style="color: rgba(255, 89, 100, 0.9);">{{ sellError }}</p>
-              </div>
-            </div>
-          </Transition>
-
-          <!-- Success Message -->
-          <Transition name="slide-fade">
-            <div v-if="sellSuccess" class="border-2 backdrop-blur-sm rounded-xl p-4" style="background-color: rgba(1, 255, 25, 0.15); border-color: rgba(1, 255, 25, 0.5);">
-              <div class="flex items-start gap-3">
-                <div class="w-2 h-2 rounded-full mt-2 flex-shrink-0" style="background-color: #01ff19;"></div>
-                <p class="text-sm font-medium" style="color: rgba(1, 255, 25, 0.9);">{{ sellSuccess }}</p>
-              </div>
-            </div>
-          </Transition>
-
-          <!-- Action Buttons -->
-          <div class="flex flex-col gap-3 pt-2">
-            <!-- Primary Sell Button -->
-            <button
-              @click="handleSell"
-              :disabled="isSelling || !canSell"
-              class="group relative w-full px-6 py-4 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold rounded-xl transition-all duration-200 hover:scale-[1.02] hover:shadow-xl active:scale-[0.98] overflow-hidden"
-              style="background: linear-gradient(135deg, #ff5964, #ff4757); box-shadow: 0 4px 14px rgba(255, 89, 100, 0.3);"
-            >
-              <span class="relative z-10 flex items-center justify-center gap-2">
-                <svg v-if="!isSelling" class="w-5 h-5 transition-transform group-hover:rotate-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-                </svg>
-                <svg v-else class="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24">
-                  <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                  <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                </svg>
-                {{ isSelling ? 'Processing Sale...' : `Sell ${(parseFloat(sellQuantity) || 0).toFixed(8)} ${selectedHolding.symbol}` }}
-              </span>
-              <div class="absolute inset-0 bg-gradient-to-r from-transparent via-white/0 to-transparent group-hover:via-white/10 transition-all duration-700 transform -translate-x-full group-hover:translate-x-full"></div>
-            </button>
-            
-            <!-- Secondary Cancel Button -->
             <button
               @click="closeSellModal"
-              class="px-6 py-3 bg-gray-700/50 hover:bg-gray-600/50 border border-gray-600/50 text-white font-semibold rounded-xl transition-all duration-200 hover:scale-[1.01] active:scale-[0.99]"
+              class="w-7 h-7 flex items-center justify-center text-gray-400 hover:text-white hover:bg-gray-700/50 rounded-lg transition-colors"
+              aria-label="Close"
             >
-              Cancel
+              <X class="h-4 w-4" />
+            </button>
+          </div>
+
+          <!-- Modal Content - Compact -->
+          <div class="p-5 space-y-4">
+            <!-- Quick Info - Inline -->
+            <div class="flex items-center justify-between gap-3 p-3 bg-gray-700/30 rounded-xl border border-gray-700/50">
+              <div>
+                <div class="text-xs text-gray-400 mb-0.5">Current Price</div>
+                <div class="text-sm font-bold text-white font-mono">{{ formatEUR(selectedHolding.currentPrice) }}</div>
+              </div>
+              <div class="text-right">
+                <div class="text-xs text-gray-400 mb-0.5">Available</div>
+                <div class="text-sm font-bold text-white font-mono">{{ selectedHolding.quantity.toFixed(8) }}</div>
+              </div>
+            </div>
+
+            <!-- Quantity Input - Compact -->
+            <div>
+              <div class="flex items-center justify-between mb-2">
+                <label class="text-sm font-semibold text-gray-300">Quantity</label>
+                <div class="flex items-center gap-1.5">
+                  <button
+                    @click="setHalfQuantity"
+                    class="px-2 py-1 text-xs font-medium text-gray-400 hover:text-white hover:bg-gray-700/50 rounded transition-colors"
+                    title="50%"
+                  >
+                    50%
+                  </button>
+                  <button
+                    @click="sellAllQuantity"
+                    class="px-2 py-1 text-xs font-semibold rounded transition-all duration-200 hover:scale-105"
+                    style="background: rgba(255, 89, 100, 0.2); border: 1px solid rgba(255, 89, 100, 0.3); color: #ff5964;"
+                  >
+                    All
+                  </button>
+                </div>
+              </div>
+              <div class="relative">
+                <input
+                  v-model="sellQuantity"
+                  type="number"
+                  :max="selectedHolding.quantity"
+                  :step="0.00000001"
+                  :min="0"
+                  placeholder="0.00000000"
+                  class="w-full bg-gray-900/50 border-2 border-gray-700 rounded-xl px-4 pr-20 py-3 text-emerald-400 placeholder-gray-500/60 font-mono text-sm font-semibold tracking-wide focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/30 transition-all duration-200"
+                />
+                <span class="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-gray-500 font-medium">{{ selectedHolding.symbol }}</span>
+              </div>
+              <!-- Compact Progress Bar -->
+              <div class="mt-2">
+                <div class="w-full h-1 bg-gray-700/50 rounded-full overflow-hidden">
+                  <div
+                    class="h-full rounded-full transition-all duration-300"
+                    :style="{
+                      width: `${Math.min(100, quantityPercentage)}%`,
+                      background: 'linear-gradient(90deg, rgba(255, 89, 100, 0.6), rgba(255, 89, 100, 0.8))'
+                    }"
+                  ></div>
+                </div>
+                <div class="flex items-center justify-between text-xs text-gray-400 mt-1">
+                  <span>{{ quantityPercentage.toFixed(1) }}%</span>
+                  <span>{{ (parseFloat(sellQuantity) || 0).toFixed(8) }} {{ selectedHolding.symbol }}</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Amount Display - Compact -->
+            <div class="bg-gradient-to-r from-gray-700/30 to-gray-800/30 rounded-xl p-4 border border-gray-700/50">
+              <div class="text-xs text-gray-400 mb-1.5">Estimated Value</div>
+              <div class="text-2xl font-bold text-white font-mono mb-1">{{ formatEUR(sellAmount) }}</div>
+              <div class="text-xs text-gray-500">EUR</div>
+            </div>
+
+            <!-- Error Message - Compact -->
+            <Transition name="slide-fade">
+              <div v-if="sellError" class="border rounded-xl p-3 backdrop-blur-sm" style="background-color: rgba(255, 89, 100, 0.15); border-color: rgba(255, 89, 100, 0.5);">
+                <div class="flex items-center gap-2">
+                  <div class="w-1.5 h-1.5 rounded-full flex-shrink-0" style="background-color: #ff5964;"></div>
+                  <p class="text-xs font-medium" style="color: rgba(255, 89, 100, 0.9);">{{ sellError }}</p>
+                </div>
+              </div>
+            </Transition>
+
+            <!-- Success Message - Compact -->
+            <Transition name="slide-fade">
+              <div v-if="sellSuccess" class="border rounded-xl p-3 backdrop-blur-sm" style="background-color: rgba(1, 255, 25, 0.15); border-color: rgba(1, 255, 25, 0.5);">
+                <div class="flex items-center gap-2">
+                  <div class="w-1.5 h-1.5 rounded-full flex-shrink-0" style="background-color: #01ff19;"></div>
+                  <p class="text-xs font-medium" style="color: rgba(1, 255, 25, 0.9);">{{ sellSuccess }}</p>
+                </div>
+              </div>
+            </Transition>
+
+            <!-- Action Buttons - Compact -->
+            <div class="flex flex-col gap-2 pt-1">
+              <button
+                @click="handleSell"
+                :disabled="isSelling || !canSell"
+                class="group relative w-full px-4 py-3 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold rounded-xl transition-all duration-200 hover:scale-[1.02] hover:shadow-lg active:scale-[0.98] overflow-hidden"
+                style="background: linear-gradient(135deg, #ff5964, #ff4757); box-shadow: 0 4px 12px rgba(255, 89, 100, 0.3);"
+              >
+                <span class="relative z-10 flex items-center justify-center gap-2">
+                  <TrendingDown v-if="!isSelling" class="w-4 h-4 transition-transform group-hover:rotate-12" />
+                  <svg v-else class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  {{ isSelling ? 'Processing...' : `Sell ${selectedHolding.symbol}` }}
+                </span>
+                <div class="absolute inset-0 bg-gradient-to-r from-transparent via-white/0 to-transparent group-hover:via-white/10 transition-all duration-700 transform -translate-x-full group-hover:translate-x-full"></div>
+              </button>
+              
+              <button
+                @click="closeSellModal"
+                class="px-4 py-2.5 bg-gray-700/50 hover:bg-gray-600/50 border border-gray-600/50 text-white text-sm font-medium rounded-xl transition-all duration-200 hover:scale-[1.01] active:scale-[0.99]"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </Transition>
+
+    <!-- Purchase Details Modal - Optimized and Minimalist -->
+    <Transition name="modal">
+      <div
+        v-if="isPurchaseDetailsOpen && selectedHolding"
+        class="fixed inset-0 z-50 flex items-center justify-center p-4"
+        @click.self="closePurchaseDetails"
+      >
+        <!-- Backdrop with blur -->
+        <div class="absolute inset-0 bg-black/60 backdrop-blur-md"></div>
+        
+        <!-- Modal Content - Compact -->
+        <div class="relative z-10 bg-gradient-to-br from-gray-800/95 to-gray-900/95 backdrop-blur-xl rounded-2xl border border-gray-700/50 shadow-2xl w-full max-w-lg max-h-[90vh] overflow-hidden flex flex-col">
+          <!-- Modal Header - Compact -->
+          <div class="px-5 py-4 flex items-center justify-between border-b border-gray-700/50">
+            <div class="flex items-center gap-3">
+              <div class="w-9 h-9 rounded-xl bg-blue-500/20 border border-blue-500/30 flex items-center justify-center">
+                <Wallet class="h-4 w-4 text-blue-400" />
+              </div>
+              <div>
+                <h2 class="text-lg font-semibold text-white">Purchase Details</h2>
+                <p class="text-xs text-gray-400 mt-0.5">{{ selectedHolding.symbol }}</p>
+              </div>
+            </div>
+            <button
+              @click="closePurchaseDetails"
+              class="w-7 h-7 flex items-center justify-center text-gray-400 hover:text-white hover:bg-gray-700/50 rounded-lg transition-colors"
+              aria-label="Close"
+            >
+              <X class="h-4 w-4" />
+            </button>
+          </div>
+
+          <!-- Modal Content - Compact -->
+          <div class="flex-1 overflow-y-auto p-5">
+            <!-- Summary Cards - Compact -->
+            <div class="grid grid-cols-2 gap-3 mb-4">
+              <div class="bg-gray-700/30 rounded-xl p-3 border border-gray-700/50">
+                <div class="text-xs text-gray-400 mb-1">Total Quantity</div>
+                <div class="text-sm font-bold text-white font-mono">{{ selectedHolding.quantity.toFixed(8) }}</div>
+              </div>
+              <div class="bg-gray-700/30 rounded-xl p-3 border border-gray-700/50">
+                <div class="text-xs text-gray-400 mb-1">Avg Price</div>
+                <div class="text-sm font-bold text-white font-mono">{{ formatEUR(selectedHolding.avgPrice) }}</div>
+              </div>
+              <div class="bg-gray-700/30 rounded-xl p-3 border border-gray-700/50">
+                <div class="text-xs text-gray-400 mb-1">Current Price</div>
+                <div class="text-sm font-bold text-white font-mono">{{ formatEUR(selectedHolding.currentPrice) }}</div>
+              </div>
+              <div class="bg-gray-700/30 rounded-xl p-3 border border-gray-700/50">
+                <div class="text-xs text-gray-400 mb-1">Total Invested</div>
+                <div class="text-sm font-bold text-white font-mono">{{ formatEUR(selectedHolding.totalInvestedValue || (selectedHolding.avgPrice * selectedHolding.quantity)) }}</div>
+              </div>
+              <div class="bg-gray-700/30 rounded-xl p-3 border border-gray-700/50">
+                <div class="text-xs text-gray-400 mb-1">Current Value</div>
+                <div class="text-sm font-bold text-white font-mono">{{ formatEUR(selectedHolding.value) }}</div>
+              </div>
+              <div class="bg-gray-700/30 rounded-xl p-3 border border-gray-700/50">
+                <div class="text-xs text-gray-400 mb-1">Gain/Loss</div>
+                <div :class="['text-sm font-bold font-mono', selectedHolding.gainLoss >= 0 ? 'text-green-400' : 'text-red-400']">
+                  {{ selectedHolding.gainLoss >= 0 ? '+' : '' }}{{ formatEUR(Math.abs(selectedHolding.gainLoss)) }}
+                </div>
+                <div :class="['text-xs font-medium mt-0.5', selectedHolding.gainLossPercent >= 0 ? 'text-green-400' : 'text-red-400']">
+                  {{ selectedHolding.gainLossPercent >= 0 ? '+' : '' }}{{ Math.abs(selectedHolding.gainLossPercent).toFixed(2) }}%
+                </div>
+              </div>
+            </div>
+            <div v-if="isLoadingPurchaseDetails" class="flex justify-center items-center py-8">
+              <div class="h-8 w-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+            </div>
+            <div v-else-if="purchaseDetails.length > 0" class="space-y-3">
+              <div class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Purchase History</div>
+              <div class="overflow-x-auto">
+                <table class="w-full text-xs">
+                  <thead>
+                    <tr class="border-b border-gray-700/50">
+                      <th class="text-left py-2 px-2 text-gray-400 font-semibold">Date</th>
+                      <th class="text-right py-2 px-2 text-gray-400 font-semibold">Quantity</th>
+                      <th class="text-right py-2 px-2 text-gray-400 font-semibold">Price</th>
+                      <th class="text-right py-2 px-2 text-gray-400 font-semibold">Total</th>
+                    </tr>
+                  </thead>
+                  <tbody class="divide-y divide-gray-700/30">
+                    <tr v-for="purchase in purchaseDetails" :key="purchase.id" class="hover:bg-gray-700/20 transition-colors">
+                      <td class="py-2 px-2 text-gray-300">{{ new Date(purchase.datetime).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' }) }}</td>
+                      <td class="py-2 px-2 text-right text-white font-mono">{{ purchase.quantity.toFixed(8) }}</td>
+                      <td class="py-2 px-2 text-right text-white font-mono">{{ formatEUR(purchase.price) }}</td>
+                      <td class="py-2 px-2 text-right text-white font-mono font-semibold">{{ formatEUR(purchase.total_cost) }}</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+              <div class="bg-gray-700/30 rounded-xl p-3 mt-3 border border-gray-700/50">
+                <div class="grid grid-cols-2 gap-3 text-xs">
+                  <div>
+                    <span class="text-gray-400">Total Purchases:</span>
+                    <span class="ml-2 font-semibold text-white">{{ purchaseDetails.length }}</span>
+                  </div>
+                  <div>
+                    <span class="text-gray-400">Total Quantity:</span>
+                    <span class="ml-2 font-semibold text-white font-mono">{{ purchaseDetails.reduce((sum, p) => sum + p.quantity, 0).toFixed(8) }}</span>
+                  </div>
+                  <div class="col-span-2 pt-2 border-t border-gray-700/50">
+                    <span class="text-gray-400">Total Cost:</span>
+                    <span class="ml-2 font-bold text-white font-mono">{{ formatEUR(purchaseDetails.reduce((sum, p) => sum + p.total_cost, 0)) }}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div v-else class="bg-gray-700/20 rounded-xl p-6 text-center border border-gray-700/50">
+              <div class="inline-block p-3 bg-gray-700/30 rounded-full mb-3">
+                <Wallet class="h-6 w-6 text-gray-500" />
+              </div>
+              <p class="text-sm text-gray-400">No purchase history available.</p>
+            </div>
+          </div>
+
+          <!-- Footer -->
+          <div class="px-5 py-4 border-t border-gray-700/50 flex justify-end">
+            <button
+              @click="closePurchaseDetails"
+              class="px-5 py-2 bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-700 hover:to-blue-600 text-white rounded-xl text-sm font-medium transition-all duration-200 transform hover:scale-105 hover:shadow-lg hover:shadow-blue-500/30"
+            >
+              Close
             </button>
           </div>
         </div>
       </div>
-    </div>
-
-    <!-- Purchase Details Modal -->
-    <div v-if="isPurchaseDetailsOpen && selectedHolding" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm" @click="closePurchaseDetails">
-      <div
-        class="bg-gray-800 rounded-xl border border-gray-700 w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col shadow-2xl"
-        @click.stop
-      >
-        <!-- Modal Header -->
-        <div class="flex items-center justify-between p-6 border-b border-gray-700 bg-gradient-to-r from-gray-800 to-gray-800/80">
-          <div class="flex items-center gap-3">
-            <Wallet class="h-6 w-6 text-blue-400" />
-            <h2 class="text-xl font-bold">Purchase Details - {{ selectedHolding.symbol }}</h2>
-          </div>
-          <button @click="closePurchaseDetails" class="p-2 hover:bg-gray-700 rounded-lg transition-colors" aria-label="Close">
-            <X class="h-5 w-5" />
-          </button>
-        </div>
-
-        <!-- Modal Content -->
-        <div class="flex-1 overflow-y-auto p-6">
-          <div class="bg-gray-700/30 rounded-lg p-4 mb-4">
-            <div class="grid grid-cols-2 gap-4 text-sm">
-              <div>
-                <span class="text-gray-400">Total Quantity:</span>
-                <span class="ml-2 font-semibold text-white font-mono">{{ selectedHolding.quantity.toFixed(8) }}</span>
-              </div>
-              <div>
-                <span class="text-gray-400">Average Purchase Price:</span>
-                <span class="ml-2 font-semibold text-white font-mono">{{ formatEUR(selectedHolding.avgPrice) }}</span>
-              </div>
-              <div>
-                <span class="text-gray-400">Current Price:</span>
-                <span class="ml-2 font-semibold text-white font-mono">{{ formatEUR(selectedHolding.currentPrice) }}</span>
-              </div>
-              <div>
-                <span class="text-gray-400">Total Invested:</span>
-                <span class="ml-2 font-semibold text-white font-mono">{{ formatEUR(selectedHolding.totalInvestedValue || (selectedHolding.avgPrice * selectedHolding.quantity)) }}</span>
-              </div>
-              <div>
-                <span class="text-gray-400">Current Value:</span>
-                <span class="ml-2 font-semibold text-white font-mono">{{ formatEUR(selectedHolding.value) }}</span>
-              </div>
-              <div>
-                <span class="text-gray-400">Gain/Loss:</span>
-                <span :class="['ml-2 font-semibold font-mono', selectedHolding.gainLoss >= 0 ? 'text-green-400' : 'text-red-400']">
-                  {{ selectedHolding.gainLoss >= 0 ? '+' : '' }}{{ formatEUR(Math.abs(selectedHolding.gainLoss)) }}
-                  ({{ selectedHolding.gainLossPercent >= 0 ? '+' : '' }}{{ Math.abs(selectedHolding.gainLossPercent).toFixed(2) }}%)
-                </span>
-              </div>
-            </div>
-          </div>
-          <div v-if="isLoadingPurchaseDetails" class="flex justify-center items-center py-8">
-            <div class="h-8 w-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
-          </div>
-          <div v-else-if="purchaseDetails.length > 0" class="space-y-3">
-            <div class="text-sm font-semibold text-gray-300 mb-3">Purchase History</div>
-            <div class="overflow-x-auto">
-              <table class="w-full text-sm">
-                <thead>
-                  <tr class="border-b border-gray-700">
-                    <th class="text-left py-2 px-3 text-gray-400 font-semibold">Date</th>
-                    <th class="text-right py-2 px-3 text-gray-400 font-semibold">Quantity</th>
-                    <th class="text-right py-2 px-3 text-gray-400 font-semibold">Price</th>
-                    <th class="text-right py-2 px-3 text-gray-400 font-semibold">Total Cost</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr v-for="purchase in purchaseDetails" :key="purchase.id" class="border-b border-gray-700/50 hover:bg-gray-700/20">
-                    <td class="py-2 px-3 text-gray-300">{{ new Date(purchase.datetime).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' }) }}</td>
-                    <td class="py-2 px-3 text-right text-white font-mono">{{ purchase.quantity.toFixed(8) }}</td>
-                    <td class="py-2 px-3 text-right text-white font-mono">{{ formatEUR(purchase.price) }}</td>
-                    <td class="py-2 px-3 text-right text-white font-mono font-semibold">{{ formatEUR(purchase.total_cost) }}</td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-            <div class="bg-gray-700/30 rounded-lg p-4 mt-4">
-              <div class="grid grid-cols-2 gap-4 text-sm">
-                <div>
-                  <span class="text-gray-400">Total Purchases:</span>
-                  <span class="ml-2 font-semibold text-white">{{ purchaseDetails.length }}</span>
-                </div>
-                <div>
-                  <span class="text-gray-400">Total Quantity Bought:</span>
-                  <span class="ml-2 font-semibold text-white font-mono">{{ purchaseDetails.reduce((sum, p) => sum + p.quantity, 0).toFixed(8) }}</span>
-                </div>
-                <div class="col-span-2">
-                  <span class="text-gray-400">Total Cost:</span>
-                  <span class="ml-2 font-semibold text-white font-mono">{{ formatEUR(purchaseDetails.reduce((sum, p) => sum + p.total_cost, 0)) }}</span>
-                </div>
-              </div>
-            </div>
-          </div>
-          <div v-else class="bg-gray-700/20 rounded-lg p-4 text-center text-gray-400">
-            <p>No purchase history available.</p>
-          </div>
-        </div>
-      </div>
-    </div>
+    </Transition>
 
     <!-- Footer - Minimal -->
     <UserFooter />
@@ -1058,6 +1077,28 @@ onUnmounted(() => {
 .slide-fade-enter-from,
 .slide-fade-leave-to {
   transform: translateY(-10px);
+  opacity: 0;
+}
+
+/* Modal Transitions */
+.modal-enter-active,
+.modal-leave-active {
+  transition: opacity 0.3s ease;
+}
+
+.modal-enter-active .relative.z-10,
+.modal-leave-active .relative.z-10 {
+  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.3s ease;
+}
+
+.modal-enter-from,
+.modal-leave-to {
+  opacity: 0;
+}
+
+.modal-enter-from .relative.z-10,
+.modal-leave-to .relative.z-10 {
+  transform: scale(0.9);
   opacity: 0;
 }
 </style>

@@ -1,5 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router';
 import { useAuthStore } from '@/stores/auth';
+import { updatePageHead } from '@/utils/pageTitle';
 import type { Role } from '@/types';
 
 declare module 'vue-router' {
@@ -104,6 +105,11 @@ router.beforeEach(async (to, _from, next) => {
   }
 
   return next();
+});
+
+// Update page title and favicon on route change
+router.afterEach((to) => {
+  updatePageHead(to.name);
 });
 
 export default router;

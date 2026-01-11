@@ -6,6 +6,7 @@ import router from './router';
 import './index.css';
 import { preloader } from './utils/preloader';
 import { useAuthStore } from './stores/auth';
+import { updatePageHead } from './utils/pageTitle';
 
 const app = createApp(App);
 const pinia = createPinia();
@@ -16,6 +17,9 @@ app.use(MotionPlugin);
 
 // Précharger les données critiques après que l'app soit montée
 app.mount('#app');
+
+// Set initial page title and favicon based on current route
+updatePageHead(router.currentRoute.value.name?.toString());
 
 // Précharger les données si l'utilisateur est déjà authentifié
 const auth = useAuthStore();

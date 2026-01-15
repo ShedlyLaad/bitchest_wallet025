@@ -13,13 +13,12 @@ return [
     | authentication cookies. Typically, these should include your local
     | and production domains which access your API via a frontend SPA.
     |
+    | NOTE: Empty array means we're using Bearer token authentication only (API mode)
+    | This is simpler and more appropriate for SPAs using token-based auth.
+    |
     */
 
-    'stateful' => explode(',', env('SANCTUM_STATEFUL_DOMAINS', sprintf(
-        '%s%s',
-        'localhost,localhost:3000,127.0.0.1,127.0.0.1:8000,::1',
-        Sanctum::currentApplicationUrlWithPort()
-    ))),
+    'stateful' => [],
 
     /*
     |--------------------------------------------------------------------------
@@ -30,6 +29,9 @@ return [
     | Sanctum is trying to authenticate a request. If none of these guards
     | are able to authenticate the request, Sanctum will use the bearer
     | token that's present on an incoming request for authentication.
+    |
+    | NOTE: With empty stateful domains, Sanctum will use Bearer tokens only.
+    | The 'web' guard is checked first, then Bearer tokens are used.
     |
     */
 

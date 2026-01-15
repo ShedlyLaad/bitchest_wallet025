@@ -14,17 +14,16 @@ use Illuminate\Http\Request;
 
 /*
 |--------------------------------------------------------------------------
-| PUBLIC ROUTES
+| PUBLIC ROUTES (no auth required)
 |--------------------------------------------------------------------------
 */
-Route::post('/register', [AuthController::class, 'register'])
-    ->withoutMiddleware([\Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful::class]);
-Route::post('/login', [AuthController::class, 'login'])
-    ->withoutMiddleware([\Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful::class]);
+// Public authentication routes - Bearer token authentication only (no CSRF needed)
+Route::post('/register', [AuthController::class, 'register']);
+Route::post('/login', [AuthController::class, 'login']);
 
 // Public crypto market data for landing page
 Route::get('/public/market', [CryptoMarketController::class, 'index'])
-    ->withoutMiddleware([\Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful::class]);
+    ->withoutMiddleware(['throttle:api']);
 
 /*
 |--------------------------------------------------------------------------

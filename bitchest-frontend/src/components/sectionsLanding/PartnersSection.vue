@@ -136,14 +136,8 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
 import ScrollReveal from '../ScrollReveal.vue';
-import axios from 'axios';
 import type { CryptoCurrency } from '../../types';
-
-const baseURL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8000';
-const api = axios.create({
-  baseURL,
-  withCredentials: true
-});
+import { getPublicMarket } from '../../services/api';
 
 // State
 const cryptos = ref<CryptoCurrency[]>([]);
@@ -241,8 +235,7 @@ const handleImageError = (event: Event) => {
 const loadCryptos = async () => {
   try {
     loading.value = true;
-    // Use public route that doesn't require authentication
-    const { data } = await api.get<CryptoCurrency[]>('/api/public/market');
+    const data = await getPublicMarket(true);
     
     if (Array.isArray(data) && data.length > 0) {
       // Normaliser et formater les données

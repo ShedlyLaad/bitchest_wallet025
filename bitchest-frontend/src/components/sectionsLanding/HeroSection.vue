@@ -259,15 +259,9 @@
 
 <script setup lang="ts">
 import { ref, reactive, onMounted, onBeforeUnmount, computed } from 'vue';
-import axios from 'axios';
 import type { CryptoCurrency } from '../../types';
 import { getCryptoIcon } from '../../utils/cryptoIcons';
-
-const baseURL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8000';
-const api = axios.create({
-  baseURL,
-  withCredentials: true
-});
+import { getPublicMarket } from '../../services/api';
 
 // Utility: color map
 const getColorForCrypto = (symbol: string) => {
@@ -317,7 +311,7 @@ const totalBalance = computed(() => cryptoIcons.value.reduce((acc, crypto) => ac
 const loadCryptos = async () => {
   try {
     loadingCryptos.value = true;
-    const { data } = await api.get<CryptoCurrency[]>('/api/public/market');
+    const data = await getPublicMarket(true);
     cryptoData.value = Array.isArray(data) ? data.map(c => ({
       ...c,
       price: typeof c.price === 'number' ? Number(c.price) : Number(c.price || 0),

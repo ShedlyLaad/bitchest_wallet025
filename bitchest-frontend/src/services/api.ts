@@ -19,20 +19,15 @@ const baseURL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8000';
 
 const api = axios.create({
   baseURL,
-  withCredentials: true,
-  xsrfCookieName: 'XSRF-TOKEN',
-  xsrfHeaderName: 'X-XSRF-TOKEN'
+  withCredentials: false, // Bearer token auth doesn't need cookies
+  headers: {
+    'Accept': 'application/json',
+    'Content-Type': 'application/json',
+  }
 });
 
-api.defaults.headers.common['X-Requested-With'] = 'XMLHttpRequest';
-
 let currentToken: string | null = null;
-let csrfReady = false;
 
-function getCookie(name: string): string | null {
-  const match = document.cookie.match(new RegExp('(^|; )' + encodeURIComponent(name) + '=([^;]*)'));
-  return match ? decodeURIComponent(match[2]) : null;
-}
 
 export function setAuthToken(token: string | null) {
   currentToken = token;
@@ -43,63 +38,258 @@ export function setAuthToken(token: string | null) {
   }
 }
 
+// Cache pour éviter les logs répétés de la même erreur
+const errorLogCache = new Map<string, number>();
+const ERROR_LOG_THROTTLE_MS = 2000; // Ne log qu'une fois toutes les 2 secondes pour la même erreur
+
 api.interceptors.response.use(
   (response: AxiosResponse) => response,
   async (error: AxiosError<any>) => {
-    // Handle 401 Unauthorized - token might be expired or invalid
-    if (error.response?.status === 401) {
-      const message = error.response?.data?.message || 'Unauthenticated.';
-      console.error('[API]', message);
+    const originalRequest = error.config as any;
+    
+    // Normaliser la structure de l'erreur pour faciliter l'affichage
+    const errorResponse = error.response?.data || {};
+    const status = error.response?.status;
+    const url = error.config?.url || 'unknown endpoint';
+    
+    
+    // Créer une clé unique pour cette erreur (sans le message pour éviter les doublons)
+    const errorKey = `${status}-${url}`;
+    const now = Date.now();
+    const lastLogTime = errorLogCache.get(errorKey) || 0;
+    
+    // Fonction helper pour logger seulement si pas de throttle
+    const shouldLog = () => {
+      if (now - lastLogTime > ERROR_LOG_THROTTLE_MS) {
+        errorLogCache.set(errorKey, now);
+        // Nettoyer le cache après 10 secondes
+        setTimeout(() => errorLogCache.delete(errorKey), 10000);
+        return true;
+      }
+      return false;
+    };
+    
+    // Handle 400 Bad Request - afficher le message d'erreur
+    // NOTE: Certains proxies/serveurs transforment 401 en 400 pour les routes de login
+    // On détecte cela en vérifiant le message d'erreur et l'URL
+    if (status === 400) {
+      const message = errorResponse.message || errorResponse.error || 'Requête invalide';
       
-      // If we have a token but got 401, it might be expired
-      // Try to refresh user or clear auth state
-      if (currentToken) {
-        // Token might be invalid, but don't auto-logout here
-        // Let the calling code handle it
+      // Détecter si c'est une erreur de login transformée (401 -> 400)
+      const isLoginRoute = originalRequest?.url?.includes('/login') || originalRequest?.url?.includes('/register');
+      const isLoginErrorMessage = message.includes('invalide') || 
+                                   message.includes('Invalid credentials') || 
+                                   message.includes('Email ou mot de passe') ||
+                                   message.toLowerCase().includes('invalid');
+      
+      if (isLoginRoute && isLoginErrorMessage) {
+        // C'est probablement une erreur 401 transformée en 400 par un proxy/middleware
+        // On la traite comme une 401 pour l'affichage
+        if (shouldLog()) {
+          console.warn('[API] 400 reçu pour login (probablement 401 transformée):', message, {
+            url,
+            method: error.config?.method,
+            originalStatus: status,
+            message: message
+          });
+        }
+        
+        // Traiter comme une 401 pour l'affichage utilisateur
+        error.message = message;
+        if (error.response && error.response.data) {
+          error.response.data = { ...errorResponse, message, error: message };
+        }
+        
+        // Ne pas nettoyer le token pour les erreurs de login
+        // Ne pas retry automatiquement
+        return Promise.reject(error);
+      }
+      
+      // Erreur 400 normale (pas de login)
+      if (shouldLog()) {
+        console.error('[API] 400 Bad Request:', message, {
+          url,
+          method: error.config?.method,
+          status: status,
+          data: errorResponse
+        });
+      }
+      
+      // Enrichir l'erreur avec un message clair
+      error.message = message;
+      if (!errorResponse.message && error.response && error.response.data) {
+        error.response.data = { ...errorResponse, message };
       }
     }
     
-    // Retry once on 419 by refreshing CSRF cookie
-    if (error.response?.status === 419 && !csrfReady) {
-      csrfReady = false;
+    // Handle 401 Unauthorized - token expired or invalid
+    // NOTE: Certains serveurs/proxies (comme XAMPP/Apache) peuvent transformer 401 en 400
+    // On détecte cela en vérifiant le message d'erreur et l'URL
+    const isLoginRoute = originalRequest?.url?.includes('/login') || originalRequest?.url?.includes('/register');
+    const isLoginErrorMessage = errorResponse.message?.includes('invalide') || 
+                                errorResponse.error?.includes('invalide') ||
+                                errorResponse.message?.toLowerCase().includes('invalid credentials');
+    
+    // Si c'est une route de login avec un message d'erreur de login, traiter comme 401
+    if (status === 401 || (status === 400 && isLoginRoute && isLoginErrorMessage)) {
+      const message = errorResponse.message || errorResponse.error || 'Non authentifié. Veuillez vous reconnecter.';
+      
+      // Si c'était un 400 mais avec le message de login, c'est une transformation 401->400
+      if (status === 400 && isLoginRoute) {
+        // C'est probablement une erreur 401 transformée en 400 par un proxy/middleware (XAMPP/Apache)
+        // On la traite comme une 401 pour l'affichage
+        if (shouldLog()) {
+          console.warn('[API] Status 400 reçu pour login (probablement 401 transformée par serveur):', message, {
+            url,
+            method: error.config?.method
+          });
+        }
+      } else if (shouldLog()) {
+        // Logger pour toutes les erreurs 401 (login/register ou token expiré)
+        const logMessage = isLoginRoute
+          ? '[API] 401 Unauthorized (Login/Register):'
+          : '[API] 401 Unauthorized (Token expired):';
+        console.error(logMessage, message, {
+          url,
+          method: error.config?.method,
+          status: status
+        });
+      }
+      
+      // Clear token if present (mais pas pour les erreurs de login/register)
+      if (currentToken && !isLoginRoute) {
+        currentToken = null;
+        setAuthToken(null);
+      }
+      
+      // Enrichir l'erreur
+      error.message = message;
+      if (!errorResponse.message && !errorResponse.error && error.response && error.response.data) {
+        error.response.data = { ...errorResponse, message, error: message };
+      }
+      
+      // Ne pas retry automatiquement les requêtes d'authentification
+      if (isLoginRoute) {
+        return Promise.reject(error);
+      }
     }
     
-    const message = error.response?.data?.message || error.response?.data?.error || error.message;
-    if (error.response?.status !== 401) {
-      console.error('[API]', message);
+    // Handle 404 - Better error message
+    if (status === 404) {
+      const message = errorResponse.message || errorResponse.error || `Ressource introuvable: ${url}`;
+      if (shouldLog()) {
+        console.error('[API] 404 Not Found:', message, {
+          url,
+          method: error.config?.method,
+          baseURL: error.config?.baseURL
+        });
+      }
+      
+      // Enrichir l'erreur
+      error.message = message;
+      if (!errorResponse.message && !errorResponse.error && error.response && error.response.data) {
+        error.response.data = { ...errorResponse, message, error: message };
+      }
     }
+    
+    // Handle 422 Validation errors
+    if (status === 422) {
+      const validationErrors = errorResponse.errors || {};
+      const message = errorResponse.message || 'Erreur de validation';
+      if (shouldLog()) {
+        console.error('[API] 422 Validation Error:', message, validationErrors);
+      }
+      
+      // Enrichir l'erreur
+      error.message = message;
+      if (error.response && error.response.data && !errorResponse.message) {
+        error.response.data = { ...errorResponse, message };
+      }
+    }
+    
+    // Handle network errors
+    if (!error.response && error.code === 'ERR_NETWORK') {
+      const message = 'Erreur de connexion réseau. Vérifiez votre connexion internet.';
+      if (shouldLog()) {
+        console.error('[API] Network Error:', error.message, {
+          url,
+          baseURL: error.config?.baseURL
+        });
+      }
+      
+      // Créer une structure d'erreur cohérente
+      error.message = message;
+      error.response = {
+        status: 0,
+        statusText: 'Network Error',
+        data: { message, error: message }
+      } as any;
+    }
+    
+    // Handle 500 Server errors
+    if (status === 500) {
+      const message = errorResponse.message || 'Erreur serveur. Veuillez réessayer plus tard.';
+      if (shouldLog()) {
+        console.error('[API] 500 Server Error:', message, {
+          url,
+          status
+        });
+      }
+      
+      error.message = message;
+      if (error.response && error.response.data && !errorResponse.message) {
+        error.response.data = { ...errorResponse, message };
+      }
+    }
+    
+    // Log other errors
+    if (status && 
+        status !== 400 && 
+        status !== 401 && 
+        status !== 404 && 
+        status !== 422 && 
+        status !== 500) {
+      const message = errorResponse.message || errorResponse.error || error.message || 'Une erreur est survenue';
+      if (shouldLog()) {
+        console.error('[API] Error:', message, { 
+          status,
+          url 
+        });
+      }
+      
+      error.message = message;
+    }
+    
     return Promise.reject(error);
   }
 );
 
-// Ensure XSRF header is present on stateful, non-GET requests
+// Ensure Authorization header is present on all requests if we have a token
 api.interceptors.request.use((config) => {
-  // Always ensure Authorization header is present if we have a stored token
-  if (currentToken) {
-    config.headers = { ...(config.headers || {}), Authorization: `Bearer ${currentToken}` } as any;
+  // Ne pas ajouter le token pour les routes publiques
+  const publicRoutes = ['/api/login', '/api/register', '/api/public/market'];
+  const isPublicRoute = publicRoutes.some(route => config.url?.includes(route));
+  
+  if (currentToken && !isPublicRoute) {
+    config.headers = { 
+      ...(config.headers || {}), 
+      Authorization: `Bearer ${currentToken}` 
+    } as any;
   }
-  const method = (config.method || 'get').toLowerCase();
-  if (config.withCredentials && method !== 'get') {
-    const xsrf = getCookie('XSRF-TOKEN');
-    if (xsrf && !config.headers?.['X-XSRF-TOKEN']) {
-      config.headers = { ...(config.headers || {}), 'X-XSRF-TOKEN': xsrf } as any;
-    }
-  }
+  
   return config;
+}, (error) => {
+  return Promise.reject(error);
 });
 
+// No longer needed - using Bearer token authentication only
 export async function sanctum() {
-  // Avoid duplicate calls if already have XSRF cookie
-  if (csrfReady && getCookie('XSRF-TOKEN')) return;
-  await api.get('/sanctum/csrf-cookie');
-  csrfReady = true;
+  // This function is kept for backward compatibility but does nothing
+  // Bearer token authentication doesn't require CSRF cookies
 }
 
 export async function login(payload: { email: string; password: string }): Promise<AuthResponse> {
-  await sanctum();
-  // ensure header is set when axios can't read cookie automatically
-  const xsrf = getCookie('XSRF-TOKEN');
-  const { data } = await api.post<AuthResponse>('/api/login', payload, xsrf ? { headers: { 'X-XSRF-TOKEN': xsrf } } : undefined);
+  const { data } = await api.post<AuthResponse>('/api/login', payload);
   if (data.token) setAuthToken(data.token);
   return data;
 }
@@ -110,15 +300,23 @@ export async function changePassword(payload: { current_password: string; passwo
 }
 
 export async function register(payload: RegisterPayload) {
-  await sanctum();
-  const xsrf = getCookie('XSRF-TOKEN');
-  const { data } = await api.post('/api/register', payload, xsrf ? { headers: { 'X-XSRF-TOKEN': xsrf } } : undefined);
+  const { data } = await api.post('/api/register', payload);
   return data as { message: string; status?: string; must_change_password?: boolean; temporary_password_sent?: boolean };
 }
 
 export async function logout() {
-  if (!currentToken) return;
-  await api.post('/api/logout');
+  try {
+    if (currentToken) {
+      await api.post('/api/logout');
+    }
+  } catch (error) {
+    // Ignorer les erreurs de logout (token peut être déjà expiré)
+    console.warn('[API] Logout error (ignored):', error);
+  } finally {
+    // Toujours nettoyer le token localement
+    currentToken = null;
+    setAuthToken(null);
+  }
 }
 
 export async function fetchUser(): Promise<AuthUser | null> {
@@ -126,7 +324,13 @@ export async function fetchUser(): Promise<AuthUser | null> {
     const { data } = await api.get<AuthUser>('/api/user');
     return data;
   } catch (error: any) {
-    if (error?.response?.status === 404) {
+    // 401 ou 404 signifie que l'utilisateur n'est pas authentifié
+    if (error?.response?.status === 401 || error?.response?.status === 404) {
+      // Nettoyer le token si présent
+      if (currentToken) {
+        currentToken = null;
+        setAuthToken(null);
+      }
       return null;
     }
     throw error;
@@ -159,23 +363,33 @@ export async function getPurchaseDetails(cryptoCurrencyId: number) {
 }
 
 export async function buyCrypto(payload: BuyPayload): Promise<{ transaction: Transaction; balance: number }> {
-  const { data } = await api.post<{ transaction: Transaction; balance: number; message: string }>('/api/transaction/buy', payload);
-  // Invalider les caches liés après une transaction pour forcer le rafraîchissement
-  cacheService.remove('portfolio');
-  cacheService.remove('transaction_history_1_10');
-  cacheService.remove('user_cryptos');
-  cacheService.remove('market');
-  return { transaction: data.transaction, balance: data.balance };
+  try {
+    const { data } = await api.post<{ transaction: Transaction; balance: number; message: string }>('/api/transaction/buy', payload);
+    // Invalider les caches liés après une transaction pour forcer le rafraîchissement
+    cacheService.remove('portfolio');
+    cacheService.remove('transaction_history_1_10');
+    cacheService.remove('user_cryptos');
+    cacheService.remove('market');
+    return { transaction: data.transaction, balance: data.balance };
+  } catch (error: any) {
+    // L'erreur est déjà formatée par l'intercepteur, on la propage
+    throw error;
+  }
 }
 
 export async function sellCrypto(payload: SellPayload): Promise<{ transaction: Transaction; balance: number }> {
-  const { data } = await api.post<{ transaction: Transaction; balance: number; message: string }>('/api/transaction/sell', payload);
-  // Invalider les caches liés après une transaction pour forcer le rafraîchissement
-  cacheService.remove('portfolio');
-  cacheService.remove('transaction_history_1_10');
-  cacheService.remove('user_cryptos');
-  cacheService.remove('market');
-  return { transaction: data.transaction, balance: data.balance };
+  try {
+    const { data } = await api.post<{ transaction: Transaction; balance: number; message: string }>('/api/transaction/sell', payload);
+    // Invalider les caches liés après une transaction pour forcer le rafraîchissement
+    cacheService.remove('portfolio');
+    cacheService.remove('transaction_history_1_10');
+    cacheService.remove('user_cryptos');
+    cacheService.remove('market');
+    return { transaction: data.transaction, balance: data.balance };
+  } catch (error: any) {
+    // L'erreur est déjà formatée par l'intercepteur, on la propage
+    throw error;
+  }
 }
 
 export async function getTransactionHistory(params?: { page?: number; per_page?: number }, useCache: boolean = true): Promise<Paginated<Transaction>> {
@@ -257,6 +471,60 @@ export async function markAllNotificationsAsRead() {
 export async function deleteNotification(id: number) {
   const { data } = await api.delete<{ message: string }>(`/api/notifications/${id}`);
   return data;
+}
+
+/**
+ * Récupère les données du marché (route publique, pas d'auth requise)
+ */
+export async function getPublicMarket(useCache: boolean = true): Promise<CryptoCurrency[]> {
+  const cacheKey = 'public_market';
+  
+  // Fonction helper pour normaliser les données
+  const normalizeData = (data: CryptoCurrency[]) => {
+    if (!Array.isArray(data)) return [];
+    return data.map(crypto => {
+      const price = typeof crypto.price === 'number' && !isNaN(crypto.price) && crypto.price > 0
+        ? Number(Number(crypto.price).toFixed(8))
+        : 0;
+      let change24h = typeof crypto.change24h === 'number' && !isNaN(crypto.change24h)
+        ? Number(crypto.change24h)
+        : 0;
+      // Limiter entre -99% et +200% (double vérification frontend)
+      if (change24h < -99) change24h = -99;
+      if (change24h > 200) change24h = 200;
+      change24h = Number(change24h.toFixed(2));
+      
+      return {
+        ...crypto,
+        price,
+        change24h
+      };
+    });
+  };
+  
+  try {
+    if (useCache) {
+      return await cacheService.preload(
+        cacheKey,
+        async () => {
+          const { data } = await api.get<CryptoCurrency[]>('/api/public/market');
+          return normalizeData(data);
+        },
+        { ttl: 60 * 60 * 1000 } // 1 heure
+      );
+    }
+    
+    const { data } = await api.get<CryptoCurrency[]>('/api/public/market');
+    const normalizedData = normalizeData(data);
+    cacheService.set(cacheKey, normalizedData, { ttl: 60 * 60 * 1000 }); // 1 heure
+    return normalizedData;
+  } catch (error: any) {
+    // En cas d'erreur (404, network, etc.), retourner un tableau vide plutôt que de faire planter l'app
+    console.warn('[getPublicMarket] Erreur lors de la récupération du marché public:', error?.response?.status, error?.message);
+    // Retourner les données en cache si disponibles
+    const cached = cacheService.get<CryptoCurrency[]>(cacheKey);
+    return cached || [];
+  }
 }
 
 export async function getMarket(useCache: boolean = true) {
@@ -571,6 +839,7 @@ export default {
   sellCrypto,
   getTransactionHistory,
   getMarket,
+  getPublicMarket,
   getUserCryptos,
   getMarketHistory,
   refreshCryptoPrices,

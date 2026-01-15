@@ -12,17 +12,29 @@ use App\Services\LevelService;
 use App\Services\NotificationService;
 use App\Services\UniversalMailService;
 use App\Services\NotificationCacheService;
+use App\Services\RedisPriceService;
+use App\Services\AccountCacheService;
+use App\Services\TransactionCacheService;
 
 class AppServiceProvider extends ServiceProvider
 {
     public function register()
     {
         $this->app->singleton(PortfolioService::class, PortfolioService::class);
-        $this->app->singleton(CryptoService::class, CryptoService::class);
+        $this->app->singleton(CryptoService::class, function ($app) {
+            return new CryptoService(
+                $app->make(CoinbaseAPIService::class),
+                $app->make(\App\Services\CryptoDataCompressionService::class),
+                $app->make(RedisPriceService::class)
+            );
+        });
         $this->app->singleton(UserService::class, UserService::class);
         $this->app->singleton(CoinbaseAPIService::class, CoinbaseAPIService::class);
         $this->app->singleton(LevelService::class, LevelService::class);
         $this->app->singleton(UniversalMailService::class, UniversalMailService::class);
+        $this->app->singleton(RedisPriceService::class, RedisPriceService::class);
+        $this->app->singleton(AccountCacheService::class, AccountCacheService::class);
+        $this->app->singleton(TransactionCacheService::class, TransactionCacheService::class);
         
         // Injecter les dépendances pour NotificationService
         $this->app->singleton(NotificationService::class, function ($app) {

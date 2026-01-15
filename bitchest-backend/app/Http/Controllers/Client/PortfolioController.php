@@ -30,6 +30,16 @@ class PortfolioController extends Controller
     public function purchaseDetails($cryptoCurrencyId)
     {
         $user = auth()->user();
+        
+        // Vérifier que la crypto existe
+        $crypto = \App\Models\CryptoCurrency::find($cryptoCurrencyId);
+        if (!$crypto) {
+            return response()->json([
+                'message' => 'Cryptomonnaie introuvable.',
+                'crypto_currency_id' => $cryptoCurrencyId
+            ], 404);
+        }
+        
         $details = $this->portfolioService->getPurchaseDetails($user, $cryptoCurrencyId);
         
         return response()->json([

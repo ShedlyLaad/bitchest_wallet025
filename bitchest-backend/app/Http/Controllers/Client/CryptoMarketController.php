@@ -20,8 +20,9 @@ class CryptoMarketController extends Controller
     }
 
     /**
-     * GET /api/market
+     * GET /api/market ou /api/public/market
      * Lecture ultra-rapide depuis Redis avec fallback automatique vers DB
+     * Route publique accessible sans authentification
      */
     public function index()
     {
@@ -34,7 +35,7 @@ class CryptoMarketController extends Controller
             }
             
             // Format de retour normalisé avec validation et formatage strict
-            return response()->json($prices->map(function ($crypto) {
+            $formatted = $prices->map(function ($crypto) {
                 $data = is_array($crypto) ? $crypto : (array) $crypto;
                 
                 // Normaliser et valider le prix
@@ -63,14 +64,14 @@ class CryptoMarketController extends Controller
             })->filter(function ($crypto) {
                 // Filtrer les cryptos invalides
                 return !empty($crypto['symbol']) && $crypto['price'] > 0;
-            })->values());
+            })->values();
             
-        } catch (\Exception $e) {
-            Log::error('[CryptoMarketController] Erreur', [
-                'error' => $e->getMessage()
-            ]);
+            // Si on a des données, les retourner
+            if ($formatted->isNotEmpty()) {
+                return response()->json($formatted->toArray(), 200);
+            }
             
-            // Fallback final: retourner les cryptos depuis la DB avec des valeurs par défaut
+            // Fallback: retourner les cryptos depuis la DB avec des valeurs par défaut
             $cryptos = CryptoCurrency::where('is_active', true)->get();
             return response()->json($cryptos->map(function ($crypto) {
                 return [
@@ -82,7 +83,34 @@ class CryptoMarketController extends Controller
                     'marketCap' => 0.0,
                     'volume24h' => 0.0,
                 ];
-            })->values(), 200);
+            })->values()->toArray(), 200);
+            
+        } catch (\Exception $e) {
+            Log::error('[CryptoMarketController] Erreur', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            
+            // Fallback final: retourner les cryptos depuis la DB avec des valeurs par défaut
+            try {
+                $cryptos = CryptoCurrency::where('is_active', true)->get();
+                return response()->json($cryptos->map(function ($crypto) {
+                    return [
+                        'id' => $crypto->id,
+                        'symbol' => strtoupper($crypto->symbol),
+                        'name' => $crypto->name,
+                        'price' => 0.0,
+                        'change24h' => 0.0,
+                        'marketCap' => 0.0,
+                        'volume24h' => 0.0,
+                    ];
+                })->values()->toArray(), 200);
+            } catch (\Exception $dbError) {
+                Log::error('[CryptoMarketController] Erreur DB fallback', [
+                    'error' => $dbError->getMessage()
+                ]);
+                return response()->json([], 200);
+            }
         }
     }
 

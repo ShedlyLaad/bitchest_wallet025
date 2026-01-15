@@ -38,7 +38,7 @@ class Kernel extends HttpKernel
         ],
 
         'api' => [
-            \Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful::class,
+            // Bearer token authentication only - no stateful middleware needed
             'throttle:api',
             \Illuminate\Routing\Middleware\SubstituteBindings::class,
         ],

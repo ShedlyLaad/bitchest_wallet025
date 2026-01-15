@@ -6,18 +6,22 @@ use App\Models\CryptoCurrency;
 use App\Models\CryptoPriceRecord;
 use Illuminate\Support\Facades\Log;
 use Carbon\Carbon;
+use App\Services\RedisPriceService;
 
 class CryptoService
 {
     private CoinbaseAPIService $coinbaseAPIService;
     private CryptoDataCompressionService $compressionService;
+    private RedisPriceService $redisPriceService;
 
     public function __construct(
         CoinbaseAPIService $coinbaseAPIService,
-        CryptoDataCompressionService $compressionService
+        CryptoDataCompressionService $compressionService,
+        RedisPriceService $redisPriceService
     ) {
         $this->coinbaseAPIService = $coinbaseAPIService;
         $this->compressionService = $compressionService;
+        $this->redisPriceService = $redisPriceService;
     }
 
     /**
@@ -59,9 +63,31 @@ class CryptoService
     }
 
     /**
+     * Retourne le prix actuel depuis Redis/DB uniquement (sans API externe).
+     */
+    public function getCachedCurrentPrice(string $symbol): ?float
+    {
+        $cached = $this->redisPriceService->getPrice($symbol);
+        if (!empty($cached) && isset($cached['price'])) {
+            return (float) $cached['price'];
+        }
+
+        $crypto = CryptoCurrency::where('symbol', $symbol)->first();
+        if (!$crypto) {
+            return null;
+        }
+
+        $price = CryptoPriceRecord::where('crypto_currency_id', $crypto->id)
+            ->latest('recorded_at')
+            ->value('price');
+
+        return $price !== null ? (float) $price : null;
+    }
+
+    /**
      * Récupère un historique des prix depuis la base de données
      */
-    public function getHistoricalPrices(string $symbol, int $days = 7)
+    public function getHistoricalPrices(string $symbol, int $days = 7, bool $allowExternal = false)
     {
         $crypto = CryptoCurrency::where('symbol', $symbol)->firstOrFail();
 
@@ -76,7 +102,7 @@ class CryptoService
 
         // 2) Si trop peu de points, essayer de récupérer depuis Coinbase puis persister
         // Mais si l'API retourne 402, utiliser les données locales disponibles
-        if ($history->count() < 5) {
+        if ($history->count() < 5 && $allowExternal) {
             $apiData = $this->coinbaseAPIService->getHistoricalPrices(
                 $symbol,
                 $startDate,

@@ -5,17 +5,20 @@ namespace App\Services;
 use App\Models\Notification;
 use App\Models\Portfolio;
 use App\Models\User;
+use App\Services\NotificationCacheService;
 use Illuminate\Support\Facades\Log;
 
 class NotificationService
 {
     private PortfolioService $portfolioService;
     private LevelService $levelService;
+    private NotificationCacheService $notificationCacheService;
 
-    public function __construct(PortfolioService $portfolioService, LevelService $levelService)
+    public function __construct(PortfolioService $portfolioService, LevelService $levelService, NotificationCacheService $notificationCacheService)
     {
         $this->portfolioService = $portfolioService;
         $this->levelService = $levelService;
+        $this->notificationCacheService = $notificationCacheService;
     }
 
     /**
@@ -89,7 +92,7 @@ class NotificationService
         $title = "🎉 Level Up!";
         $message = "Congratulations! You have reached level {$level} - {$levelName}! Keep trading to level up even higher.";
         
-        Notification::create([
+        $notification = Notification::create([
             'user_id' => $user->id,
             'type' => 'level_up',
             'title' => $title,
@@ -98,6 +101,8 @@ class NotificationService
             'level_name' => $levelName,
             'is_read' => false,
         ]);
+
+        $this->notificationCacheService->store($user->id, $this->normalizeNotification($notification));
         
         // Supprimer les anciennes notifications si on dépasse le maximum (garder les 50 plus récentes)
         $this->cleanupOldNotifications($user->id, 50);
@@ -250,7 +255,7 @@ class NotificationService
             ? "Your position in {$cryptoName} ({$cryptoSymbol}) has generated a profit of {$sign}€" . number_format(abs($gainLoss), 2) . " ({$sign}" . number_format(abs($gainLossPercent), 2) . "%). Quantity: " . number_format($quantity, 8) . " {$cryptoSymbol}"
             : "Your position in {$cryptoName} ({$cryptoSymbol}) has incurred a loss of {$sign}€" . number_format(abs($gainLoss), 2) . " ({$sign}" . number_format(abs($gainLossPercent), 2) . "%). Quantity: " . number_format($quantity, 8) . " {$cryptoSymbol}";
 
-        Notification::create([
+        $notification = Notification::create([
             'user_id' => $user->id,
             'portfolio_id' => $position->id,
             'crypto_currency_id' => $position->crypto_currency_id,
@@ -264,9 +269,39 @@ class NotificationService
             'previous_price' => $previousPrice ? round($previousPrice, 8) : null,
             'is_read' => false,
         ]);
+
+        $notification->load(['crypto', 'portfolio']);
+        $this->notificationCacheService->store($user->id, $this->normalizeNotification($notification));
         
         // Supprimer les anciennes notifications si on dépasse le maximum (garder les 50 plus récentes)
         $this->cleanupOldNotifications($user->id, 50);
+    }
+
+    public function createTransactionNotification(
+        User $user,
+        string $type,
+        string $symbol,
+        float $quantity,
+        float $euroAmount,
+        float $price
+    ): void {
+        $isBuy = $type === 'buy';
+        $title = $isBuy ? '✅ Achat confirmé' : '✅ Vente confirmée';
+        $message = $isBuy
+            ? "Achat de {$quantity} {$symbol} pour €" . number_format($euroAmount, 2)
+            : "Vente de {$quantity} {$symbol} pour €" . number_format($euroAmount, 2);
+
+        $notification = Notification::create([
+            'user_id' => $user->id,
+            'type' => 'transaction',
+            'title' => $title,
+            'message' => $message,
+            'crypto_symbol' => $symbol,
+            'current_price' => round($price, 8),
+            'is_read' => false,
+        ]);
+
+        $this->notificationCacheService->store($user->id, $this->normalizeNotification($notification));
     }
     
     /**
@@ -325,6 +360,41 @@ class NotificationService
                 'is_read' => true,
                 'read_at' => now(),
             ]);
+    }
+
+    private function normalizeNotification(Notification $notification): array
+    {
+        $notification->refresh();
+        $cryptoSymbol = $notification->crypto_symbol;
+        if (!$cryptoSymbol && $notification->crypto) {
+            $cryptoSymbol = $notification->crypto->symbol;
+        }
+
+        return [
+            'id' => $notification->id,
+            'user_id' => $notification->user_id,
+            'portfolio_id' => $notification->portfolio_id,
+            'crypto_currency_id' => $notification->crypto_currency_id,
+            'type' => $notification->type,
+            'title' => $notification->title ?? 'Notification',
+            'message' => $notification->message ?? '',
+            'crypto_symbol' => $cryptoSymbol,
+            'gain_loss' => $notification->gain_loss !== null ? (float) $notification->gain_loss : null,
+            'gain_loss_percent' => $notification->gain_loss_percent !== null ? (float) $notification->gain_loss_percent : null,
+            'current_price' => $notification->current_price !== null ? (float) $notification->current_price : null,
+            'previous_price' => $notification->previous_price !== null ? (float) $notification->previous_price : null,
+            'is_read' => (bool) $notification->is_read,
+            'read_at' => $notification->read_at ? $notification->read_at->toISOString() : null,
+            'level' => $notification->level !== null ? (int) $notification->level : null,
+            'level_name' => $notification->level_name ?? null,
+            'created_at' => $notification->created_at->toISOString(),
+            'updated_at' => $notification->updated_at->toISOString(),
+            'crypto' => $notification->crypto ? [
+                'id' => $notification->crypto->id,
+                'name' => $notification->crypto->name,
+                'symbol' => $notification->crypto->symbol,
+            ] : null,
+        ];
     }
 }
 

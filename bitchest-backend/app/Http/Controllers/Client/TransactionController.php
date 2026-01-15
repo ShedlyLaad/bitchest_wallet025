@@ -5,25 +5,26 @@ namespace App\Http\Controllers\Client;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Client\BuyCryptoRequest;
 use App\Http\Requests\Client\SellCryptoRequest;
+use App\DTOs\TradeOrderData;
+use App\Events\BuyExecuted;
+use App\Events\SellExecuted;
 use App\Models\CryptoCurrency;
-use App\Models\CryptoPriceRecord;
-use App\Models\Transaction as TransactionModel;
-use App\Models\Portfolio;
 use Illuminate\Http\Request;
-use App\Services\CryptoService;
-use App\Services\TransactionService;
+use App\Services\AccountCacheService;
+use App\Services\RedisPriceService;
 use Illuminate\Support\Facades\Log;
 use App\Models\Transaction;
+use Illuminate\Support\Str;
 
 class TransactionController extends Controller
 {
-    private CryptoService $cryptoService;
-    private TransactionService $transactionService;
+    private RedisPriceService $redisPriceService;
+    private AccountCacheService $accountCacheService;
 
-    public function __construct(CryptoService $cryptoService, TransactionService $transactionService)
+    public function __construct(RedisPriceService $redisPriceService, AccountCacheService $accountCacheService)
     {
-        $this->cryptoService = $cryptoService;
-        $this->transactionService = $transactionService;
+        $this->redisPriceService = $redisPriceService;
+        $this->accountCacheService = $accountCacheService;
     }
 
     public function buy(BuyCryptoRequest $request)
@@ -32,50 +33,47 @@ class TransactionController extends Controller
         $crypto = CryptoCurrency::where('symbol', $request->symbol)
             ->where('is_active', true)
             ->firstOrFail();
-        $price = $this->cryptoService->getCurrentPrice($crypto->symbol);
+        $priceData = $this->redisPriceService->getPrice($crypto->symbol);
+        $price = $priceData && isset($priceData['price']) ? (float) $priceData['price'] : null;
 
         if ($price === null) {
             Log::error('No price available for crypto', ['user_id' => $user->id ?? null, 'symbol' => $crypto->symbol]);
             return response()->json(['message' => 'Crypto introuvable ou inactive.'], 400);
         }
 
-        // Re-fetch fresh user balance
-        $freshUser = \App\Models\User::find($user->id);
-
         $amount = (float) $request->quantity * $price;
+        $currentBalance = $this->accountCacheService->getBalance($user->id, (float) ($user->euro_balance ?? 0.0));
 
-        // Pre-validate buy: ensure euro_balance sufficient
-        if ($request->isMethod('post') || $request->has('quantity')) {
-            if ($request->route()->getActionMethod() === 'buy') {
-                $currentBalance = (float) ($freshUser->euro_balance ?? 0.0);
-                if ($currentBalance < $amount) {
-                    return response()->json(['message' => "Solde insuffisant. Solde disponible : {$currentBalance} EUR."], 400);
-                }
-            }
+        if ($currentBalance < $amount) {
+            return response()->json(['message' => "Solde insuffisant. Solde disponible : {$currentBalance} EUR."], 400);
         }
 
-        try {
-            $tx = $this->transactionService->processTransaction(
-                $user,
-                $crypto,
-                $request->quantity,
-                $price,
-                'buy'
-            );
+        $clientReference = (string) Str::uuid();
+        event(new BuyExecuted(new TradeOrderData(
+            $clientReference,
+            $user->id,
+            $crypto->id,
+            $crypto->symbol,
+            (float) $request->quantity,
+            $price,
+            'buy'
+        )));
 
-            $fresh = \App\Models\User::find($user->id);
-
-            return response()->json([
-                'message' => 'Achat effectué avec succès',
-                'transaction' => $tx,
-                'balance' => (float) ($fresh->euro_balance ?? 0.0),
-            ], 201);
-        } catch (\InvalidArgumentException $e) {
-            return response()->json(['message' => $e->getMessage()], 400);
-        } catch (\Throwable $e) {
-            \Log::error('Transaction error', ['message' => $e->getMessage(), 'user_id' => $user->id]);
-            return response()->json(['message' => 'Erreur serveur lors de la transaction.'], 500);
-        }
+        return response()->json([
+            'message' => 'Achat en cours de traitement',
+            'transaction' => [
+                'id' => 0,
+                'portfolio_id' => 0,
+                'type' => 'buy',
+                'quantity' => (float) $request->quantity,
+                'price_at_transaction' => $price,
+                'euro_amount' => $amount,
+                'created_at' => now()->toISOString(),
+                'updated_at' => now()->toISOString(),
+            ],
+            'balance' => (float) ($currentBalance - $amount),
+            'reference' => $clientReference,
+        ], 202);
     }
 
     public function sell(SellCryptoRequest $request)
@@ -84,50 +82,48 @@ class TransactionController extends Controller
         $crypto = CryptoCurrency::where('symbol', $request->symbol)
             ->where('is_active', true)
             ->firstOrFail();
-        $price = $this->cryptoService->getCurrentPrice($crypto->symbol);
+        $priceData = $this->redisPriceService->getPrice($crypto->symbol);
+        $price = $priceData && isset($priceData['price']) ? (float) $priceData['price'] : null;
 
         if ($price === null) {
             Log::error('No price available for crypto', ['user_id' => $user->id ?? null, 'symbol' => $crypto->symbol]);
             return response()->json(['message' => 'Crypto introuvable ou inactive.'], 400);
         }
 
-        // Pre-validate sell: ensure user holds enough quantity
-        $portfolio = Portfolio::firstOrCreate([
-            'user_id' => $user->id,
-            'crypto_currency_id' => $crypto->id,
-        ], ['total_crypto_value' => 0]);
+        $availableQuantity = $this->accountCacheService->getCryptoQuantityOrCompute($user->id, $crypto->id);
 
-        // Utiliser le cache Redis pour des performances optimales
-        $totalBuyQuantity = TransactionModel::getCachedQuantity($portfolio->id, 'buy');
-        $totalSellQuantity = TransactionModel::getCachedQuantity($portfolio->id, 'sell');
-        $totalQuantity = $totalBuyQuantity - $totalSellQuantity;
-
-        if ($totalQuantity < (float) $request->quantity) {
-            return response()->json(['message' => "Quantité insuffisante pour la vente. Vous possédez seulement {$totalQuantity}."], 400);
+        if ($availableQuantity < (float) $request->quantity) {
+            return response()->json(['message' => "Quantité insuffisante pour la vente. Vous possédez seulement {$availableQuantity}."], 400);
         }
 
-        try {
-            $tx = $this->transactionService->processTransaction(
-                $user,
-                $crypto,
-                $request->quantity,
-                $price,
-                'sell'
-            );
+        $clientReference = (string) Str::uuid();
+        event(new SellExecuted(new TradeOrderData(
+            $clientReference,
+            $user->id,
+            $crypto->id,
+            $crypto->symbol,
+            (float) $request->quantity,
+            $price,
+            'sell'
+        )));
 
-            $fresh = \App\Models\User::find($user->id);
+        $amount = (float) $request->quantity * $price;
 
-            return response()->json([
-                'message' => 'Vente confirmée',
-                'transaction' => $tx,
-                'balance' => (float) ($fresh->euro_balance ?? 0.0),
-            ], 201);
-        } catch (\InvalidArgumentException $e) {
-            return response()->json(['message' => $e->getMessage()], 400);
-        } catch (\Throwable $e) {
-            \Log::error('Transaction error', ['message' => $e->getMessage(), 'user_id' => $user->id]);
-            return response()->json(['message' => 'Erreur serveur lors de la transaction.'], 500);
-        }
+        return response()->json([
+            'message' => 'Vente en cours de traitement',
+            'transaction' => [
+                'id' => 0,
+                'portfolio_id' => 0,
+                'type' => 'sell',
+                'quantity' => (float) $request->quantity,
+                'price_at_transaction' => $price,
+                'euro_amount' => $amount,
+                'created_at' => now()->toISOString(),
+                'updated_at' => now()->toISOString(),
+            ],
+            'balance' => (float) ($this->accountCacheService->getBalance($user->id, (float) ($user->euro_balance ?? 0.0)) + $amount),
+            'reference' => $clientReference,
+        ], 202);
     }
 
     /**
@@ -145,6 +141,26 @@ class TransactionController extends Controller
         
         // TTL de cache : 2 minutes pour l'historique
         $cacheTTL = 120;
+
+        if ($page === 1) {
+            $cachedTransactions = app(\App\Services\TransactionCacheService::class)
+                ->getRecent($user->id, $perPage);
+
+            if (!empty($cachedTransactions)) {
+                $totalCount = Transaction::whereHas('portfolio', function ($q) use ($user) {
+                    $q->where('user_id', $user->id);
+                })->count();
+                $lastPage = (int) ceil(max(1, $totalCount) / $perPage);
+
+                return response()->json([
+                    'data' => $cachedTransactions,
+                    'current_page' => 1,
+                    'last_page' => $lastPage,
+                    'per_page' => $perPage,
+                    'total' => $totalCount,
+                ]);
+            }
+        }
 
         $transactions = \Illuminate\Support\Facades\Cache::remember($cacheKey, $cacheTTL, function () use ($user, $perPage) {
             $query = Transaction::with(['portfolio.crypto'])

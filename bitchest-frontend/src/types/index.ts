@@ -126,7 +126,7 @@ export interface Notification {
   user_id: number;
   portfolio_id?: number;
   crypto_currency_id?: number;
-  type: 'profit' | 'loss' | 'price_alert' | 'portfolio_update' | 'level_up';
+  type: 'profit' | 'loss' | 'price_alert' | 'portfolio_update' | 'level_up' | 'transaction';
   title: string;
   message: string;
   crypto_symbol?: string;

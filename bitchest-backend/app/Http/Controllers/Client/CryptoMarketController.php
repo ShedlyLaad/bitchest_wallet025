@@ -29,24 +29,8 @@ class CryptoMarketController extends Controller
             // Priorité 1: Redis (ultra-rapide < 5ms)
             $prices = $this->redisPriceService->getAllPrices();
             
-            // Si Redis est vide, utiliser CryptoService (DB + Coinbase API)
             if ($prices->isEmpty()) {
-                Log::info('[CryptoMarketController] Redis vide, utilisation du fallback CryptoService');
-                $prices = $this->cryptoService->getCurrentPrices(true);
-                
-                // Normaliser le format
-                $prices = $prices->map(function ($crypto) {
-                    $data = is_array($crypto) ? $crypto : (array) $crypto;
-                    return [
-                        'id' => $data['id'] ?? null,
-                        'symbol' => $data['symbol'] ?? '',
-                        'name' => $data['name'] ?? '',
-                        'price' => isset($data['price']) ? (float) $data['price'] : 0.0,
-                        'change24h' => isset($data['change24h']) ? (float) $data['change24h'] : 0.0,
-                        'marketCap' => isset($data['marketCap']) ? (float) $data['marketCap'] : 0.0,
-                        'volume24h' => isset($data['volume24h']) ? (float) $data['volume24h'] : 0.0,
-                    ];
-                });
+                Log::info('[CryptoMarketController] Redis vide, fallback DB');
             }
             
             // Format de retour normalisé avec validation et formatage strict
@@ -113,7 +97,7 @@ class CryptoMarketController extends Controller
             return response()->json(['error' => 'Cryptocurrency not found'], 404);
         }
 
-        $prices = $this->cryptoService->getHistoricalPrices($crypto->symbol, 30);
+        $prices = $this->cryptoService->getHistoricalPrices($crypto->symbol, 30, false);
         
         // Format response to match frontend expectations
         return response()->json($prices->map(function ($price) {

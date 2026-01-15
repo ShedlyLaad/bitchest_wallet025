@@ -290,7 +290,7 @@ import type { Notification, Paginated } from '@/types';
 import { formatEUR } from '@/utils/formatEUR';
 import { getCryptoIcon } from '@/utils/cryptoIcons';
 
-const MAX_DISPLAYED_NOTIFICATIONS = 5; // Maximum de notifications affichées
+const INITIAL_DISPLAY_LIMIT = 5; // Nombre initial de notifications affichées
 
 const isOpen = ref(false);
 const loading = ref(false);
@@ -299,15 +299,17 @@ const unreadCount = ref(0);
 const pagination = ref<Paginated<Notification> | null>(null);
 const dropdownRef = ref<HTMLElement | null>(null);
 const currentPage = ref(1);
+const displayLimit = ref(INITIAL_DISPLAY_LIMIT);
 
 // Notifications affichées (limitées au maximum)
 const displayedNotifications = computed(() => {
-  return notifications.value.slice(0, MAX_DISPLAYED_NOTIFICATIONS);
+  return notifications.value.slice(0, displayLimit.value);
 });
 
 // Nombre de notifications supplémentaires
 const remainingNotificationsCount = computed(() => {
-  const remaining = notifications.value.length - MAX_DISPLAYED_NOTIFICATIONS;
+  const total = pagination.value?.total ?? notifications.value.length;
+  const remaining = total - displayedNotifications.value.length;
   return remaining > 0 ? remaining : 0;
 });
 
@@ -347,9 +349,12 @@ async function loadNotifications(page: number = 1, append: boolean = false) {
     // Vérifier que data.data existe et est un tableau
     if (data && data.data && Array.isArray(data.data)) {
       if (append) {
-        notifications.value = [...notifications.value, ...data.data];
+        const existingIds = new Set(notifications.value.map(n => n.id));
+        const deduped = data.data.filter(item => !existingIds.has(item.id));
+        notifications.value = [...notifications.value, ...deduped];
       } else {
         notifications.value = data.data;
+        displayLimit.value = INITIAL_DISPLAY_LIMIT;
       }
       pagination.value = data;
       currentPage.value = page;
@@ -465,6 +470,7 @@ function toggleDropdown() {
     loadNotifications(1);
     // Recharger aussi le compteur de non lues
     loadUnreadCount();
+    displayLimit.value = INITIAL_DISPLAY_LIMIT;
   }
 }
 
@@ -474,16 +480,22 @@ function closeDropdown() {
 
 async function loadMore() {
   if (loading.value) return;
-  if (!pagination.value || currentPage.value >= pagination.value.last_page) return;
-  
-  loading.value = true;
-  try {
-    await loadNotifications(currentPage.value + 1, true);
-  } catch (e) {
-    console.error('Error loading more notifications:', e);
-  } finally {
-    loading.value = false;
+  const canFetchMore = pagination.value ? currentPage.value < pagination.value.last_page : false;
+  if (canFetchMore) {
+    loading.value = true;
+    try {
+      await loadNotifications(currentPage.value + 1, true);
+    } catch (e) {
+      console.error('Error loading more notifications:', e);
+    } finally {
+      loading.value = false;
+    }
   }
+
+  displayLimit.value = Math.min(
+    displayLimit.value + INITIAL_DISPLAY_LIMIT,
+    notifications.value.length
+  );
 }
 
 // Close dropdown when clicking outside
@@ -511,7 +523,10 @@ onMounted(() => {
     loadUnreadCount();
     // Si le dropdown est ouvert, recharger aussi les notifications
     if (isOpen.value) {
-      loadNotifications(currentPage.value);
+      const isExpanded = currentPage.value > 1 || displayLimit.value > INITIAL_DISPLAY_LIMIT;
+      if (!isExpanded) {
+        loadNotifications(1);
+      }
     }
   }, 30000);
 });

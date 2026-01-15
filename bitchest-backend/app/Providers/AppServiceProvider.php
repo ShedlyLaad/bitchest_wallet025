@@ -11,6 +11,7 @@ use App\Services\CotationGeneratorService;
 use App\Services\LevelService;
 use App\Services\NotificationService;
 use App\Services\UniversalMailService;
+use App\Services\NotificationCacheService;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -27,7 +28,8 @@ class AppServiceProvider extends ServiceProvider
         $this->app->singleton(NotificationService::class, function ($app) {
             return new NotificationService(
                 $app->make(PortfolioService::class),
-                $app->make(LevelService::class)
+                $app->make(LevelService::class),
+                $app->make(NotificationCacheService::class)
             );
         });
         

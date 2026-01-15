@@ -11,30 +11,14 @@ use Illuminate\Support\Facades\Log;
 
 class CryptoController extends Controller
 {
-    public function index(RedisPriceService $redisPriceService, CryptoService $cryptoService)
+    public function index(RedisPriceService $redisPriceService)
     {
         try {
             // Priorité 1: Redis (ultra-rapide même pour Admin)
             $prices = $redisPriceService->getAllPrices();
             
-            // Si Redis est vide, utiliser CryptoService
             if ($prices->isEmpty()) {
-                Log::info('[AdminCryptoController] Redis vide, utilisation du fallback CryptoService');
-                $prices = $cryptoService->getCurrentPrices(true);
-                
-                // Normaliser le format
-                $prices = $prices->map(function ($crypto) {
-                    $data = is_array($crypto) ? $crypto : (array) $crypto;
-                    return [
-                        'id' => $data['id'] ?? null,
-                        'symbol' => $data['symbol'] ?? '',
-                        'name' => $data['name'] ?? '',
-                        'price' => isset($data['price']) ? (float) $data['price'] : 0.0,
-                        'change24h' => isset($data['change24h']) ? (float) $data['change24h'] : 0.0,
-                        'marketCap' => isset($data['marketCap']) ? (float) $data['marketCap'] : 0.0,
-                        'volume24h' => isset($data['volume24h']) ? (float) $data['volume24h'] : 0.0,
-                    ];
-                });
+                Log::info('[AdminCryptoController] Redis vide, fallback DB');
             }
             
             // Format de retour normalisé avec validation et formatage strict
@@ -110,7 +94,7 @@ class CryptoController extends Controller
         ];
         
         $days = $daysMap[$timeframe] ?? 7;
-        $prices = $cryptoService->getHistoricalPrices($symbol, $days);
+        $prices = $cryptoService->getHistoricalPrices($symbol, $days, false);
         
         // Ensure we return data in the expected format with recorded_at
         return response()->json($prices->map(function ($price) {

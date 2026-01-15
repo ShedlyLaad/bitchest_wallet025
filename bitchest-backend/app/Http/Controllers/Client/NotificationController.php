@@ -5,15 +5,18 @@ namespace App\Http\Controllers\Client;
 use App\Http\Controllers\Controller;
 use App\Models\Notification;
 use App\Services\NotificationService;
+use App\Services\NotificationCacheService;
 use Illuminate\Http\Request;
 
 class NotificationController extends Controller
 {
     private NotificationService $notificationService;
+    private NotificationCacheService $notificationCacheService;
 
-    public function __construct(NotificationService $notificationService)
+    public function __construct(NotificationService $notificationService, NotificationCacheService $notificationCacheService)
     {
         $this->notificationService = $notificationService;
+        $this->notificationCacheService = $notificationCacheService;
     }
 
     /**
@@ -24,6 +27,26 @@ class NotificationController extends Controller
         $user = auth()->user();
         $perPage = (int) $request->input('per_page', 20);
         $unreadOnly = $request->boolean('unread_only', false);
+
+        if ($request->input('page', 1) == 1) {
+            $cached = $this->notificationCacheService->getRecent($user->id, $perPage, $unreadOnly);
+            if (!empty($cached)) {
+                $totalCount = Notification::where('user_id', $user->id)
+                    ->when($unreadOnly, function ($query) {
+                        $query->where('is_read', false);
+                    })
+                    ->count();
+                $lastPage = (int) ceil(max(1, $totalCount) / $perPage);
+
+                return response()->json([
+                    'data' => $cached,
+                    'current_page' => 1,
+                    'last_page' => $lastPage,
+                    'per_page' => $perPage,
+                    'total' => $totalCount,
+                ]);
+            }
+        }
 
         $query = Notification::where('user_id', $user->id)
             ->with(['crypto', 'portfolio'])
@@ -79,9 +102,12 @@ class NotificationController extends Controller
     public function unreadCount()
     {
         $user = auth()->user();
-        $count = Notification::where('user_id', $user->id)
-            ->where('is_read', false)
-            ->count();
+        $cached = $this->notificationCacheService->getUnreadCount($user->id);
+        $count = $cached !== null
+            ? $cached
+            : Notification::where('user_id', $user->id)
+                ->where('is_read', false)
+                ->count();
 
         return response()->json(['count' => $count]);
     }
@@ -95,6 +121,7 @@ class NotificationController extends Controller
         $success = $this->notificationService->markAsRead($id, $user->id);
 
         if ($success) {
+            $this->notificationCacheService->markAsRead($user->id, $id);
             return response()->json(['message' => 'Notification marquée comme lue']);
         }
 
@@ -108,6 +135,7 @@ class NotificationController extends Controller
     {
         $user = auth()->user();
         $count = $this->notificationService->markAllAsRead($user->id);
+        $this->notificationCacheService->markAllAsRead($user->id);
 
         return response()->json([
             'message' => "{$count} notification(s) marquée(s) comme lue(s)",
@@ -127,6 +155,7 @@ class NotificationController extends Controller
 
         if ($notification) {
             $notification->delete();
+            $this->notificationCacheService->remove($user->id, $id);
             return response()->json(['message' => 'Notification supprimée']);
         }
 

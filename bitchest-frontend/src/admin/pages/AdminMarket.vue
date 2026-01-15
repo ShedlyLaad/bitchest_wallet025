@@ -17,14 +17,14 @@
           <span class="font-medium text-white">Last update:</span>
           <span class="ml-1">{{ lastUpdatedLabel }}</span>
         </div>
-        <button
+        <!-- <button
           class="px-4 py-2 text-sm rounded-lg bg-blue-600 hover:bg-blue-700 transition-colors disabled:opacity-50 font-medium flex items-center gap-2"
           :disabled="loading"
           @click="loadCryptos"
         >
           <RefreshCw :class="['h-4 w-4', loading && 'animate-spin']" />
           {{ loading ? 'Refreshing...' : 'Refresh' }}
-        </button>
+        </button> -->
       </div>
     </div>
 

@@ -116,9 +116,9 @@ class PortfolioService
             // Exemple : 1 + 0.5 + 0.5 = 2 BTC
             $quantity = $totalBuyQuantity - $totalSellQuantity;
             
-            // Récupérer le prix courant en temps réel via CryptoService (avec Coinbase)
+            // Récupérer le prix courant depuis Redis/DB (sans appel externe)
             $crypto = \App\Models\CryptoCurrency::find($portfolio->crypto_currency_id);
-            $currentPrice = $this->cryptoService->getCurrentPrice($crypto->symbol) ?? 0.0;
+            $currentPrice = $this->cryptoService->getCachedCurrentPrice($crypto->symbol) ?? 0.0;
             
             // Valeur totale au cours actuel (selon cahier des charges)
             // Exemple : (1 + 0.5 + 0.5) × 30000 = 60000 euros

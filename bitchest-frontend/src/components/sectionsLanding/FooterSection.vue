@@ -1,7 +1,22 @@
 <template>
   <ScrollReveal width="100%">
-    <footer class="bg-gray-800/30 border-t border-gray-700">
-      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <footer class="relative border-t border-gray-700/30 overflow-hidden" :style="{ background: 'linear-gradient(135deg, rgba(10, 15, 26, 0.95) 0%, rgba(26, 35, 50, 0.90) 50%, rgba(10, 15, 26, 0.95) 100%)' }">
+      <!-- Animated particles canvas background -->
+      <canvas ref="particlesCanvas" class="absolute inset-0 w-full h-full pointer-events-none"></canvas>
+
+      <!-- Holographic grid with brand colors -->
+      <div class="absolute inset-0 opacity-[0.05] pointer-events-none z-0">
+        <div
+          class="absolute inset-0"
+          :style="{
+            backgroundImage: `linear-gradient(to right, rgba(53, 167, 255, 0.15) 1px, transparent 1px), linear-gradient(to bottom, rgba(53, 167, 255, 0.15) 1px, transparent 1px)`,
+            backgroundSize: '80px 80px',
+            transform: 'perspective(1000px) rotateX(60deg)'
+          }"
+        />
+      </div>
+
+      <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 z-10">
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 py-12 md:py-16">
           <!-- Company Info -->
           <div class="space-y-6">
@@ -134,6 +149,9 @@
 <script setup lang="ts">
 import { RouterLink } from 'vue-router';
 import ScrollReveal from '@/components/ScrollReveal.vue';
+import { useAnimatedBackground } from '../../composables/useAnimatedBackground';
+
+const { particlesCanvas } = useAnimatedBackground();
 import {
   Shield,
   CheckCircle,

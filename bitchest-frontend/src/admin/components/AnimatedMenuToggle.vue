@@ -2,7 +2,7 @@
   <button
     @click="$emit('toggle')"
     aria-label="Toggle menu"
-    class="focus:outline-none z-50 p-2 rounded-lg hover:bg-gray-700/50 transition-colors"
+    class="focus:outline-none z-50 p-2.5 rounded-lg hover:bg-gray-700/50 active:bg-gray-700/70 transition-colors touch-manipulation shadow-lg bg-gray-800/90 backdrop-blur-sm border border-gray-700/50"
   >
     <div class="relative w-5 h-5">
       <!-- Top Line -->

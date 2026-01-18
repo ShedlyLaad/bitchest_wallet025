@@ -1,8 +1,23 @@
 <template>
   <ScrollReveal width="100%">
-    <section class="relative py-16 md:py-24 overflow-hidden">
+    <section class="relative py-16 md:py-24 overflow-hidden" :style="{ background: 'linear-gradient(135deg, #0a0f1a 0%, #1a2332 50%, #0a0f1a 100%)' }">
+      <!-- Animated particles canvas background -->
+      <canvas ref="particlesCanvas" class="absolute inset-0 w-full h-full pointer-events-none"></canvas>
+
+      <!-- Holographic grid with brand colors -->
+      <div class="absolute inset-0 opacity-[0.08] pointer-events-none z-0">
+        <div
+          class="absolute inset-0"
+          :style="{
+            backgroundImage: `linear-gradient(to right, rgba(53, 167, 255, 0.15) 1px, transparent 1px), linear-gradient(to bottom, rgba(53, 167, 255, 0.15) 1px, transparent 1px)`,
+            backgroundSize: '80px 80px',
+            transform: 'perspective(1000px) rotateX(60deg)'
+          }"
+        />
+      </div>
+
       <!-- Background Effects -->
-      <div class="absolute inset-0 pointer-events-none">
+      <div class="absolute inset-0 pointer-events-none z-0">
         <div class="absolute -top-40 -right-40 w-80 h-80 bg-blue-500/10 rounded-full blur-3xl animate-pulse"></div>
         <div class="absolute -bottom-40 -left-40 w-80 h-80 rounded-full blur-3xl animate-pulse delay-1000" :style="{ backgroundColor: 'var(--blue-dark)', opacity: 0.1 }"></div>
         <div class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-green-500/5 rounded-full blur-3xl animate-pulse delay-2000"></div>
@@ -138,6 +153,9 @@ import { ref, onMounted } from 'vue';
 import ScrollReveal from '../ScrollReveal.vue';
 import type { CryptoCurrency } from '../../types';
 import { getPublicMarket } from '../../services/api';
+import { useAnimatedBackground } from '../../composables/useAnimatedBackground';
+
+const { particlesCanvas } = useAnimatedBackground();
 
 // State
 const cryptos = ref<CryptoCurrency[]>([]);

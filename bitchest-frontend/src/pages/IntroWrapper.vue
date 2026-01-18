@@ -4,7 +4,7 @@
       <Suspense>
         <template #default>
           <div class="relative min-h-screen w-full overflow-hidden bg-black">
-            <CryptoIntro3D @end="handleEnd" />
+            <LogoIntro3D @end="handleEnd" />
           </div>
         </template>
         <template #fallback>
@@ -17,7 +17,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted, onBeforeUnmount } from 'vue';
-import CryptoIntro3D from './CryptoIntro3D.vue';
+import LogoIntro3D from '../components/LogoIntro3D.vue';
 
 const emit = defineEmits<{
   end: [];

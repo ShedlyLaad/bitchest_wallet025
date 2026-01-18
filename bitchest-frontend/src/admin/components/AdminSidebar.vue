@@ -8,19 +8,13 @@
         @click="closeMobileSidebar"
       >
         <div
-          class="fixed inset-y-0 left-0 w-64 bg-gray-800 border-r border-gray-700 overflow-y-auto"
+          class="fixed inset-y-0 left-0 w-[85vw] max-w-[300px] bg-gray-800 border-r border-gray-700 overflow-y-auto"
           @click.stop
         >
           <div class="flex flex-col h-full">
-            <!-- Mobile Header with Toggle -->
-            <div class="p-4 flex items-center justify-between">
+            <!-- Mobile Header -->
+            <div class="p-4 flex items-center justify-center">
               <img :src="AdminLogo" alt="Admin Logo" class="h-auto w-32 object-contain" />
-              <button
-                @click="closeMobileSidebar"
-                class="p-2 rounded-lg hover:bg-gray-700/50 transition-colors"
-              >
-                <X class="h-5 w-5 text-gray-300" />
-              </button>
             </div>
 
             <!-- Profile Section Compact - Futuriste -->
@@ -175,16 +169,16 @@
             </div>
 
             <!-- Navigation Section -->
-            <nav class="flex-1 p-4 space-y-2 overflow-y-auto">
+            <nav class="flex-1 p-4 space-y-2 overflow-y-auto pb-20">
               <RouterLink
                 v-for="item in sidebarItems"
                 :key="item.path"
                 :to="item.path"
                 @click="closeMobileSidebar"
-                class="flex items-center space-x-3 px-4 py-3 rounded-xl transition-all duration-200"
+                class="flex items-center space-x-3 px-4 py-3 rounded-xl transition-all duration-200 touch-manipulation"
                 :class="isActive(item.path) 
                   ? 'bg-gray-700 text-white shadow-lg' 
-                  : 'text-gray-300 hover:bg-gray-700/50 hover:text-white'"
+                  : 'text-gray-300 active:bg-gray-700/50 hover:bg-gray-700/50 hover:text-white'"
               >
                 <span :style="isActive(item.path) ? { color: 'var(--blue)' } : {}">
                   <component :is="item.icon" class="h-5 w-5" />
@@ -380,10 +374,6 @@
       </div>
     </aside>
 
-    <!-- Mobile Menu Toggle Button (visible only on mobile) -->
-    <div class="md:hidden fixed top-4 left-4 z-50">
-      <AnimatedMenuToggle :is-open="isMobileMenuOpen" @toggle="toggleMobileMenu" />
-    </div>
   </div>
 </template>
 
@@ -394,7 +384,6 @@ import { LayoutDashboard, Users, TrendingUp, FileText, Shield, X, Bell, User, Lo
 import AdminLogo from '../../assets/ADMIN.png';
 import { useAuthStore } from '@/stores/auth';
 import api from '@/services/api';
-import AnimatedMenuToggle from './AnimatedMenuToggle.vue';
 
 interface SidebarItem {
   path: string;
@@ -470,6 +459,8 @@ function closeMobileSidebar() {
   isMobileMenuOpen.value = false;
   emit('update:isMobileOpen', false);
   emit('close');
+  // Restore body scroll when closing mobile menu
+  document.body.style.overflow = '';
 }
 
 function toggleMobileMenu() {
@@ -555,6 +546,8 @@ onMounted(() => {
 onBeforeUnmount(() => {
   document.removeEventListener('mousedown', handleClickOutside);
   if (notifTimer) clearInterval(notifTimer);
+  // Ensure body scroll is restored
+  document.body.style.overflow = '';
 });
 </script>
 
@@ -570,10 +563,7 @@ onBeforeUnmount(() => {
   transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.mobile-sidebar-enter-from .fixed.inset-y-0 {
-  transform: translateX(-100%);
-}
-
+.mobile-sidebar-enter-from .fixed.inset-y-0,
 .mobile-sidebar-leave-to .fixed.inset-y-0 {
   transform: translateX(-100%);
 }
@@ -581,6 +571,11 @@ onBeforeUnmount(() => {
 .mobile-sidebar-enter-from,
 .mobile-sidebar-leave-to {
   opacity: 0;
+}
+
+.mobile-sidebar-enter-to .fixed.inset-y-0,
+.mobile-sidebar-leave-from .fixed.inset-y-0 {
+  transform: translateX(0);
 }
 
 /* Fade Transition */

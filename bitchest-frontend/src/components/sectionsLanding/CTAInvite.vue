@@ -1,199 +1,197 @@
 <template>
-  <div>
-    <!-- rendu animé si Motion dispo -->
-    <div v-if="MotionAvailable">
+  <section class="relative py-20 md:py-32 overflow-hidden" :style="{ background: 'linear-gradient(135deg, #0a0f1a 0%, #1a2332 50%, #0a0f1a 100%)' }">
+    <!-- Animated particles canvas background -->
+    <canvas ref="particlesCanvas" class="absolute inset-0 w-full h-full pointer-events-none"></canvas>
+
+    <!-- Holographic grid with brand colors -->
+    <div class="absolute inset-0 opacity-[0.08] pointer-events-none z-0">
+      <div
+        class="absolute inset-0"
+        :style="{
+          backgroundImage: `linear-gradient(to right, rgba(53, 167, 255, 0.15) 1px, transparent 1px), linear-gradient(to bottom, rgba(53, 167, 255, 0.15) 1px, transparent 1px)`,
+          backgroundSize: '80px 80px',
+          transform: 'perspective(1000px) rotateX(60deg)'
+        }"
+      />
+    </div>
+
+    <!-- Animated background orbs with brand colors -->
+    <div class="absolute inset-0 pointer-events-none z-0">
+      <div class="absolute top-1/4 left-1/4 w-96 h-96 rounded-full blur-3xl opacity-10 animate-pulse" :style="{ backgroundColor: 'var(--blue-dark)' }"></div>
+      <div class="absolute bottom-1/3 right-1/4 w-80 h-80 rounded-full blur-3xl opacity-10 animate-pulse delay-1000" :style="{ backgroundColor: 'var(--blue)' }"></div>
+      <div class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] rounded-full blur-3xl opacity-5 animate-pulse delay-2000" :style="{ backgroundColor: 'var(--accent-green)' }"></div>
+    </div>
+
+    <div class="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
       <Motion
-        class="bg-slate-900 text-white py-16 md:py-24 px-4 md:px-6 overflow-hidden"
-        :initial="sectionInitial"
-        :while-in-view="sectionAnimate"
-        :viewport="{ once: true, margin: '-100px' }"
+        tag="div"
+        class="text-center"
+        :initial="{ opacity: 0, y: 30 }"
+        :while-in-view="{ opacity: 1, y: 0 }"
+        :viewport="{ once: true }"
+        :transition="{ duration: 0.8, ease: 'easeOut' }"
       >
-        <Motion class="max-w-6xl mx-auto grid lg:grid-cols-2 gap-8 lg:gap-16" :variants="staggerContainer">
-          <!-- Left column -->
-          <Motion class="flex flex-col justify-center" :variants="fadeInUp">
-            <Motion tag="h2" class="text-3xl md:text-5xl font-bold mb-6 text-app-secondary leading-tight" :variants="fadeInUp">
-              Prêt à transformer votre expérience crypto?
-            </Motion>
+        <!-- Badge -->
+        <Motion
+          tag="div"
+          class="inline-flex items-center gap-2 px-4 py-2 rounded-full border mb-8 transition-all duration-300 hover:scale-105"
+          :style="{
+            backgroundColor: 'rgba(56, 97, 140, 0.15)',
+            borderColor: 'var(--blue)',
+            boxShadow: '0 0 20px rgba(53, 167, 255, 0.2)'
+          }"
+          :while-hover="{ scale: 1.05 }"
+        >
+          <span class="h-2 w-2 rounded-full animate-pulse" :style="{ backgroundColor: 'var(--accent-green)' }"></span>
+          <span class="text-sm font-medium" style="color: var(--blue)">Join the Revolution</span>
+        </Motion>
 
-            <Motion tag="p" class="text-lg text-slate-300 mb-8" :variants="fadeInUp">
-              Rejoignez des millions d'utilisateurs dès aujourd'hui.
-              <Motion tag="span" class="block mt-2 text-app-secondary font-semibold" :while-hover="{ scale: 1.05 }">
-                Aucun dépôt minimum requis.
-              </Motion>
-            </Motion>
+        <!-- Main heading -->
+        <h2 class="text-4xl md:text-5xl lg:text-6xl font-bold mb-6 leading-tight">
+          <span class="block text-white mb-2">Ready to Transform Your</span>
+          <span
+            class="block bg-clip-text text-transparent"
+            :style="{
+              background: 'linear-gradient(to right, var(--accent-green), var(--blue), var(--blue-dark), var(--accent-green))',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+              backgroundSize: '200% 200%',
+              animation: 'gradient-shift 4s ease infinite'
+            }"
+          >
+            Crypto Experience?
+          </span>
+        </h2>
 
-            <Motion :while-hover="{ scale: 1.05 }" :while-tap="{ scale: 0.95 }">
-              <RouterLink
-                to="/signup"
-                class="inline-flex items-center text-white px-8 py-4 rounded-xl font-semibold transition-all hover:shadow-lg"
-                :style="primaryButtonStyle"
-                @mouseenter="primaryHover(true, $event)"
-                @mouseleave="primaryHover(false, $event)"
-              >
-                Créer un compte gratuit
-                <Motion :animate="{ x: [0, 5, 0] }" :transition="{ repeat: Infinity, duration: 1.5 }">
-                  <ArrowRight class="ml-2 h-5 w-5" />
-                </Motion>
-              </RouterLink>
-            </Motion>
+        <!-- Description -->
+        <p class="text-lg md:text-xl text-gray-300 max-w-3xl mx-auto mb-12 leading-relaxed">
+          Join millions of traders worldwide who trust BitChest for secure, fast, and innovative cryptocurrency trading.
+          <span class="block mt-3 text-app-secondary font-semibold">Start your journey today — No minimum deposit required.</span>
+        </p>
 
-            <Motion class="flex flex-wrap gap-6 mt-10" :variants="staggerContainer">
-              <Motion
-                v-for="(item, i) in leftBullets"
-                :key="i"
-                class="flex items-center space-x-2 text-slate-400 hover:text-white transition-colors"
-                :variants="fadeInUp"
-                :while-hover="{ scale: 1.1 }"
-              >
-                <Motion class="text-app-secondary" :animate="{ rotate: [0, 15, -15, 0] }" :transition="{ duration: 2, repeat: Infinity }">
-                  <component :is="item.icon" class="h-5 w-5" />
-                </Motion>
-                <span>{{ item.text }}</span>
-              </Motion>
-            </Motion>
+        <!-- CTA Buttons -->
+        <div class="flex flex-col sm:flex-row gap-4 justify-center items-center mb-16">
+          <Motion
+            tag="router-link"
+            to="/signup"
+            class="group relative inline-flex items-center justify-center text-white px-10 py-5 rounded-xl font-semibold transition-all duration-300 transform hover:scale-105 shadow-xl overflow-hidden"
+            :style="{
+              background: 'linear-gradient(to right, var(--blue), var(--blue-dark))',
+              boxShadow: '0 0 30px rgba(53, 167, 255, 0.3), 0 0 20px rgba(56, 97, 140, 0.25)'
+            }"
+            :while-hover="{ scale: 1.05, y: -2 }"
+            :while-tap="{ scale: 0.98 }"
+          >
+            <span class="relative z-10">Create Free Account</span>
+            <ArrowRight class="ml-2 h-5 w-5 transition-transform group-hover:translate-x-1 relative z-10" />
+            <!-- Animated background on hover -->
+            <div class="absolute inset-0 rounded-xl bg-white opacity-0 group-hover:opacity-10 transition-opacity duration-300"></div>
+            <!-- Shine effect -->
+            <div class="absolute inset-0 -translate-x-full group-hover:translate-x-full transition-transform duration-700 bg-gradient-to-r from-transparent via-white/30 to-transparent"></div>
           </Motion>
 
-          <!-- Right column -->
-          <Motion class="flex flex-col justify-center" :variants="fadeInUp">
-            <Motion tag="h3" class="text-3xl font-bold text-app-secondary mb-6" :variants="fadeInUp">
-              Excellence reconnue
-            </Motion>
+          <Motion
+            tag="router-link"
+            to="/features"
+            class="group relative inline-flex items-center justify-center px-10 py-5 rounded-xl font-semibold transition-all duration-300 backdrop-blur-sm bg-white/5 border-2"
+            :style="{ borderColor: 'var(--blue)', color: 'var(--blue)' }"
+            :while-hover="{ scale: 1.05, y: -2 }"
+            :while-tap="{ scale: 0.98 }"
+          >
+            <span>Explore Features</span>
+            <ArrowRight class="ml-2 h-5 w-5 transition-transform group-hover:translate-x-1" />
+          </Motion>
+        </div>
 
-            <Motion tag="p" class="text-lg text-slate-400 mb-8" :variants="fadeInUp">
-              Établir de nouveaux standards dans le trading de cryptomonnaies
-            </Motion>
-
-            <Motion class="grid sm:grid-cols-2 gap-6" :variants="staggerContainer">
-              <Motion
-                v-for="(award, i) in awards"
-                :key="i"
-                class="bg-slate-800/50 backdrop-blur-sm p-6 rounded-xl border border-slate-700 transition-all hover:shadow-lg"
-                :style="awardCardBaseStyle"
-                @mouseenter="awardHover($event, true)"
-                @mouseleave="awardHover($event, false)"
-                :variants="fadeInUp"
-                :while-hover="{ y: -5 }"
-              >
-                <Motion class="mb-4" :animate="{ rotate: [0, 10, -10, 0] }" :transition="{ duration: 5, repeat: Infinity }">
-                  <component v-if="award.iconComponent" :is="award.iconComponent" class="h-8 w-8" />
-                  <div v-else v-html="award.iconHtml" />
-                </Motion>
-
-                <h4 class="text-white font-semibold mb-2">{{ award.title }}</h4>
-                <p class="text-slate-400 text-sm">{{ award.subtitle }}</p>
-
-                <Motion tag="button" class="mt-4 flex items-center text-app-secondary hover:text-white transition-colors group" :while-hover="{ x: 5 }">
-                  En savoir plus
-                  <ChevronRight class="ml-1 h-4 w-4 group-hover:translate-x-1 transition-transform" />
-                </Motion>
-              </Motion>
-            </Motion>
+        <!-- Feature highlights -->
+        <Motion
+          tag="div"
+          class="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-4xl mx-auto"
+          :initial="{ opacity: 0, y: 20 }"
+          :while-in-view="{ opacity: 1, y: 0 }"
+          :viewport="{ once: true }"
+          :transition="{ duration: 0.6, delay: 0.3 }"
+        >
+          <Motion
+            v-for="(feature, index) in features"
+            :key="index"
+            tag="div"
+            class="flex items-center gap-3 p-4 rounded-xl backdrop-blur-sm bg-white/5 border border-white/10 transition-all duration-300 hover:bg-white/10 hover:border-opacity-40"
+            :style="{ borderColor: feature.borderColor }"
+            :initial="{ opacity: 0, y: 20 }"
+            :while-in-view="{ opacity: 1, y: 0 }"
+            :viewport="{ once: true }"
+            :transition="{ duration: 0.5, delay: 0.4 + index * 0.1 }"
+            :while-hover="{ y: -5, scale: 1.02 }"
+          >
+            <div
+              class="p-2 rounded-lg"
+              :style="{
+                background: `linear-gradient(135deg, ${feature.colorStart}, ${feature.colorEnd})`,
+                opacity: 0.8
+              }"
+            >
+              <component :is="feature.icon" class="h-6 w-6 text-white" />
+            </div>
+            <span class="text-white font-medium">{{ feature.text }}</span>
           </Motion>
         </Motion>
       </Motion>
     </div>
 
-    <!-- fallback statique minimal si Motion indisponible -->
-    <div v-else class="bg-slate-900 text-white py-12 px-4 rounded-lg">
-      <div class="max-w-4xl mx-auto text-center">
-        <h2 class="text-2xl font-bold text-app-secondary mb-3">Prêt à transformer votre expérience crypto?</h2>
-        <p class="text-slate-300 mb-4">Rejoignez des millions d'utilisateurs dès aujourd'hui. Aucun dépôt minimum requis.</p>
-        <RouterLink to="/signup" class="inline-block bg-blue-600 text-white px-6 py-3 rounded-lg font-semibold">Créer un compte gratuit</RouterLink>
-
-        <div class="mt-6 grid sm:grid-cols-2 gap-4">
-          <div class="bg-slate-800/40 p-4 rounded">Meilleure plateforme crypto 2024 — FinTech Awards</div>
-          <div class="bg-slate-800/40 p-4 rounded">Note Trustpilot: 4.9 — 10 000+ avis</div>
-        </div>
-      </div>
-    </div>
-  </div>
+    <!-- Bottom decorative line -->
+    <div class="absolute bottom-0 left-0 w-full h-1 opacity-20" :style="{ background: 'linear-gradient(to right, transparent, var(--blue-dark), var(--blue), var(--blue-dark), transparent)' }"></div>
+  </section>
 </template>
 
 <script setup lang="ts">
-/**
- * CTASection.vue
- * Converted from React + Framer Motion to Vue 3 using @motionone/vue.
- * Preserves exact structure, style, and animation behavior from the original React version.
- *
- * Usage: place <CTASection /> where needed.
- */
-
-import { ref } from 'vue';
+import { onMounted } from 'vue';
 import { Motion } from '@motionone/vue';
 import { RouterLink } from 'vue-router';
-import { ArrowRight, Shield, Zap, Users, Star, TrendingUp, ChevronRight } from 'lucide-vue-next';
+import { ArrowRight, Shield, Zap, Users, TrendingUp, Lock } from 'lucide-vue-next';
 
-/* Motion presets that mirror the Framer Motion definitions */
-const fadeInUp = {
-  initial: { y: 60, opacity: 0 },
-  animate: { y: 0, opacity: 1 },
-  transition: { duration: 0.6, ease: 'easeOut' }
-};
-
-const staggerContainer = {
-  animate: { transition: { staggerChildren: 0.1 } }
-};
-
-const sectionInitial = { opacity: 0 };
-const sectionAnimate = { opacity: 1 };
-
-/* Left column bullets: use icon components */
-const leftBullets = [
-  { icon: Shield, text: 'Sécurité bancaire' },
-  { icon: Zap, text: 'Transactions instantanées' },
-  { icon: Users, text: 'Support 24/7' }
+const features = [
+  {
+    icon: Shield,
+    text: 'Bank-Level Security',
+    colorStart: 'var(--blue-dark)',
+    colorEnd: 'var(--blue)',
+    borderColor: 'rgba(53, 167, 255, 0.3)'
+  },
+  {
+    icon: Zap,
+    text: 'Lightning Fast',
+    colorStart: 'var(--blue)',
+    colorEnd: 'var(--blue-dark)',
+    borderColor: 'rgba(53, 167, 255, 0.3)'
+  },
+  {
+    icon: TrendingUp,
+    text: '24/7 Trading',
+    colorStart: 'var(--blue)',
+    colorEnd: 'var(--blue-dark)',
+    borderColor: 'rgba(56, 97, 140, 0.3)'
+  }
 ];
 
-/* Awards on right column - mix of icon components and inline HTML (4.9) */
-const awards = [
-  { iconComponent: Star, title: 'Meilleure plateforme crypto 2024', subtitle: 'FinTech Awards' },
-  { iconComponent: null, iconHtml: '<div class="text-2xl font-bold PnL--pos">4.9</div>', title: 'Note Trustpilot', subtitle: '10 000+ avis' },
-  { iconComponent: TrendingUp, title: 'Recommandé par', subtitle: 'Forbes, Bloomberg, TechCrunch' }
-];
-
-/* Primary button style and hover control (used to reproduce inline boxShadow changes) */
-const primaryHovered = ref(false);
-const primaryButtonStyle = {
-  background: 'linear-gradient(to right, var(--blue), var(--blue-dark))',
-  boxShadow: '0 0 20px rgba(53, 167, 255, 0.25)'
-};
-
-function primaryHover(enter: boolean, e?: Event) {
-  primaryHovered.value = enter;
-  if (!e) return;
-  const el = e.currentTarget as HTMLElement;
-  if (enter) {
-    el.style.boxShadow = '0 0 30px rgba(53, 167, 255, 0.35)';
-  } else {
-    el.style.boxShadow = '0 0 20px rgba(53, 167, 255, 0.25)';
-  }
-}
-
-/* Award card base style and hover handler to mimic inline style changes */
-const awardCardBaseStyle = {
-  '--hover-border': 'var(--blue)'
-} as Record<string, any>;
-
-function awardHover(e: Event, enter: boolean) {
-  const el = e.currentTarget as HTMLElement;
-  if (enter) {
-    el.style.borderColor = 'var(--blue)';
-    el.style.boxShadow = '0 0 20px rgba(53, 167, 255, 0.1)';
-  } else {
-    el.style.borderColor = '';
-    el.style.boxShadow = '';
-  }
-}
-
-// new: drapeau indiquant si Motion est disponible au runtime
-const MotionAvailable = typeof Motion !== 'undefined' && Motion !== null;
+// Particles animation is handled by useAnimatedBackground composable
 </script>
 
 <style scoped>
-/* No external CSS required beyond Tailwind utilities.
-   Add helper animation used in other components (kept consistent). */
-@keyframes spin-slow {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
+@keyframes gradient-shift {
+  0%, 100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+}
+
+.delay-1000 {
+  animation-delay: 1s;
+}
+
+.delay-2000 {
+  animation-delay: 2s;
 }
 </style>

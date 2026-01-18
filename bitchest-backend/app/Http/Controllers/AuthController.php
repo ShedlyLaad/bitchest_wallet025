@@ -43,7 +43,7 @@ class AuthController extends Controller
         $mailService->send(new TemporaryPasswordMailable($tempPassword, $user->name), $user->email);
 
         return response()->json([
-            'message' => 'Compte créé. Un mot de passe temporaire a été envoyé par email. Changez-le puis attendez la validation admin.',
+            'message' => 'Account created. A temporary password has been sent to your email. Please change it and wait for admin validation.',
             'status' => User::STATUS_PENDING,
             'must_change_password' => true,
             'temporary_password_sent' => true,
@@ -132,14 +132,28 @@ class AuthController extends Controller
         $user->password = Hash::make($data['password']);
         $user->must_change_password = false;
 
+        // Si l'utilisateur était en PENDING, vérifier s'il a été créé par admin
+        // Les utilisateurs créés par admin ont euro_balance > 0 (généralement 500)
+        // Les utilisateurs auto-enregistrés ont euro_balance = 0
         if ($user->isPending()) {
-            $user->status = User::STATUS_PENDING_VALIDATION;
+            // Si l'utilisateur a un solde initial (créé par admin), l'activer automatiquement
+            if ($user->euro_balance > 0) {
+                $user->status = User::STATUS_ACTIVE;
+                $user->email_verified_at = now();
+            } else {
+                // Utilisateur auto-enregistré : attendre validation admin
+                $user->status = User::STATUS_PENDING_VALIDATION;
+            }
         }
 
         $user->save();
 
+        $message = $user->isActive() 
+            ? 'Password updated. Your account has been activated.' 
+            : 'Password updated. Account awaiting admin validation.';
+
         return response()->json([
-            'message' => 'Password updated. Account awaiting admin validation.',
+            'message' => $message,
             'status' => $user->status,
         ]);
     }

@@ -1,14 +1,26 @@
 <template>
-  <section class="relative py-24 overflow-hidden">
+  <section class="relative py-24 overflow-hidden" :style="{ background: 'linear-gradient(135deg, #0a0f1a 0%, #1a2332 50%, #0a0f1a 100%)' }">
     <!-- Animated background canvas -->
     <div class="absolute inset-0">
       <canvas ref="canvasRef" class="absolute inset-0 w-full h-full"></canvas>
-      <div class="absolute inset-0 bg-gradient-to-b from-gray-950/95 via-gray-950/80 to-gray-950"></div>
+      <div class="absolute inset-0 opacity-60" :style="{ background: 'linear-gradient(135deg, rgba(10, 15, 26, 0.95) 0%, rgba(26, 35, 50, 0.80) 50%, rgba(10, 15, 26, 0.95) 100%)' }"></div>
     </div>
 
-    <!-- Decorative lights -->
-    <div class="absolute top-1/4 left-1/4 w-96 h-96 rounded-full blur-3xl" :style="{ backgroundColor: 'var(--blue-dark)', opacity: 0.1 }"></div>
-    <div class="absolute bottom-1/3 right-1/4 w-80 h-80 rounded-full blur-3xl" :style="{ backgroundColor: 'var(--blue)', opacity: 0.1 }"></div>
+    <!-- Holographic grid with brand colors -->
+    <div class="absolute inset-0 opacity-[0.08] pointer-events-none z-0">
+      <div
+        class="absolute inset-0"
+        :style="{
+          backgroundImage: `linear-gradient(to right, rgba(53, 167, 255, 0.15) 1px, transparent 1px), linear-gradient(to bottom, rgba(53, 167, 255, 0.15) 1px, transparent 1px)`,
+          backgroundSize: '80px 80px',
+          transform: 'perspective(1000px) rotateX(60deg)'
+        }"
+      />
+    </div>
+
+    <!-- Decorative lights with more transparency -->
+    <div class="absolute top-1/4 left-1/4 w-96 h-96 rounded-full blur-3xl pointer-events-none" :style="{ backgroundColor: 'var(--blue-dark)', opacity: 0.08 }"></div>
+    <div class="absolute bottom-1/3 right-1/4 w-80 h-80 rounded-full blur-3xl pointer-events-none" :style="{ backgroundColor: 'var(--blue)', opacity: 0.08 }"></div>
 
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
       <div class="text-center mb-20">

@@ -22,7 +22,7 @@ class TemporaryPasswordMailable extends Mailable
     public function build()
     {
         // Utiliser la configuration universelle - fonctionne avec tous les fournisseurs
-        return $this->subject('Votre mot de passe temporaire - BitChest')
+        return $this->subject('Your temporary password - BitChest')
             ->view('emails.temp_password')
             ->with([
                 'password' => $this->password,

@@ -1,7 +1,22 @@
 <template>
-  <section class="relative py-24 overflow-hidden bg-gradient-to-b from-gray-950 to-gray-900">
+  <section class="relative py-24 overflow-hidden" :style="{ background: 'linear-gradient(135deg, #0a0f1a 0%, #1a2332 50%, #0a0f1a 100%)' }">
+    <!-- Animated particles canvas background -->
+    <canvas ref="particlesCanvas" class="absolute inset-0 w-full h-full pointer-events-none"></canvas>
+
+    <!-- Holographic grid with brand colors -->
+    <div class="absolute inset-0 opacity-[0.08] pointer-events-none z-0">
+      <div
+        class="absolute inset-0"
+        :style="{
+          backgroundImage: `linear-gradient(to right, rgba(53, 167, 255, 0.15) 1px, transparent 1px), linear-gradient(to bottom, rgba(53, 167, 255, 0.15) 1px, transparent 1px)`,
+          backgroundSize: '80px 80px',
+          transform: 'perspective(1000px) rotateX(60deg)'
+        }"
+      />
+    </div>
+
     <!-- Particles background -->
-    <div class="absolute inset-0">
+    <div class="absolute inset-0 z-0">
       <div class="bg-orb-large left-orb" />
       <div class="bg-orb-large right-orb" />
     </div>
@@ -114,6 +129,9 @@
 <script setup lang="ts">
 import { ref, onMounted, onBeforeUnmount } from 'vue';
 import { Star, ChevronLeft, ChevronRight } from 'lucide-vue-next';
+import { useAnimatedBackground } from '../../composables/useAnimatedBackground';
+
+const { particlesCanvas } = useAnimatedBackground();
 
 const testimonials = ref([
   {

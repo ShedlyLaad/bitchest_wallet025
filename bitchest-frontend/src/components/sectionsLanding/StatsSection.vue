@@ -1,15 +1,30 @@
 <template>
   <ScrollReveal width="100%">
-    <section class="relative py-16 md:py-24 overflow-hidden">
+    <section class="relative py-16 md:py-24 overflow-hidden" :style="{ background: 'linear-gradient(135deg, #0a0f1a 0%, #1a2332 50%, #0a0f1a 100%)' }">
+      <!-- Animated particles canvas background -->
+      <canvas ref="particlesCanvas" class="absolute inset-0 w-full h-full pointer-events-none"></canvas>
+
+      <!-- Holographic grid with brand colors -->
+      <div class="absolute inset-0 opacity-[0.08] pointer-events-none z-0">
+        <div
+          class="absolute inset-0"
+          :style="{
+            backgroundImage: `linear-gradient(to right, rgba(53, 167, 255, 0.15) 1px, transparent 1px), linear-gradient(to bottom, rgba(53, 167, 255, 0.15) 1px, transparent 1px)`,
+            backgroundSize: '80px 80px',
+            transform: 'perspective(1000px) rotateX(60deg)'
+          }"
+        />
+      </div>
+
       <!-- Background effects with brand colors -->
-      <div class="absolute inset-0 pointer-events-none">
+      <div class="absolute inset-0 pointer-events-none z-0">
         <div 
           class="absolute top-1/2 left-1/4 w-64 h-64 rounded-full blur-3xl opacity-10"
           :style="{ backgroundColor: 'var(--blue)' }"
         ></div>
         <div 
           class="absolute bottom-1/4 right-1/4 w-64 h-64 rounded-full blur-3xl opacity-10"
-          :style="{ backgroundColor: 'var(--accent-green)' }"
+          :style="{ backgroundColor: 'var(--blue-dark)' }"
         ></div>
       </div>
 
@@ -69,6 +84,9 @@
 import { ref } from 'vue';
 import ScrollReveal from '../ScrollReveal.vue';
 import AnimatedCounter from '../AnimatedCounter.vue';
+import { useAnimatedBackground } from '../../composables/useAnimatedBackground';
+
+const { particlesCanvas } = useAnimatedBackground();
 
 const stats = ref([
   { 
@@ -85,8 +103,8 @@ const stats = ref([
     label: 'Volume Traded', 
     color: 'PnL--pos', 
     prefix: '$',
-    colorValue: 'var(--accent-green)',
-    glowColor: '#01FF19'
+    colorValue: 'var(--blue)',
+    glowColor: '#35A7FF'
   },
   { 
     value: 120, 
@@ -102,8 +120,8 @@ const stats = ref([
     label: 'Uptime', 
     color: 'text-yellow-400', 
     decimals: 1,
-    colorValue: 'var(--accent-green)',
-    glowColor: '#01FF19'
+    colorValue: 'var(--blue-dark)',
+    glowColor: '#38618C'
   }
 ]);
 </script>

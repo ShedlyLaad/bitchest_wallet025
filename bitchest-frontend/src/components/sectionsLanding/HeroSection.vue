@@ -1,9 +1,10 @@
 <template>
   <section
     ref="containerRef"
-    class="relative min-h-screen flex items-center overflow-hidden bg-gray-900"
+    class="relative min-h-screen flex items-center overflow-hidden"
     :style="{
       position: 'relative',
+      background: 'linear-gradient(135deg, #0a0f1a 0%, #1a2332 50%, #0a0f1a 100%)',
       backgroundImage: lightGradient,
     }"
   >
@@ -11,36 +12,22 @@
     <div
       class="absolute inset-0 pointer-events-none transition-all duration-300 ease-out"
       :style="{
-        background: `radial-gradient(circle at ${mousePosition.x}px ${mousePosition.y}px, rgba(99,102,241,0.15) 0%, transparent 60%)`,
+        background: `radial-gradient(circle at ${mousePosition.x}px ${mousePosition.y}px, rgba(53, 167, 255, 0.12) 0%, rgba(56, 97, 140, 0.08) 40%, transparent 70%)`,
         willChange: 'background-position'
       }"
     />
 
-    <!-- Holographic grid -->
-    <div class="absolute inset-0 opacity-10">
+    <!-- Animated particles canvas background -->
+    <canvas ref="particlesCanvas" class="absolute inset-0 w-full h-full pointer-events-none"></canvas>
+
+    <!-- Holographic grid with brand colors -->
+    <div class="absolute inset-0 opacity-[0.08] pointer-events-none">
       <div
         class="absolute inset-0"
         :style="{
-          backgroundImage: `linear-gradient(to right, rgba(165,180,252,0.1) 1px, transparent 1px), linear-gradient(to bottom, rgba(165,180,252,0.1) 1px, transparent 1px)`,
+          backgroundImage: `linear-gradient(to right, rgba(53, 167, 255, 0.15) 1px, transparent 1px), linear-gradient(to bottom, rgba(53, 167, 255, 0.15) 1px, transparent 1px)`,
           backgroundSize: '80px 80px',
           transform: 'perspective(1000px) rotateX(60deg)'
-        }"
-      />
-    </div>
-
-    <!-- Particle network -->
-    <div class="absolute inset-0 pointer-events-none">
-      <div
-        v-for="(p, i) in particles"
-        :key="i"
-        class="absolute rounded-full"
-        :style="{
-          width: `${p.size}px`,
-          height: `${p.size}px`,
-          left: `${p.left}%`,
-          top: `${p.top}%`,
-          backgroundColor: p.color,
-          transform: `translate3d(0, ${p.offset}px, 0)`
         }"
       />
     </div>
@@ -98,7 +85,7 @@
 
             <div class="flex flex-col sm:flex-row gap-4 pt-2">
               <router-link
-                to="/signup"
+                to="/signin"
                 class="group relative flex items-center justify-center text-white px-8 py-4 rounded-xl font-semibold transition-all duration-300 transform hover:scale-[1.05] shadow-xl overflow-hidden"
                 :style="{ 
                   background: 'linear-gradient(to right, var(--accent-green), var(--blue))',
@@ -248,8 +235,8 @@
               </div>
             </div>
 
-            <!-- central light glow -->
-            <div class="absolute inset-0 z-10 pointer-events-none" :style="{ background: 'radial-gradient(circle at center, rgba(99,102,241,0.15) 0%, transparent 70%)', mixBlendMode: 'screen', opacity: 0.9 }" />
+            <!-- central light glow with brand colors -->
+            <div class="absolute inset-0 z-10 pointer-events-none" :style="{ background: 'radial-gradient(circle at center, rgba(53, 167, 255, 0.15) 0%, rgba(56, 97, 140, 0.1) 40%, transparent 70%)', mixBlendMode: 'screen', opacity: 0.9 }" />
           </div>
         </div>
       </div>
@@ -259,9 +246,16 @@
 
 <script setup lang="ts">
 import { ref, reactive, onMounted, onBeforeUnmount, computed } from 'vue';
+import axios from 'axios';
 import type { CryptoCurrency } from '../../types';
 import { getCryptoIcon } from '../../utils/cryptoIcons';
-import { getPublicMarket } from '../../services/api';
+import { useAnimatedBackground } from '../../composables/useAnimatedBackground';
+
+const baseURL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8000';
+const api = axios.create({
+  baseURL,
+  withCredentials: true
+});
 
 // Utility: color map
 const getColorForCrypto = (symbol: string) => {
@@ -311,7 +305,7 @@ const totalBalance = computed(() => cryptoIcons.value.reduce((acc, crypto) => ac
 const loadCryptos = async () => {
   try {
     loadingCryptos.value = true;
-    const data = await getPublicMarket(true);
+    const { data } = await api.get<CryptoCurrency[]>('/api/public/market');
     cryptoData.value = Array.isArray(data) ? data.map(c => ({
       ...c,
       price: typeof c.price === 'number' ? Number(c.price) : Number(c.price || 0),
@@ -335,24 +329,13 @@ const formatCurrency = (value: number) => {
   }).format(value);
 };
 
-// Light gradient helper (kept so radial shows on section background too)
+// Light gradient helper with brand colors
 const lightGradient = computed(() => {
-  return `radial-gradient(circle at ${mousePosition.x}px ${mousePosition.y}px, rgba(99,102,241,0.06) 0%, transparent 60%)`;
+  return `radial-gradient(circle at ${mousePosition.x}px ${mousePosition.y}px, rgba(53, 167, 255, 0.08) 0%, rgba(56, 97, 140, 0.05) 40%, transparent 70%)`;
 });
 
-// Particles array
-const particles = Array.from({ length: 40 }).map(() => {
-  const size = Math.random() * 4 + 1;
-  return {
-    size,
-    left: Math.random() * 100,
-    top: Math.random() * 100,
-    color: `rgba(165,180,252,${Math.random() * 0.3 + 0.1})`,
-    offset: (Math.random() - 0.5) * 6,
-    speed: 0.5 + Math.random() * 1.2,
-    phase: Math.random() * Math.PI * 2
-  };
-});
+// Use animated background composable
+const { particlesCanvas } = useAnimatedBackground();
 
 // Animation loop / pointer handling
 let rafId: number | null = null;
@@ -396,15 +379,7 @@ const animate = (ts?: number) => {
   // Light pulse animation
   lightPulse.value = 0.7 + Math.abs(Math.sin(Date.now() / 900));
 
-  // animate particles offsets for bobbing effect
-  const now = Date.now();
-  for (let i = 0; i < particles.length; i++) {
-    const p = particles[i];
-    p.phase += 0.01 * p.speed;
-    p.offset = Math.sin(p.phase + i) * (2 + p.speed);
-    // subtle horizontal drift (update left slightly)
-    p.left = (p.left + Math.cos(p.phase) * 0.005 * p.speed + 100) % 100;
-  }
+  // Particles animation is handled by useAnimatedBackground composable
 
   rafId = requestAnimationFrame(animate);
 };
@@ -468,8 +443,8 @@ const ringStyle = (index: number) => {
   return {
     width: `${size}px`,
     height: `${size}px`,
-    background: `linear-gradient(${deg}deg, rgba(99,102,241,0.1), rgba(59,130,246,0.05))`,
-    border: '1px solid rgba(99,102,241,0.2)',
+    background: `linear-gradient(${deg}deg, rgba(53, 167, 255, 0.1), rgba(56, 97, 140, 0.05))`,
+    border: '1px solid rgba(53, 167, 255, 0.2)',
     filter: 'blur(0.5px)',
     borderRadius: '9999px',
     animation: `spin ${rotateDur}s linear infinite`
@@ -501,8 +476,8 @@ const cardRingStyle = (index: number) => {
   return {
     width: `${size}px`,
     height: `${size}px`,
-    background: `linear-gradient(${deg}deg, rgba(99,102,241,0.08), rgba(59,130,246,0.04))`,
-    border: '1px solid rgba(99,102,241,0.12)',
+    background: `linear-gradient(${deg}deg, rgba(53, 167, 255, 0.08), rgba(56, 97, 140, 0.04))`,
+    border: '1px solid rgba(53, 167, 255, 0.12)',
     filter: 'blur(0.5px)',
     borderRadius: '9999px',
     animation: `spin ${rotateDur}s linear infinite`
@@ -551,9 +526,9 @@ section[ref] {
   /* nothing here; we set vars on container element from JS */
 }
 
-/* update radial uses --mouse-x/--mouse-y fallback to center */
+/* update radial uses --mouse-x/--mouse-y fallback to center with brand colors */
 .absolute.inset-0.pointer-events-none.transition-all.duration-300.ease-out {
-  background: radial-gradient(circle at var(--mouse-x, 50%) var(--mouse-y, 50%), rgba(99,102,241,0.15) 0%, transparent 60%);
+  background: radial-gradient(circle at var(--mouse-x, 50%) var(--mouse-y, 50%), rgba(53, 167, 255, 0.12) 0%, rgba(56, 97, 140, 0.08) 40%, transparent 70%);
 }
 
 @keyframes spin {

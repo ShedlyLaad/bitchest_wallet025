@@ -2,12 +2,33 @@
   <div>
     <div v-if="MotionAvailable">
       <Motion tag="div"
-        class="bg-slate-900 text-white py-16 md:py-24 px-4 md:px-6 overflow-hidden"
+        class="relative text-white py-16 md:py-24 px-4 md:px-6 overflow-hidden"
+        :style="{ background: 'linear-gradient(135deg, #0a0f1a 0%, #1a2332 50%, #0a0f1a 100%)' }"
         :initial="sectionInitial"
         :while-in-view="sectionAnimate"
         :viewport="{ once: true, margin: '-100px' }"
       >
-        <Motion tag="div" class="max-w-6xl mx-auto grid lg:grid-cols-2 gap-8 lg:gap-16" :variants="staggerContainer">
+        <!-- Animated particles canvas background -->
+        <canvas ref="particlesCanvas" class="absolute inset-0 w-full h-full pointer-events-none"></canvas>
+
+        <!-- Holographic grid with brand colors -->
+        <div class="absolute inset-0 opacity-[0.08] pointer-events-none z-0">
+          <div
+            class="absolute inset-0"
+            :style="{
+              backgroundImage: `linear-gradient(to right, rgba(53, 167, 255, 0.15) 1px, transparent 1px), linear-gradient(to bottom, rgba(53, 167, 255, 0.15) 1px, transparent 1px)`,
+              backgroundSize: '80px 80px',
+              transform: 'perspective(1000px) rotateX(60deg)'
+            }"
+          />
+        </div>
+
+        <!-- Background orbs with brand colors -->
+        <div class="absolute inset-0 pointer-events-none">
+          <div class="absolute top-1/4 left-1/4 w-96 h-96 rounded-full blur-3xl opacity-[0.08]" :style="{ backgroundColor: 'var(--blue-dark)' }"></div>
+          <div class="absolute bottom-1/3 right-1/4 w-80 h-80 rounded-full blur-3xl opacity-[0.08]" :style="{ backgroundColor: 'var(--blue)' }"></div>
+        </div>
+        <Motion tag="div" class="relative z-10 max-w-6xl mx-auto grid lg:grid-cols-2 gap-8 lg:gap-16" :variants="staggerContainer">
           <!-- Left column -->
           <Motion tag="div" class="flex flex-col justify-center" :variants="fadeInUp">
             <Motion tag="h2"
@@ -115,10 +136,13 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import { Motion } from '@motionone/vue';
 import { RouterLink } from 'vue-router';
 import { ArrowRight, Shield, Zap, Users, Star, TrendingUp, ChevronRight } from 'lucide-vue-next';
+import { useAnimatedBackground } from '../../composables/useAnimatedBackground';
+
+const { particlesCanvas } = useAnimatedBackground();
 
 /* Motion presets (mirrors framer-motion setup) */
 const fadeInUp = {
@@ -148,8 +172,8 @@ const awards = [
 /* Styles + hover state */
 const primaryHovered = ref(false);
 const primaryButtonStyle = {
-  background: 'linear-gradient(to right, var(--accent-green), var(--blue), var(--blue-dark))',
-  boxShadow: '0 0 30px rgba(1, 255, 25, 0.3), 0 0 20px rgba(53, 167, 255, 0.25)'
+  background: 'linear-gradient(to right, var(--blue), var(--blue-dark))',
+  boxShadow: '0 0 30px rgba(53, 167, 255, 0.3), 0 0 20px rgba(56, 97, 140, 0.25)'
 };
 
 function primaryHover(enter = true) {
@@ -168,6 +192,8 @@ function awardHover(e: Event, enter: boolean) {
     el.style.boxShadow = '';
   }
 }
+
+// Particles animation is handled by useAnimatedBackground composable
 
 // new: drapeau indiquant si Motion est disponible au runtime
 const MotionAvailable = typeof Motion !== 'undefined' && Motion !== null;

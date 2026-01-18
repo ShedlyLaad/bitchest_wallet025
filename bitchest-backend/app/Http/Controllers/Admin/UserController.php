@@ -8,7 +8,6 @@ use App\Models\User;
 use App\Models\Portfolio;
 use App\Models\Transaction;
 use App\Services\UniversalMailService;
-use App\Mail\VerifyEmailMailable;
 use Illuminate\Http\Request;
 
 class UserController extends Controller
@@ -18,8 +17,8 @@ class UserController extends Controller
         $data = $userService->createClient($request->name, $request->email);
 
         return response()->json([
-            'user' => $data['user'],
-            'temporary_password' => $data['password']
+            'message' => 'User created successfully. A temporary password has been sent to the user\'s email. They must change it in their private area. For the prototype phase, the account is credited with €500.',
+            'user' => $data['user']
         ], 201);
     }
 
@@ -89,11 +88,6 @@ class UserController extends Controller
             'euro_balance' => 500.00,
             'email_verified_at' => now(),
         ]);
-    
-      
-        // Envoyer l'email de vérification avec service universel (fonctionne avec tous les fournisseurs)
-        $mailService = app(UniversalMailService::class);
-        $mailService->send(new VerifyEmailMailable($user), $user->email);
     
         return response()->json([
             'message' => 'User approved and account activated',

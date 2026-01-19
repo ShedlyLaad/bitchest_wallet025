@@ -4,176 +4,210 @@ namespace App\Services;
 
 use App\Models\Portfolio;
 use App\Models\User;
+use App\Models\Transaction;
 use App\Models\CryptoCurrency;
+use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Cache;
 
+/**
+ * Service de gestion des portfolios
+ * 
+ * Responsabilités :
+ * - Mise à jour des portfolios après transactions
+ * - Calcul des plus-values selon le cahier des charges
+ * - Récupération des détails d'achat
+ * - Optimisation via cache Redis
+ */
 class PortfolioService
 {
-    private CryptoService $cryptoService;
-
-    public function __construct(CryptoService $cryptoService)
-    {
-        $this->cryptoService = $cryptoService;
-    }
+    private const CACHE_TTL = 300; // 5 minutes
+    
+    public function __construct(
+        private CryptoService $cryptoService
+    ) {}
 
     /**
      * Met à jour le portfolio après une transaction
      * 
-     * Note: total_crypto_value est utilisé pour le suivi interne, mais les calculs
-     * de plus-value sont faits dynamiquement dans getUserPortfolio() à partir des transactions
-     * selon le cahier des charges.
+     * Logique :
+     * - BUY : Ajoute la valeur investie à total_crypto_value
+     * - SELL : Réduit proportionnellement total_crypto_value selon la quantité vendue
+     * 
+     * @param Portfolio $portfolio Portfolio à mettre à jour
+     * @param Transaction $transaction Transaction effectuée
+     * @param float $quantity Quantité de la transaction
+     * @param float $price Prix unitaire
+     * @param string $type Type de transaction ('buy' ou 'sell')
      */
-    public function updatePortfolio(Portfolio $portfolio, \App\Models\Transaction $transaction, float $quantity, float $price, string $type)
-    {
-        // --- BUY ---
+    public function updatePortfolio(
+        Portfolio $portfolio,
+        Transaction $transaction,
+        float $quantity,
+        float $price,
+        string $type
+    ): void {
         if ($type === 'buy') {
-            // Ajouter la valeur investie au total_crypto_value
-            // total_crypto_value représente la valeur totale investie en euros pour cette crypto
-            $portfolio->total_crypto_value += ($quantity * $price);
+            $this->updatePortfolioOnBuy($portfolio, $quantity, $price);
+        } elseif ($type === 'sell') {
+            $this->updatePortfolioOnSell($portfolio, $transaction, $quantity);
         }
-        // --- SELL ---
-        elseif ($type === 'sell') {
-            // Calculer la quantité totale détenue AVANT cette transaction
-            // Utiliser le cache puis soustraire la transaction actuelle
-            $totalBuyQuantity = \App\Models\Transaction::getCachedQuantity($portfolio->id, 'buy');
-            $totalSellQuantity = \App\Models\Transaction::getCachedQuantity($portfolio->id, 'sell');
-            
-            // Soustraire la transaction actuelle car elle n'est pas encore dans le cache
-            if ($transaction->type === 'buy') {
-                $totalBuyQuantity -= (float) $transaction->quantity;
-            } elseif ($transaction->type === 'sell') {
-                $totalSellQuantity -= (float) $transaction->quantity;
-            }
-            
-            $totalQuantityBefore = $totalBuyQuantity - $totalSellQuantity;
-            
-            // Calculer la valeur moyenne investie par unité AVANT la vente
-            $averageInvestedValue = $totalQuantityBefore > 0 
-                ? $portfolio->total_crypto_value / $totalQuantityBefore 
-                : 0;
-            
-            // Réduire la valeur investie proportionnellement à la quantité vendue
-            // Cela permet de maintenir la cohérence du total_crypto_value
-            $portfolio->total_crypto_value -= ($quantity * $averageInvestedValue);
-            
-            // Si la valeur crypto devient négative ou nulle, la mettre à zéro
-            if ($portfolio->total_crypto_value <= 0) {
-                $portfolio->total_crypto_value = 0;
-            }
-        }
-
+        
         $portfolio->save();
         
-        // Invalider le cache du portfolio après mise à jour
-        \Illuminate\Support\Facades\Cache::forget("portfolio:{$portfolio->id}:total_cost");
-        \Illuminate\Support\Facades\Cache::forget("portfolio:{$portfolio->id}:buy_count");
-        \Illuminate\Support\Facades\Cache::forget("portfolio:{$portfolio->id}:purchase_details");
+        // Invalider le cache du portfolio
+        $this->invalidatePortfolioCache($portfolio->id);
     }
-
+    
     /**
-     * Récupère le portfolio de l'utilisateur avec calculs dynamiques selon le cahier des charges
+     * Met à jour le portfolio lors d'un achat
+     */
+    private function updatePortfolioOnBuy(Portfolio $portfolio, float $quantity, float $price): void
+    {
+        $portfolio->total_crypto_value += ($quantity * $price);
+    }
+    
+    /**
+     * Met à jour le portfolio lors d'une vente
+     */
+    private function updatePortfolioOnSell(Portfolio $portfolio, Transaction $transaction, float $quantity): void
+    {
+        // Calculer la quantité totale détenue AVANT cette transaction
+        $totalBuyQuantity = Transaction::getCachedQuantity($portfolio->id, 'buy');
+        $totalSellQuantity = Transaction::getCachedQuantity($portfolio->id, 'sell');
+        
+        // Soustraire la transaction actuelle car elle n'est pas encore dans le cache
+        if ($transaction->type === 'buy') {
+            $totalBuyQuantity -= (float) $transaction->quantity;
+        } elseif ($transaction->type === 'sell') {
+            $totalSellQuantity -= (float) $transaction->quantity;
+        }
+        
+        $totalQuantityBefore = max(0, $totalBuyQuantity - $totalSellQuantity);
+        
+        // Calculer la valeur moyenne investie par unité AVANT la vente
+        $averageInvestedValue = $totalQuantityBefore > 0
+            ? $portfolio->total_crypto_value / $totalQuantityBefore
+            : 0;
+        
+        // Réduire la valeur investie proportionnellement à la quantité vendue
+        $portfolio->total_crypto_value -= ($quantity * $averageInvestedValue);
+        
+        // S'assurer que la valeur ne devient pas négative
+        $portfolio->total_crypto_value = max(0, $portfolio->total_crypto_value);
+    }
+    
+    /**
+     * Récupère le portfolio de l'utilisateur avec calculs dynamiques
      * 
      * Logique selon cahier des charges :
-     * 1. Coût total = somme de tous les achats (même ceux partiellement vendus)
+     * 1. Coût total = somme de tous les achats
      * 2. Quantité possédée = quantité achetée - quantité vendue
-     * 3. Valeur d'achat d'une unité = Coût total / Quantité possédée
-     * 4. Plus-value = (Quantité possédée × Prix actuel) - (Quantité possédée × Valeur d'achat d'une unité)
+     * 3. Prix moyen d'achat = Coût total / Quantité totale achetée
+     * 4. Plus-value = (Quantité possédée × Prix actuel) - (Quantité possédée × Prix moyen d'achat)
+     * 
+     * @param User $user Utilisateur
+     * @return Collection Collection de portfolios enrichis
      */
-    public function getUserPortfolio(User $user)
+    public function getUserPortfolio(User $user): Collection
     {
         $portfolios = $user->portfolios()
             ->with('crypto')
             ->get();
-
-        // Enrichir chaque portfolio avec quantité détenue, prix courant, valeur courante, gain/perte
-        // Utiliser Redis cache pour des performances optimales
+        
         return $portfolios->map(function ($portfolio) {
-            // Utiliser le cache Redis pour les quantités (beaucoup plus rapide)
-            $totalBuyQuantity = (float) \App\Models\Transaction::getCachedQuantity($portfolio->id, 'buy');
-            $totalSellQuantity = (float) \App\Models\Transaction::getCachedQuantity($portfolio->id, 'sell');
-            
-            // Pour le calcul du coût total, on a besoin des détails des transactions d'achat
-            // On utilise un cache séparé pour cela
-            $cacheKey = "portfolio:{$portfolio->id}:total_cost";
-            $totalCost = \Illuminate\Support\Facades\Cache::remember($cacheKey, 300, function () use ($portfolio) {
-                $buyTransactions = \App\Models\Transaction::where('portfolio_id', $portfolio->id)
-                    ->where('type', 'buy')
-                    ->get();
-                
-                return (float) $buyTransactions->sum(function ($tx) {
-                    return (float) $tx->quantity * (float) $tx->price_at_transaction;
-                });
-            });
-            
-            // Pour le nombre de transactions d'achat
-            $cacheKeyCount = "portfolio:{$portfolio->id}:buy_count";
-            $buyTransactionsCount = \Illuminate\Support\Facades\Cache::remember($cacheKeyCount, 300, function () use ($portfolio) {
-                return \App\Models\Transaction::where('portfolio_id', $portfolio->id)
-                    ->where('type', 'buy')
-                    ->count();
-            });
-            
-            // Quantité actuellement possédée (selon cahier des charges)
-            // Exemple : 1 + 0.5 + 0.5 = 2 BTC
-            $quantity = $totalBuyQuantity - $totalSellQuantity;
-            
-            // Récupérer le prix courant depuis Redis/DB (sans appel externe)
-            $crypto = \App\Models\CryptoCurrency::find($portfolio->crypto_currency_id);
-            $currentPrice = $this->cryptoService->getCachedCurrentPrice($crypto->symbol) ?? 0.0;
-            
-            // Valeur totale au cours actuel (selon cahier des charges)
-            // Exemple : (1 + 0.5 + 0.5) × 30000 = 60000 euros
-            $currentValue = $quantity * $currentPrice;
-            
-            // Valeur d'achat d'une unité (selon cahier des charges)
-            // Prix moyen d'achat = Coût total de tous les achats / Quantité totale achetée
-            // Exemple : 29000 / 2 = 14500 euros par BTC
-            $averagePurchasePrice = $totalBuyQuantity > 0 ? ($totalCost / $totalBuyQuantity) : 0;
-            
-            // Coût total investi pour la quantité possédée
-            // C'est le prix moyen d'achat multiplié par la quantité possédée
-            // Exemple : 14500 × 1 = 14500 euros (si on a vendu 1 BTC sur 2)
-            $totalInvestedValue = $averagePurchasePrice * $quantity;
-            
-            // Plus-value actuelle (selon cahier des charges)
-            // Exemple : 60000 - 29000 = 31000 euros
-            // Note: Dans l'exemple du cahier, il y a une incohérence (60000 - 14500 = 45500)
-            // mais la logique correcte est : Valeur actuelle - Coût total investi
-            $gainLoss = $currentValue - $totalInvestedValue;
-            
-            // Pourcentage de gain/perte
-            $gainLossPercent = $totalInvestedValue > 0 
-                ? ($gainLoss / $totalInvestedValue) * 100 
-                : null;
-
-            // Append computed fields
-            $portfolio->quantity = round($quantity, 8);
-            $portfolio->current_price = round($currentPrice, 8);
-            $portfolio->current_value = round($currentValue, 8);
-            $portfolio->average_purchase_price = round($averagePurchasePrice, 8);
-            $portfolio->total_invested_value = round($totalInvestedValue, 8);
-            $portfolio->total_cost = round($totalCost, 8);
-            $portfolio->gain_loss = round($gainLoss, 8);
-            $portfolio->gain_loss_percent = $gainLossPercent !== null ? round($gainLossPercent, 2) : null;
-            
-            // Informations sur les transactions (utiliser les valeurs mises en cache)
-            $portfolio->buy_transactions_count = $buyTransactionsCount;
-            $portfolio->total_buy_quantity = $totalBuyQuantity;
-            $portfolio->total_sell_quantity = $totalSellQuantity;
-
-            return $portfolio;
+            return $this->enrichPortfolio($portfolio);
         })->filter(function ($portfolio) {
             // Ne retourner que les portfolios avec une quantité > 0
-            return $portfolio->quantity > 0;
+            return ($portfolio->quantity ?? 0) > 0;
         })->values();
     }
     
     /**
-     * Récupère les détails des transactions d'achat pour une crypto
-     * Retourne la liste des achats avec date, quantité et cours
+     * Enrichit un portfolio avec les calculs dynamiques
      */
-    public function getPurchaseDetails(User $user, int $cryptoCurrencyId)
+    private function enrichPortfolio(Portfolio $portfolio): Portfolio
     {
-        $portfolio = \App\Models\Portfolio::where('user_id', $user->id)
+        // Récupérer les quantités depuis le cache
+        $totalBuyQuantity = (float) Transaction::getCachedQuantity($portfolio->id, 'buy');
+        $totalSellQuantity = (float) Transaction::getCachedQuantity($portfolio->id, 'sell');
+        $quantity = max(0, $totalBuyQuantity - $totalSellQuantity);
+        
+        // Calculer le coût total des achats (avec cache)
+        $totalCost = $this->getTotalCost($portfolio->id);
+        
+        // Nombre de transactions d'achat (avec cache)
+        $buyTransactionsCount = $this->getBuyTransactionsCount($portfolio->id);
+        
+        // Récupérer le prix courant
+        $crypto = CryptoCurrency::find($portfolio->crypto_currency_id);
+        $currentPrice = $this->cryptoService->getCachedCurrentPrice($crypto->symbol) ?? 0.0;
+        
+        // Calculs selon le cahier des charges
+        $currentValue = $quantity * $currentPrice;
+        $averagePurchasePrice = $totalBuyQuantity > 0 ? ($totalCost / $totalBuyQuantity) : 0;
+        $totalInvestedValue = $averagePurchasePrice * $quantity;
+        $gainLoss = $currentValue - $totalInvestedValue;
+        $gainLossPercent = $totalInvestedValue > 0
+            ? ($gainLoss / $totalInvestedValue) * 100
+            : null;
+        
+        // Ajouter les champs calculés au portfolio
+        $portfolio->quantity = round($quantity, 8);
+        $portfolio->current_price = round($currentPrice, 8);
+        $portfolio->current_value = round($currentValue, 8);
+        $portfolio->average_purchase_price = round($averagePurchasePrice, 8);
+        $portfolio->total_invested_value = round($totalInvestedValue, 8);
+        $portfolio->total_cost = round($totalCost, 8);
+        $portfolio->gain_loss = round($gainLoss, 8);
+        $portfolio->gain_loss_percent = $gainLossPercent !== null ? round($gainLossPercent, 2) : null;
+        $portfolio->buy_transactions_count = $buyTransactionsCount;
+        $portfolio->total_buy_quantity = $totalBuyQuantity;
+        $portfolio->total_sell_quantity = $totalSellQuantity;
+        
+        return $portfolio;
+    }
+    
+    /**
+     * Récupère le coût total des achats (avec cache)
+     */
+    private function getTotalCost(int $portfolioId): float
+    {
+        $cacheKey = "portfolio:{$portfolioId}:total_cost";
+        
+        return (float) Cache::remember($cacheKey, self::CACHE_TTL, function () use ($portfolioId) {
+            return Transaction::where('portfolio_id', $portfolioId)
+                ->where('type', 'buy')
+                ->get()
+                ->sum(function ($tx) {
+                    return (float) $tx->quantity * (float) $tx->price_at_transaction;
+                });
+        });
+    }
+    
+    /**
+     * Récupère le nombre de transactions d'achat (avec cache)
+     */
+    private function getBuyTransactionsCount(int $portfolioId): int
+    {
+        $cacheKey = "portfolio:{$portfolioId}:buy_count";
+        
+        return (int) Cache::remember($cacheKey, self::CACHE_TTL, function () use ($portfolioId) {
+            return Transaction::where('portfolio_id', $portfolioId)
+                ->where('type', 'buy')
+                ->count();
+        });
+    }
+    
+    /**
+     * Récupère les détails des transactions d'achat pour une crypto
+     * 
+     * @param User $user Utilisateur
+     * @param int $cryptoCurrencyId ID de la cryptomonnaie
+     * @return Collection Collection des détails d'achat
+     */
+    public function getPurchaseDetails(User $user, int $cryptoCurrencyId): Collection
+    {
+        $portfolio = Portfolio::where('user_id', $user->id)
             ->where('crypto_currency_id', $cryptoCurrencyId)
             ->first();
         
@@ -181,12 +215,10 @@ class PortfolioService
             return collect([]);
         }
         
-        // Récupérer toutes les transactions d'achat avec leurs détails
-        // Utiliser le cache Redis pour des performances optimales
         $cacheKey = "portfolio:{$portfolio->id}:purchase_details";
         
-        return \Illuminate\Support\Facades\Cache::remember($cacheKey, 300, function () use ($portfolio) {
-            return \App\Models\Transaction::where('portfolio_id', $portfolio->id)
+        return Cache::remember($cacheKey, self::CACHE_TTL, function () use ($portfolio) {
+            return Transaction::where('portfolio_id', $portfolio->id)
                 ->where('type', 'buy')
                 ->orderBy('created_at')
                 ->get()
@@ -201,5 +233,15 @@ class PortfolioService
                     ];
                 });
         });
+    }
+    
+    /**
+     * Invalide le cache d'un portfolio
+     */
+    private function invalidatePortfolioCache(int $portfolioId): void
+    {
+        Cache::forget("portfolio:{$portfolioId}:total_cost");
+        Cache::forget("portfolio:{$portfolioId}:buy_count");
+        Cache::forget("portfolio:{$portfolioId}:purchase_details");
     }
 }

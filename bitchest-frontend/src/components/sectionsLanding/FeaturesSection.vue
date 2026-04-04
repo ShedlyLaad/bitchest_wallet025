@@ -31,7 +31,7 @@
           class="text-5xl md:text-6xl font-bold mb-8"
         >
           <span class="text-transparent bg-clip-text" :style="titleGradient">
-            Why Choose E-quanouita?
+            Why Choose Bit-Chest?
           </span>
         </Motion>
 

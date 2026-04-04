@@ -28,11 +28,11 @@ class TransactionCompletedNotification extends Notification
     public function toMail($notifiable)
     {
         return (new MailMessage)
-            ->subject('Transaction effectuée')
-            ->line("Type : {$this->type}")
-            ->line("Crypto : {$this->symbol}")
-            ->line("Quantité : {$this->quantity}")
-            ->line("Montant (€) : {$this->euro}");
+            ->subject('Transaction completed')
+            ->line("Type: {$this->type}")
+            ->line("Crypto: {$this->symbol}")
+            ->line("Quantity: {$this->quantity}")
+            ->line("Amount (€): {$this->euro}");
     }
 
     public function toDatabase($notifiable)

@@ -8,15 +8,6 @@ use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Log;
 use Carbon\Carbon;
 
-/**
- * Service de gestion des cryptomonnaies
- * 
- * Responsabilités :
- * - Récupération des prix actuels (Coinbase API + cache)
- * - Gestion de l'historique des prix
- * - Calcul des variations de prix (change24h)
- * - Optimisation via cache Redis
- */
 class CryptoService
 {
     private const MIN_PRICE = 0.00000001;

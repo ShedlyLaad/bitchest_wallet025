@@ -8,10 +8,26 @@ use Carbon\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Log;
 
+/**
+ * Service de génération de cotations pour les cryptomonnaies
+ * 
+ * Responsabilités :
+ * - Génération quotidienne de nouvelles cotations
+ * - Calcul des variations de prix basées sur des algorithmes
+ * - Récupération de l'historique des prix
+ * - Calcul du prix initial d'une cryptomonnaie
+ * 
+ * Compétences validées : C3, C8
+ */
 class CotationGeneratorService
 {
     private ?CoinbaseAPIService $coinbaseAPIService;
 
+    /**
+     * Constructeur du service de génération de cotations
+     * 
+     * @param CoinbaseAPIService|null $coinbaseAPIService Service API Coinbase (optionnel)
+     */
     public function __construct(?CoinbaseAPIService $coinbaseAPIService = null)
     {
         $this->coinbaseAPIService = $coinbaseAPIService;
@@ -83,7 +99,11 @@ class CotationGeneratorService
     }
 
     /**
-     * Retourne l'historique sous forme de collection [timestamp, price]
+     * Retourne l'historique des prix sous forme de collection
+     * 
+     * @param string $symbol Symbole de la cryptomonnaie
+     * @param int $days Nombre de jours d'historique à récupérer (défaut: 7)
+     * @return Collection Collection contenant les enregistrements avec 'recorded_at' et 'price'
      */
     public function getHistorical(string $symbol, int $days = 7): Collection
     {
@@ -95,9 +115,6 @@ class CotationGeneratorService
             ->get(['recorded_at', 'price']);
     }
 
-    /**
-     * Retourne prix courant (dernier enregistrement)
-     */
     public function getCurrentPrice(string $symbol): ?float
     {
         $crypto = CryptoCurrency::where('symbol', $symbol)->first();

@@ -21,7 +21,7 @@ class CheckPortfolioNotifications extends Command
 
     public function handle()
     {
-        $this->info('🔔 Vérification des portfolios pour générer des notifications...');
+        $this->info('Checking portfolios and generating notifications...');
         
         $users = User::where('role', 'client')
             ->where('status', 'active')
@@ -34,11 +34,11 @@ class CheckPortfolioNotifications extends Command
                 $this->notificationService->checkAndCreatePortfolioNotifications($user);
                 $totalNotifications++;
             } catch (\Exception $e) {
-                $this->error("Erreur pour l'utilisateur {$user->email}: " . $e->getMessage());
+                $this->error("Error for user {$user->email}: " . $e->getMessage());
             }
         }
         
-        $this->info("✅ Vérification terminée pour {$users->count()} utilisateurs");
+        $this->info("Done. Checked {$users->count()} user(s).");
         
         return 0;
     }

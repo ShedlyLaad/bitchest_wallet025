@@ -38,14 +38,13 @@ class TransactionController extends Controller
     {
         $user = auth()->user();
         
-        // Vérifier que la crypto existe et est active
         $crypto = CryptoCurrency::where('symbol', $request->symbol)
             ->where('is_active', true)
             ->first();
         
         if (!$crypto) {
             return response()->json([
-                'message' => 'Cryptomonnaie introuvable ou inactive.',
+                'message' => 'Cryptocurrency not found or inactive.',
                 'symbol' => $request->symbol
             ], 404);
         }
@@ -56,13 +55,12 @@ class TransactionController extends Controller
         if ($price === null || $price <= 0) {
             Log::error('No price available for crypto', ['user_id' => $user->id ?? null, 'symbol' => $crypto->symbol]);
             return response()->json([
-                'message' => 'Prix non disponible pour cette cryptomonnaie. Veuillez réessayer plus tard.',
+                'message' => 'Price not available for this cryptocurrency. Please try again later.',
                 'symbol' => $crypto->symbol
             ], 400);
         }
 
         try {
-            // Process transaction synchronously
             $transaction = $this->transactionService->processTransaction(
                 $user,
                 $crypto,
@@ -71,14 +69,11 @@ class TransactionController extends Controller
                 'buy'
             );
 
-            // Refresh user to get updated balance
             $user->refresh();
             $newBalance = (float) $user->euro_balance;
 
-            // Update cache
             $this->accountCacheService->setBalance($user->id, $newBalance);
             
-            // Update crypto quantity cache
             $portfolio = $transaction->portfolio;
             $totalBuy = (float) Transaction::where('portfolio_id', $portfolio->id)
                 ->where('type', 'buy')
@@ -89,7 +84,6 @@ class TransactionController extends Controller
             $currentQuantity = max(0.0, $totalBuy - $totalSell);
             $this->accountCacheService->setCryptoQuantity($user->id, $crypto->id, $currentQuantity);
 
-            // Store transaction in cache for instant display
             $this->transactionCacheService->store($user->id, [
                 'id' => $transaction->id,
                 'portfolio_id' => $transaction->portfolio_id,
@@ -108,7 +102,6 @@ class TransactionController extends Controller
                 ],
             ]);
 
-            // Trigger notification event (async via listener)
             event(new TransactionCreated(
                 $user->id,
                 $transaction->id,
@@ -119,11 +112,10 @@ class TransactionController extends Controller
                 (float) $transaction->price_at_transaction
             ));
 
-            // Load relationship for response
             $transaction->load('portfolio.crypto');
 
             return response()->json([
-                'message' => 'Achat effectué avec succès',
+                'message' => 'Purchase completed successfully',
                 'transaction' => [
                     'id' => $transaction->id,
                     'portfolio_id' => $transaction->portfolio_id,
@@ -151,7 +143,7 @@ class TransactionController extends Controller
                 'symbol' => $crypto->symbol,
                 'error' => $e->getMessage(),
             ]);
-            return response()->json(['message' => 'Erreur lors de l\'achat. Veuillez réessayer.'], 500);
+            return response()->json(['message' => 'Error during purchase. Please try again.'], 500);
         }
     }
 
@@ -159,14 +151,13 @@ class TransactionController extends Controller
     {
         $user = auth()->user();
         
-        // Vérifier que la crypto existe et est active
         $crypto = CryptoCurrency::where('symbol', $request->symbol)
             ->where('is_active', true)
             ->first();
         
         if (!$crypto) {
             return response()->json([
-                'message' => 'Cryptomonnaie introuvable ou inactive.',
+                'message' => 'Cryptocurrency not found or inactive.',
                 'symbol' => $request->symbol
             ], 404);
         }
@@ -177,13 +168,12 @@ class TransactionController extends Controller
         if ($price === null || $price <= 0) {
             Log::error('No price available for crypto', ['user_id' => $user->id ?? null, 'symbol' => $crypto->symbol]);
             return response()->json([
-                'message' => 'Prix non disponible pour cette cryptomonnaie. Veuillez réessayer plus tard.',
+                'message' => 'Price not available for this cryptocurrency. Please try again later.',
                 'symbol' => $crypto->symbol
             ], 400);
         }
 
         try {
-            // Process transaction synchronously
             $transaction = $this->transactionService->processTransaction(
                 $user,
                 $crypto,
@@ -192,14 +182,11 @@ class TransactionController extends Controller
                 'sell'
             );
 
-            // Refresh user to get updated balance
             $user->refresh();
             $newBalance = (float) $user->euro_balance;
 
-            // Update cache
             $this->accountCacheService->setBalance($user->id, $newBalance);
             
-            // Update crypto quantity cache
             $portfolio = $transaction->portfolio;
             $totalBuy = (float) Transaction::where('portfolio_id', $portfolio->id)
                 ->where('type', 'buy')
@@ -210,7 +197,6 @@ class TransactionController extends Controller
             $currentQuantity = max(0.0, $totalBuy - $totalSell);
             $this->accountCacheService->setCryptoQuantity($user->id, $crypto->id, $currentQuantity);
 
-            // Store transaction in cache for instant display
             $this->transactionCacheService->store($user->id, [
                 'id' => $transaction->id,
                 'portfolio_id' => $transaction->portfolio_id,
@@ -229,7 +215,6 @@ class TransactionController extends Controller
                 ],
             ]);
 
-            // Trigger notification event (async via listener)
             event(new TransactionCreated(
                 $user->id,
                 $transaction->id,
@@ -240,11 +225,10 @@ class TransactionController extends Controller
                 (float) $transaction->price_at_transaction
             ));
 
-            // Load relationship for response
             $transaction->load('portfolio.crypto');
 
             return response()->json([
-                'message' => 'Vente effectuée avec succès',
+                'message' => 'Sale completed successfully',
                 'transaction' => [
                     'id' => $transaction->id,
                     'portfolio_id' => $transaction->portfolio_id,
@@ -272,24 +256,17 @@ class TransactionController extends Controller
                 'symbol' => $crypto->symbol,
                 'error' => $e->getMessage(),
             ]);
-            return response()->json(['message' => 'Erreur lors de la vente. Veuillez réessayer.'], 500);
+            return response()->json(['message' => 'Error during sale. Please try again.'], 500);
         }
     }
 
-    /**
-     * Retourne l'historique des transactions pour l'utilisateur authentifié
-     * Utilise Redis cache pour un affichage instantané
-     */
     public function history(Request $request)
     {
         $user = auth()->user();
         $perPage = (int) $request->input('per_page', 50);
         $page = (int) $request->input('page', 1);
 
-        // Clé de cache unique pour cette requête
         $cacheKey = "transaction:user:{$user->id}:history:page:{$page}:perpage:{$perPage}";
-        
-        // TTL de cache : 2 minutes pour l'historique
         $cacheTTL = 120;
 
         if ($page === 1) {

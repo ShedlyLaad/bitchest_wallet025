@@ -43,33 +43,29 @@ class Handler extends ExceptionHandler
      */
     public function render($request, Throwable $exception)
     {
-        // Gestion des erreurs de validation (422)
         if ($exception instanceof ValidationException) {
             return response()->json([
-                'message' => 'Erreur de validation',
+                'message' => 'Validation error',
                 'errors' => $exception->errors()
             ], 422);
         }
 
-        // Gestion des erreurs de modèle non trouvé (404)
         if ($exception instanceof ModelNotFoundException) {
             $model = class_basename($exception->getModel());
             return response()->json([
-                'message' => 'Ressource introuvable',
-                'error' => "La ressource {$model} demandée n'existe pas."
+                'message' => 'Resource not found',
+                'error' => "The requested {$model} resource does not exist."
             ], 404);
         }
 
-        // Gestion des erreurs de route non trouvée (404)
         if ($exception instanceof NotFoundHttpException) {
             return response()->json([
-                'message' => 'Route introuvable',
-                'error' => 'L\'endpoint demandé n\'existe pas.',
+                'message' => 'Route not found',
+                'error' => 'The requested endpoint does not exist.',
                 'path' => $request->path()
             ], 404);
         }
 
-        // Gestion des erreurs InvalidArgumentException (400)
         if ($exception instanceof \InvalidArgumentException) {
             return response()->json([
                 'message' => $exception->getMessage(),
@@ -77,7 +73,6 @@ class Handler extends ExceptionHandler
             ], 400);
         }
 
-        // Gestion des erreurs de base de données
         if ($exception instanceof QueryException) {
             \Log::error('Database error', [
                 'message' => $exception->getMessage(),
@@ -86,29 +81,26 @@ class Handler extends ExceptionHandler
                 'path' => $request->path()
             ]);
 
-            // En production, ne pas exposer les détails de la base de données
             if (config('app.debug')) {
                 return response()->json([
-                    'message' => 'Erreur de base de données',
+                    'message' => 'Database error',
                     'error' => $exception->getMessage()
                 ], 500);
             }
 
             return response()->json([
-                'message' => 'Erreur de base de données. Veuillez réessayer plus tard.'
+                'message' => 'Database error. Please try again later.'
             ], 500);
         }
 
-        // Gestion des autres erreurs HTTP
         if (method_exists($exception, 'getStatusCode')) {
             $status = $exception->getStatusCode();
             return response()->json([
-                'message' => $exception->getMessage() ?: 'Une erreur est survenue',
-                'error' => $exception->getMessage() ?: 'Une erreur est survenue'
+                'message' => $exception->getMessage() ?: 'An error occurred',
+                'error' => $exception->getMessage() ?: 'An error occurred'
             ], $status);
         }
 
-        // En mode debug, afficher plus de détails
         if (config('app.debug')) {
             return response()->json([
                 'message' => $exception->getMessage(),
@@ -120,8 +112,8 @@ class Handler extends ExceptionHandler
         }
 
         return response()->json([
-            'message' => 'Une erreur est survenue. Veuillez réessayer plus tard.',
-            'error' => 'Erreur serveur'
+            'message' => 'An error occurred. Please try again later.',
+            'error' => 'Server error'
         ], 500);
     }
 }

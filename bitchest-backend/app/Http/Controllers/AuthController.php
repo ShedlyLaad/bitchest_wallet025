@@ -38,7 +38,6 @@ class AuthController extends Controller
             'euro_balance' => 0
         ]);
 
-        // Envoyer le mot de passe temporaire généré avec service universel (fonctionne avec tous les fournisseurs)
         $mailService = app(\App\Services\UniversalMailService::class);
         $mailService->send(new TemporaryPasswordMailable($tempPassword, $user->name), $user->email);
 
@@ -54,8 +53,8 @@ class AuthController extends Controller
     {
         if (!Auth::attempt($request->only('email', 'password'))) {
             return response()->json([
-                'message' => 'Email ou mot de passe invalide',
-                'error' => 'Email ou mot de passe invalide'
+                'message' => 'Invalid email or password',
+                'error' => 'Invalid email or password'
             ], 401);
         }
 
@@ -115,7 +114,6 @@ class AuthController extends Controller
 
     public function changePassword(Request $request)
     {
-        /** @var User $user */
         $user = $request->user();
 
         $data = $request->validate([
@@ -132,16 +130,11 @@ class AuthController extends Controller
         $user->password = Hash::make($data['password']);
         $user->must_change_password = false;
 
-        // Si l'utilisateur était en PENDING, vérifier s'il a été créé par admin
-        // Les utilisateurs créés par admin ont euro_balance > 0 (généralement 500)
-        // Les utilisateurs auto-enregistrés ont euro_balance = 0
         if ($user->isPending()) {
-            // Si l'utilisateur a un solde initial (créé par admin), l'activer automatiquement
             if ($user->euro_balance > 0) {
                 $user->status = User::STATUS_ACTIVE;
                 $user->email_verified_at = now();
             } else {
-                // Utilisateur auto-enregistré : attendre validation admin
                 $user->status = User::STATUS_PENDING_VALIDATION;
             }
         }

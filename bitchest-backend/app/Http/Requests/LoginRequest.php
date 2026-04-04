@@ -19,9 +19,9 @@ class LoginRequest extends FormRequest
     public function messages()
     {
         return [
-            'email.required' => 'L\'adresse email est requise.',
-            'email.email' => 'L\'adresse email doit être valide.',
-            'password.required' => 'Le mot de passe est requis.',
+            'email.required' => 'Email address is required.',
+            'email.email' => 'Email address must be valid.',
+            'password.required' => 'Password is required.',
         ];
     }
 }

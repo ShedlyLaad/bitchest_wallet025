@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\Notification;
 use App\Models\User;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Schema;
 use Carbon\Carbon;
 
 /**
@@ -85,8 +86,9 @@ class NotificationService
                         $user,
                         $newLevel,
                         $this->levelService->getLevelName($newLevel),
-                        $result['new_xp'],
-                        $result['xp_for_next_level']
+                        (int) $result['total_trades'],
+                        $result['xp_for_next_level'],
+                        $result['trades_until_next']
                     );
                 }
             }
@@ -94,26 +96,149 @@ class NotificationService
             Log::error('Erreur lors de la vérification de level up: ' . $e->getMessage());
         }
     }
+
+    /**
+     * Initialize level_up rows for one user: backfill total_trades on existing rows,
+     * create missing tier notifications for levels 2..current (thresholds 5 / 10 / 20 trades).
+     *
+     * @return array{backfilled: int, created: int}
+     */
+    public function initializeLevelUpNotificationsForUser(User $user): array
+    {
+        $backfilled = $this->backfillLevelUpTotalTradesForUser($user->id);
+
+        $this->levelService->updateUserLevel($user);
+        $user->refresh();
+
+        $currentLevel = (int) ($user->level ?? 1);
+        $created = 0;
+
+        for ($level = 2; $level <= min($currentLevel, LevelService::MAX_LEVEL); $level++) {
+            $exists = Notification::where('user_id', $user->id)
+                ->where('type', 'level_up')
+                ->where('level', $level)
+                ->exists();
+
+            if ($exists) {
+                continue;
+            }
+
+            $milestoneTrades = LevelService::TRADE_THRESHOLDS[$level];
+            $tradesForNext = $this->levelService->getTradesRequiredForNextLevel($level);
+            $tradesUntilNext = $tradesForNext !== null
+                ? max(0, $tradesForNext - $milestoneTrades)
+                : null;
+
+            $this->createLevelUpNotification(
+                $user,
+                $level,
+                $this->levelService->getLevelName($level),
+                $milestoneTrades,
+                $tradesForNext,
+                $tradesUntilNext
+            );
+            $created++;
+        }
+
+        return ['backfilled' => $backfilled, 'created' => $created];
+    }
+
+    /**
+     * Same as initializeLevelUpNotificationsForUser for every active client.
+     *
+     * @return array{users: int, backfilled: int, created: int}
+     */
+    public function initializeLevelUpNotificationsForAllClients(): array
+    {
+        $users = User::where('role', 'client')
+            ->where('status', 'active')
+            ->get();
+
+        $totalBackfilled = 0;
+        $totalCreated = 0;
+
+        foreach ($users as $user) {
+            try {
+                $r = $this->initializeLevelUpNotificationsForUser($user);
+                $totalBackfilled += $r['backfilled'];
+                $totalCreated += $r['created'];
+            } catch (\Exception $e) {
+                Log::error('init level_up notifications: ' . $e->getMessage(), ['user_id' => $user->id]);
+            }
+        }
+
+        return [
+            'users' => $users->count(),
+            'backfilled' => $totalBackfilled,
+            'created' => $totalCreated,
+        ];
+    }
+
+    /**
+     * Sets total_trades on existing level_up notifications (tier threshold value).
+     */
+    private function backfillLevelUpTotalTradesForUser(int $userId): int
+    {
+        if (! Schema::hasColumn('notifications', 'total_trades')) {
+            return 0;
+        }
+
+        $updated = 0;
+        Notification::query()
+            ->where('user_id', $userId)
+            ->where('type', 'level_up')
+            ->whereNull('total_trades')
+            ->whereNotNull('level')
+            ->whereBetween('level', [2, LevelService::MAX_LEVEL])
+            ->chunkById(100, function ($notifications) use (&$updated) {
+                foreach ($notifications as $n) {
+                    $level = (int) $n->level;
+                    $n->total_trades = LevelService::TRADE_THRESHOLDS[$level];
+                    $n->save();
+                    $updated++;
+                }
+            });
+
+        return $updated;
+    }
     
     /**
-     * Crée une notification de montée de niveau
+     * Persists a level-up notification (user-facing copy in English).
      */
     private function createLevelUpNotification(
         User $user,
         int $level,
         string $levelName,
-        int $currentXp,
-        int $xpForNext
+        int $totalTrades,
+        ?int $tradesForNextLevel,
+        ?int $tradesUntilNext
     ): void {
-        $notification = Notification::create([
+        $message = "Level {$level} — {$levelName}! You have completed {$totalTrades} trade(s) in total (buys and sells).";
+        if ($tradesForNextLevel !== null) {
+            $message .= " Next level at {$tradesForNextLevel} total trades";
+            if ($tradesUntilNext !== null && $tradesUntilNext > 0) {
+                $message .= " ({$tradesUntilNext} more to go).";
+            } else {
+                $message .= '.';
+            }
+        } else {
+            $message .= ' You have reached the maximum level.';
+        }
+
+        $payload = [
             'user_id' => $user->id,
             'type' => 'level_up',
-            'title' => "🎉 Level Up!",
-            'message' => "Congratulations! You have reached level {$level} - {$levelName}! Keep trading to level up even higher.",
+            'title' => '🎉 Level up!',
+            'message' => $message,
             'level' => $level,
             'level_name' => $levelName,
             'is_read' => false,
-        ]);
+        ];
+        if (Schema::hasColumn('notifications', 'total_trades')) {
+            $payload['total_trades'] = $totalTrades;
+        }
+
+        $notification = Notification::create($payload);
 
         $this->notificationCacheService->store($user->id, $this->normalizeNotification($notification));
         $this->cleanupOldNotifications($user->id);
@@ -310,10 +435,10 @@ class NotificationService
         $notification = Notification::create([
             'user_id' => $user->id,
             'type' => 'portfolio_update',
-            'title' => $isBuy ? '✅ Achat confirmé' : '✅ Vente confirmée',
+            'title' => $isBuy ? '✅ Purchase confirmed' : '✅ Sale confirmed',
             'message' => $isBuy
-                ? "Achat de " . number_format($quantity, 8) . " {$symbol} pour €" . number_format($euroAmount, 2)
-                : "Vente de " . number_format($quantity, 8) . " {$symbol} pour €" . number_format($euroAmount, 2),
+                ? 'Bought ' . number_format($quantity, 8) . " {$symbol} for €" . number_format($euroAmount, 2)
+                : 'Sold ' . number_format($quantity, 8) . " {$symbol} for €" . number_format($euroAmount, 2),
             'crypto_symbol' => $symbol,
             'current_price' => round($price, 8),
             'is_read' => false,
@@ -405,6 +530,7 @@ class NotificationService
             'read_at' => $notification->read_at ? $notification->read_at->toISOString() : null,
             'level' => $notification->level !== null ? (int) $notification->level : null,
             'level_name' => $notification->level_name ?? null,
+            'total_trades' => $notification->total_trades !== null ? (int) $notification->total_trades : null,
             'created_at' => $notification->created_at->toISOString(),
             'updated_at' => $notification->updated_at->toISOString(),
             'crypto' => $notification->crypto ? [

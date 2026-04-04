@@ -25,6 +25,7 @@ class Notification extends Model
         'read_at',
         'level',
         'level_name',
+        'total_trades',
     ];
 
     protected $casts = [
@@ -35,6 +36,7 @@ class Notification extends Model
         'is_read' => 'boolean',
         'read_at' => 'datetime',
         'level' => 'integer',
+        'total_trades' => 'integer',
     ];
 
     public function user()

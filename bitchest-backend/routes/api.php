@@ -11,6 +11,7 @@ use App\Http\Controllers\Admin\UserController as AdminUserController;
 use App\Http\Controllers\Admin\CryptoController as AdminCryptoController;
 use App\Http\Controllers\Admin\AdminProfileController;
 use Illuminate\Http\Request;
+use App\Services\LevelService;
 
 /*
 |--------------------------------------------------------------------------
@@ -33,7 +34,12 @@ Route::get('/public/market', [CryptoMarketController::class, 'index'])
 Route::middleware(['auth:sanctum','account.status'])->group(function () {
 
     Route::get('/user', function (Request $request) {
-        return $request->user();
+        $user = $request->user();
+        $levelProgress = app(LevelService::class)->getLevelProgressSnapshot($user);
+
+        return array_merge($user->toArray(), [
+            'level_progress' => $levelProgress,
+        ]);
     })->name('auth.me');
 
     Route::post('/change-password', [AuthController::class, 'changePassword'])->name('auth.change-password');

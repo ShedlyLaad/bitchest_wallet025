@@ -33,12 +33,12 @@ class ProfileController extends Controller
             $user->save();
 
             return response()->json([
-                'message' => 'Profil mis à jour avec succès',
+                'message' => 'Profile updated successfully',
                 'user' => $user->fresh()
             ]);
         } catch (ValidationException $e) {
             return response()->json([
-                'message' => 'Erreur de validation',
+                'message' => 'Validation error',
                 'errors' => $e->errors()
             ], 422);
         } catch (\Exception $e) {
@@ -49,7 +49,7 @@ class ProfileController extends Controller
             ]);
             
             return response()->json([
-                'message' => 'Erreur lors de la mise à jour du profil',
+                'message' => 'Error updating profile',
                 'error' => $e->getMessage()
             ], 500);
         }
@@ -72,19 +72,19 @@ class ProfileController extends Controller
             $url = $this->uploadService->getProfilePictureUrl($user->fresh());
 
             return response()->json([
-                'message' => 'Photo de profil téléchargée avec succès',
+                'message' => 'Profile picture uploaded successfully',
                 'path' => $path,
                 'url' => $url,
                 'user' => $user->fresh()
             ]);
         } catch (ValidationException $e) {
             return response()->json([
-                'message' => 'Erreur de validation',
+                'message' => 'Validation error',
                 'errors' => $e->errors()
             ], 422);
         } catch (\Exception $e) {
             return response()->json([
-                'message' => 'Erreur lors du téléchargement de la photo',
+                'message' => 'Error uploading profile picture',
                 'error' => $e->getMessage()
             ], 500);
         }
@@ -107,19 +107,19 @@ class ProfileController extends Controller
             $url = $this->uploadService->getProfileBannerUrl($user->fresh());
 
             return response()->json([
-                'message' => 'Bannière de profil téléchargée avec succès',
+                'message' => 'Profile banner uploaded successfully',
                 'path' => $path,
                 'url' => $url,
                 'user' => $user->fresh()
             ]);
         } catch (ValidationException $e) {
             return response()->json([
-                'message' => 'Erreur de validation',
+                'message' => 'Validation error',
                 'errors' => $e->errors()
             ], 422);
         } catch (\Exception $e) {
             return response()->json([
-                'message' => 'Erreur lors du téléchargement de la bannière',
+                'message' => 'Error uploading profile banner',
                 'error' => $e->getMessage()
             ], 500);
         }
@@ -136,17 +136,17 @@ class ProfileController extends Controller
 
             if ($deleted) {
                 return response()->json([
-                    'message' => 'Photo de profil supprimée avec succès',
+                    'message' => 'Profile picture deleted successfully',
                     'user' => $user->fresh()
                 ]);
             }
 
             return response()->json([
-                'message' => 'Aucune photo de profil à supprimer'
+                'message' => 'No profile picture to delete'
             ], 404);
         } catch (\Exception $e) {
             return response()->json([
-                'message' => 'Erreur lors de la suppression de la photo',
+                'message' => 'Error deleting profile picture',
                 'error' => $e->getMessage()
             ], 500);
         }
@@ -163,17 +163,17 @@ class ProfileController extends Controller
 
             if ($deleted) {
                 return response()->json([
-                    'message' => 'Bannière de profil supprimée avec succès',
+                    'message' => 'Profile banner deleted successfully',
                     'user' => $user->fresh()
                 ]);
             }
 
             return response()->json([
-                'message' => 'Aucune bannière de profil à supprimer'
+                'message' => 'No profile banner to delete'
             ], 404);
         } catch (\Exception $e) {
             return response()->json([
-                'message' => 'Erreur lors de la suppression de la bannière',
+                'message' => 'Error deleting profile banner',
                 'error' => $e->getMessage()
             ], 500);
         }

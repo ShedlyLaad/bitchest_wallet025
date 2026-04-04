@@ -19,9 +19,6 @@ class NotificationController extends Controller
         $this->notificationCacheService = $notificationCacheService;
     }
 
-    /**
-     * Récupère les notifications de l'utilisateur authentifié
-     */
     public function index(Request $request)
     {
         $user = auth()->user();
@@ -83,6 +80,7 @@ class NotificationController extends Controller
                 'read_at' => $notification->read_at ? $notification->read_at->toISOString() : null,
                 'level' => $notification->level !== null ? (int) $notification->level : null,
                 'level_name' => $notification->level_name ?? null,
+                'total_trades' => $notification->total_trades !== null ? (int) $notification->total_trades : null,
                 'created_at' => $notification->created_at->toISOString(),
                 'updated_at' => $notification->updated_at->toISOString(),
                 'crypto' => $notification->crypto ? [
@@ -96,9 +94,6 @@ class NotificationController extends Controller
         return response()->json($notifications);
     }
 
-    /**
-     * Récupère le nombre de notifications non lues
-     */
     public function unreadCount()
     {
         $user = auth()->user();
@@ -112,9 +107,6 @@ class NotificationController extends Controller
         return response()->json(['count' => $count]);
     }
 
-    /**
-     * Marque une notification comme lue
-     */
     public function markAsRead(int $id)
     {
         $user = auth()->user();
@@ -122,15 +114,12 @@ class NotificationController extends Controller
 
         if ($success) {
             $this->notificationCacheService->markAsRead($user->id, $id);
-            return response()->json(['message' => 'Notification marquée comme lue']);
+            return response()->json(['message' => 'Notification marked as read']);
         }
 
-        return response()->json(['message' => 'Notification non trouvée'], 404);
+        return response()->json(['message' => 'Notification not found'], 404);
     }
 
-    /**
-     * Marque toutes les notifications comme lues
-     */
     public function markAllAsRead()
     {
         $user = auth()->user();
@@ -138,14 +127,11 @@ class NotificationController extends Controller
         $this->notificationCacheService->markAllAsRead($user->id);
 
         return response()->json([
-            'message' => "{$count} notification(s) marquée(s) comme lue(s)",
+            'message' => "{$count} notification(s) marked as read",
             'count' => $count
         ]);
     }
 
-    /**
-     * Supprime une notification
-     */
     public function destroy(int $id)
     {
         $user = auth()->user();
@@ -156,10 +142,10 @@ class NotificationController extends Controller
         if ($notification) {
             $notification->delete();
             $this->notificationCacheService->remove($user->id, $id);
-            return response()->json(['message' => 'Notification supprimée']);
+            return response()->json(['message' => 'Notification deleted']);
         }
 
-        return response()->json(['message' => 'Notification non trouvée'], 404);
+        return response()->json(['message' => 'Notification not found'], 404);
     }
 }
 

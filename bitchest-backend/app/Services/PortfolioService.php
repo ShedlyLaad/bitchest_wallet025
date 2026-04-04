@@ -27,17 +27,7 @@ class PortfolioService
     ) {}
 
     /**
-     * Met à jour le portfolio après une transaction
-     * 
-     * Logique :
-     * - BUY : Ajoute la valeur investie à total_crypto_value
-     * - SELL : Réduit proportionnellement total_crypto_value selon la quantité vendue
-     * 
-     * @param Portfolio $portfolio Portfolio à mettre à jour
-     * @param Transaction $transaction Transaction effectuée
-     * @param float $quantity Quantité de la transaction
-     * @param float $price Prix unitaire
-     * @param string $type Type de transaction ('buy' ou 'sell')
+     * Met à jour le portfolio après une transaction (achat ou vente).
      */
     public function updatePortfolio(
         Portfolio $portfolio,

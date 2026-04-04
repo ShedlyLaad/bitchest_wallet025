@@ -132,7 +132,7 @@ api.interceptors.response.use(
     
     // Si c'est une route de login avec un message d'erreur de login, traiter comme 401
     if (status === 401 || (status === 400 && isLoginRoute && isLoginErrorMessage)) {
-      const message = errorResponse.message || errorResponse.error || 'Non authentifié. Veuillez vous reconnecter.';
+      const message = errorResponse.message || errorResponse.error || 'Not authenticated. Please sign in again.';
       
       // Si c'était un 400 mais avec le message de login, c'est une transformation 401->400
       if (status === 400 && isLoginRoute) {
@@ -195,7 +195,7 @@ api.interceptors.response.use(
     // Handle 422 Validation errors
     if (status === 422) {
       const validationErrors = errorResponse.errors || {};
-      const message = errorResponse.message || 'Erreur de validation';
+      const message = errorResponse.message || 'Validation error';
       if (shouldLog()) {
         console.error('[API] 422 Validation Error:', message, validationErrors);
       }
@@ -209,7 +209,7 @@ api.interceptors.response.use(
     
     // Handle network errors
     if (!error.response && error.code === 'ERR_NETWORK') {
-      const message = 'Erreur de connexion réseau. Vérifiez votre connexion internet.';
+      const message = 'Network error. Please check your internet connection.';
       if (shouldLog()) {
         console.error('[API] Network Error:', error.message, {
           url,
@@ -228,7 +228,7 @@ api.interceptors.response.use(
     
     // Handle 500 Server errors
     if (status === 500) {
-      const message = errorResponse.message || 'Erreur serveur. Veuillez réessayer plus tard.';
+      const message = errorResponse.message || 'Server error. Please try again later.';
       if (shouldLog()) {
         console.error('[API] 500 Server Error:', message, {
           url,
@@ -249,7 +249,7 @@ api.interceptors.response.use(
         status !== 404 && 
         status !== 422 && 
         status !== 500) {
-      const message = errorResponse.message || errorResponse.error || error.message || 'Une erreur est survenue';
+      const message = errorResponse.message || errorResponse.error || error.message || 'Something went wrong';
       if (shouldLog()) {
         console.error('[API] Error:', message, { 
           status,
@@ -520,7 +520,7 @@ export async function getPublicMarket(useCache: boolean = true): Promise<CryptoC
     return normalizedData;
   } catch (error: any) {
     // En cas d'erreur (404, network, etc.), retourner un tableau vide plutôt que de faire planter l'app
-    console.warn('[getPublicMarket] Erreur lors de la récupération du marché public:', error?.response?.status, error?.message);
+    console.warn('[getPublicMarket] Failed to load public market:', error?.response?.status, error?.message);
     // Retourner les données en cache si disponibles
     const cached = cacheService.get<CryptoCurrency[]>(cacheKey);
     return cached || [];

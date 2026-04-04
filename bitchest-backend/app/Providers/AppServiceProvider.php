@@ -30,13 +30,14 @@ class AppServiceProvider extends ServiceProvider
         });
         $this->app->singleton(UserService::class, UserService::class);
         $this->app->singleton(CoinbaseAPIService::class, CoinbaseAPIService::class);
+        // Levels 1–4 from total trade count (thresholds 0 / 5 / 10 / 20)
         $this->app->singleton(LevelService::class, LevelService::class);
         $this->app->singleton(UniversalMailService::class, UniversalMailService::class);
         $this->app->singleton(RedisPriceService::class, RedisPriceService::class);
         $this->app->singleton(AccountCacheService::class, AccountCacheService::class);
         $this->app->singleton(TransactionCacheService::class, TransactionCacheService::class);
         
-        // Injecter les dépendances pour NotificationService
+        // NotificationService dependencies
         $this->app->singleton(NotificationService::class, function ($app) {
             return new NotificationService(
                 $app->make(PortfolioService::class),
@@ -45,7 +46,7 @@ class AppServiceProvider extends ServiceProvider
             );
         });
         
-        // Injecter CoinbaseAPIService dans CotationGeneratorService
+        // CotationGeneratorService uses Coinbase API
         $this->app->singleton(CotationGeneratorService::class, function ($app) {
             return new CotationGeneratorService($app->make(CoinbaseAPIService::class));
         });

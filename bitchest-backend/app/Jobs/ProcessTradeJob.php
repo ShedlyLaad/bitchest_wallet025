@@ -51,7 +51,7 @@ class ProcessTradeJob implements ShouldQueue
 
             if ($order->type === 'buy') {
                 if ((float) $user->euro_balance < $amount) {
-                    throw new \InvalidArgumentException('Solde insuffisant.');
+                    throw new \InvalidArgumentException('Insufficient balance.');
                 }
                 $user->euro_balance = (float) $user->euro_balance - $amount;
                 $user->save();
@@ -67,7 +67,7 @@ class ProcessTradeJob implements ShouldQueue
                 $totalQuantity = $totalBuy - $totalSell;
 
                 if ($totalQuantity < $order->quantity) {
-                    throw new \InvalidArgumentException('Quantité insuffisante.');
+                    throw new \InvalidArgumentException('Insufficient quantity.');
                 }
 
                 $user->euro_balance = (float) $user->euro_balance + $amount;

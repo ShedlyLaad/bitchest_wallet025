@@ -47,7 +47,7 @@
             @click.prevent.stop="handleDeleteBanner"
             class="bg-red-500/20 hover:bg-red-500/30 rounded-lg p-2 transition-all backdrop-blur-md border border-red-500/30"
             :disabled="uploadingBanner"
-            title="Supprimer la bannière"
+            title="Remove banner"
           >
             <XIcon class="h-4 w-4 text-red-300" />
           </button>
@@ -102,7 +102,7 @@
                 @click.prevent.stop="handleDeletePicture"
                 class="absolute -top-2 -right-2 bg-red-500/20 hover:bg-red-500/30 backdrop-blur-md rounded-lg p-1.5 transition-all z-10 border border-red-500/30 shadow-lg"
                 :disabled="uploadingPicture"
-                title="Supprimer la photo"
+                title="Remove photo"
               >
                 <XIcon class="h-3 w-3 text-red-300" />
               </button>
@@ -432,19 +432,19 @@ async function handleSaveProfile() {
   
   // Validate form data before sending
   if (!profileForm.value.first_name || !profileForm.value.first_name.trim()) {
-    profileError.value = 'Le prénom est requis';
+    profileError.value = 'First name is required';
     setTimeout(() => { profileError.value = ''; }, 5000);
     return;
   }
   
   if (!profileForm.value.last_name || !profileForm.value.last_name.trim()) {
-    profileError.value = 'Le nom est requis';
+    profileError.value = 'Last name is required';
     setTimeout(() => { profileError.value = ''; }, 5000);
     return;
   }
   
   if (!profileForm.value.phone || !profileForm.value.phone.trim()) {
-    profileError.value = 'Le numéro de téléphone est requis';
+    profileError.value = 'Phone number is required';
     setTimeout(() => { profileError.value = ''; }, 5000);
     return;
   }
@@ -452,7 +452,7 @@ async function handleSaveProfile() {
   // Validate phone format
   const phoneRegex = /^\+?[0-9\s\-]{6,20}$/;
   if (!phoneRegex.test(profileForm.value.phone.trim())) {
-    profileError.value = 'Format de téléphone invalide. Exemple: +33123456789';
+    profileError.value = 'Invalid phone format. Example: +33123456789';
     setTimeout(() => { profileError.value = ''; }, 5000);
     return;
   }
@@ -472,13 +472,13 @@ async function handleSaveProfile() {
       if (auth.persist) {
         auth.persist();
       }
-      profileMessage.value = response.message || 'Profil mis à jour avec succès';
+      profileMessage.value = response.message || 'Profile updated successfully';
       profileError.value = ''; // Clear any errors
       isEditing.value = false;
       // Auto-hide success message after 5 seconds
       setTimeout(() => { profileMessage.value = ''; }, 5000);
     } else {
-      profileError.value = 'Réponse invalide du serveur';
+      profileError.value = 'Invalid server response';
       setTimeout(() => { profileError.value = ''; }, 7000);
     }
   } catch (e: any) {
@@ -491,9 +491,9 @@ async function handleSaveProfile() {
       if (status === 422 && e?.response?.data?.errors) {
         const errors = e.response.data.errors;
         const errorMessages = Object.values(errors).flat().join(', ');
-        profileError.value = errorMessages || 'Erreur de validation';
+        profileError.value = errorMessages || 'Validation error';
       } else {
-        const errorMessage = e?.response?.data?.message || e?.response?.data?.error || 'Erreur lors de la mise à jour du profil';
+        const errorMessage = e?.response?.data?.message || e?.response?.data?.error || 'Could not update profile';
         profileError.value = errorMessage;
       }
       // Auto-hide error message after 7 seconds
@@ -502,7 +502,7 @@ async function handleSaveProfile() {
       // Check if it's a network error or other issue
       const isNetworkError = !e?.response || e?.code === 'ERR_NETWORK' || e?.message?.includes('Network');
       if (isNetworkError) {
-        profileError.value = 'Erreur de connexion. Veuillez vérifier votre connexion internet.';
+        profileError.value = 'Connection error. Please check your internet connection.';
         setTimeout(() => { profileError.value = ''; }, 7000);
       } else {
         // Other errors - log but don't show generic error
@@ -526,14 +526,14 @@ async function handlePictureUpload(event: Event) {
 
   // Validate file
   if (!file.type.startsWith('image/')) {
-    uploadError.value = 'Veuillez sélectionner une image valide';
+    uploadError.value = 'Please select a valid image';
     setTimeout(() => { uploadError.value = ''; }, 5000);
     target.value = '';
     return;
   }
 
   if (file.size > 5 * 1024 * 1024) {
-    uploadError.value = 'La taille du fichier ne doit pas dépasser 5MB';
+    uploadError.value = 'File size must not exceed 5MB';
     setTimeout(() => { uploadError.value = ''; }, 5000);
     target.value = '';
     return;
@@ -553,12 +553,12 @@ async function handlePictureUpload(event: Event) {
       }
       // Clear error immediately on success
       uploadError.value = '';
-      uploadMessage.value = response.message || 'Photo de profil téléchargée avec succès';
+      uploadMessage.value = response.message || 'Profile picture uploaded successfully';
       // Auto-hide success message after 5 seconds
       setTimeout(() => { uploadMessage.value = ''; }, 5000);
     } else {
       // Invalid response but not necessarily an error
-      uploadError.value = 'Réponse invalide du serveur';
+      uploadError.value = 'Invalid server response';
       setTimeout(() => { uploadError.value = ''; }, 7000);
     }
     
@@ -567,7 +567,7 @@ async function handlePictureUpload(event: Event) {
     // Check if it's actually an error (status code >= 400)
     const status = e?.response?.status;
     if (status && status >= 400) {
-      const errorMessage = e?.response?.data?.message || e?.response?.data?.error || 'Erreur lors du téléchargement de la photo';
+      const errorMessage = e?.response?.data?.message || e?.response?.data?.error || 'Could not upload profile picture';
       uploadError.value = errorMessage;
       uploadMessage.value = ''; // Clear success message
       // Auto-hide error message after 7 seconds
@@ -593,14 +593,14 @@ async function handleBannerUpload(event: Event) {
 
   // Validate file
   if (!file.type.startsWith('image/')) {
-    uploadError.value = 'Veuillez sélectionner une image valide';
+    uploadError.value = 'Please select a valid image';
     setTimeout(() => { uploadError.value = ''; }, 5000);
     target.value = '';
     return;
   }
 
   if (file.size > 5 * 1024 * 1024) {
-    uploadError.value = 'La taille du fichier ne doit pas dépasser 5MB';
+    uploadError.value = 'File size must not exceed 5MB';
     setTimeout(() => { uploadError.value = ''; }, 5000);
     target.value = '';
     return;
@@ -620,12 +620,12 @@ async function handleBannerUpload(event: Event) {
       }
       // Clear error immediately on success
       uploadError.value = '';
-      uploadMessage.value = response.message || 'Bannière de profil téléchargée avec succès';
+      uploadMessage.value = response.message || 'Profile banner uploaded successfully';
       // Auto-hide success message after 5 seconds
       setTimeout(() => { uploadMessage.value = ''; }, 5000);
     } else {
       // Invalid response but not necessarily an error
-      uploadError.value = 'Réponse invalide du serveur';
+      uploadError.value = 'Invalid server response';
       setTimeout(() => { uploadError.value = ''; }, 7000);
     }
     
@@ -634,7 +634,7 @@ async function handleBannerUpload(event: Event) {
     // Check if it's actually an error (status code >= 400)
     const status = e?.response?.status;
     if (status && status >= 400) {
-      const errorMessage = e?.response?.data?.message || e?.response?.data?.error || 'Erreur lors du téléchargement de la bannière';
+      const errorMessage = e?.response?.data?.message || e?.response?.data?.error || 'Could not upload profile banner';
       uploadError.value = errorMessage;
       uploadMessage.value = ''; // Clear success message
       // Auto-hide error message after 7 seconds
@@ -650,7 +650,7 @@ async function handleBannerUpload(event: Event) {
 }
 
 async function handleDeletePicture() {
-  if (!confirm('Êtes-vous sûr de vouloir supprimer votre photo de profil ?')) {
+  if (!confirm('Remove your profile picture?')) {
     return;
   }
 
@@ -664,11 +664,11 @@ async function handleDeletePicture() {
     if (auth.persist) {
       auth.persist();
     }
-    uploadMessage.value = message || 'Photo de profil supprimée avec succès';
+    uploadMessage.value = message || 'Profile picture removed';
     // Auto-hide success message after 5 seconds
     setTimeout(() => { uploadMessage.value = ''; }, 5000);
   } catch (e: any) {
-    uploadError.value = e?.response?.data?.message || 'Erreur lors de la suppression de la photo';
+    uploadError.value = e?.response?.data?.message || 'Could not remove profile picture';
     // Auto-hide error message after 7 seconds
     setTimeout(() => { uploadError.value = ''; }, 7000);
   } finally {
@@ -677,7 +677,7 @@ async function handleDeletePicture() {
 }
 
 async function handleDeleteBanner() {
-  if (!confirm('Êtes-vous sûr de vouloir supprimer votre bannière de profil ?')) {
+  if (!confirm('Remove your profile banner?')) {
     return;
   }
 
@@ -691,11 +691,11 @@ async function handleDeleteBanner() {
     if (auth.persist) {
       auth.persist();
     }
-    uploadMessage.value = message || 'Bannière de profil supprimée avec succès';
+    uploadMessage.value = message || 'Profile banner removed';
     // Auto-hide success message after 5 seconds
     setTimeout(() => { uploadMessage.value = ''; }, 5000);
   } catch (e: any) {
-    uploadError.value = e?.response?.data?.message || 'Erreur lors de la suppression de la bannière';
+    uploadError.value = e?.response?.data?.message || 'Could not remove profile banner';
     // Auto-hide error message after 7 seconds
     setTimeout(() => { uploadError.value = ''; }, 7000);
   } finally {

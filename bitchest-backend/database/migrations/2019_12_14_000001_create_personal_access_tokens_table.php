@@ -16,9 +16,8 @@ return new class extends Migration
         Schema::create('personal_access_tokens', function (Blueprint $table) {
             $table->id()->comment('Identifiant unique du token');
             
-            // Relation polymorphique avec User (via tokenable)
-            $table->morphs('tokenable')
-                ->comment('Relation polymorphique (tokenable_type, tokenable_id)');
+            // tokenable_type + tokenable_id (morphs() ne retourne rien : pas de ->comment())
+            $table->morphs('tokenable');
             
             $table->string('name', 255)->comment('Nom du token (ex: auth-token)');
             $table->string('token', 64)->unique()->comment('Token d\'authentification (hashé)');
@@ -32,9 +31,8 @@ return new class extends Migration
             
             $table->timestamps();
             
-            // Index pour optimiser les recherches
-            $table->index(['tokenable_type', 'tokenable_id'], 'idx_tokens_tokenable')
-                ->comment('Index pour recherche par utilisateur');
+            // Index (pas de ->comment() sur index() selon la version Laravel)
+            $table->index(['tokenable_type', 'tokenable_id'], 'idx_tokens_tokenable');
         });
     }
 

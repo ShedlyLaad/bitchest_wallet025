@@ -9,11 +9,11 @@ use Illuminate\Console\Command;
 class InitializeUserLevels extends Command
 {
     protected $signature = 'users:initialize-levels';
-    protected $description = 'Initialize levels and experience points for all existing users';
+    protected $description = 'Initialize levels and trade counts for all existing client users';
 
     public function handle(LevelService $levelService)
     {
-        $this->info('🔄 Initializing user levels...');
+        $this->info('Initializing user levels from trade count...');
         
         $users = User::where('role', 'client')->get();
         $count = 0;
@@ -21,10 +21,11 @@ class InitializeUserLevels extends Command
         foreach ($users as $user) {
             $result = $levelService->updateUserLevel($user);
             $count++;
-            $this->info("✅ User {$user->email}: Level {$result['new_level']} ({$result['new_xp']} XP)");
+            $trades = $result['total_trades'];
+            $this->info("✅ {$user->email}: level {$result['new_level']} — {$trades} trade(s)");
         }
         
-        $this->info("✨ Initialized levels for {$count} users!");
+        $this->info("Done. Updated {$count} user(s).");
         
         return 0;
     }

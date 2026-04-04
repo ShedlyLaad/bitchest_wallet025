@@ -19,12 +19,12 @@ class SellCryptoRequest extends FormRequest
     public function messages()
     {
         return [
-            'symbol.required' => 'Le symbole de la cryptomonnaie est requis.',
-            'symbol.exists' => 'Cette cryptomonnaie n\'existe pas ou n\'est pas disponible.',
-            'quantity.required' => 'La quantité est requise.',
-            'quantity.numeric' => 'La quantité doit être un nombre.',
-            'quantity.gt' => 'La quantité doit être supérieure à 0.',
-            'quantity.max' => 'La quantité est trop élevée.',
+            'symbol.required' => 'Cryptocurrency symbol is required.',
+            'symbol.exists' => 'This cryptocurrency does not exist or is not available.',
+            'quantity.required' => 'Quantity is required.',
+            'quantity.numeric' => 'Quantity must be a number.',
+            'quantity.gt' => 'Quantity must be greater than 0.',
+            'quantity.max' => 'Quantity is too high.',
         ];
     }
 }

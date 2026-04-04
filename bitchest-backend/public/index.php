@@ -13,15 +13,15 @@ use Illuminate\Contracts\Container\BindingResolutionException;
 $autoload = __DIR__.'/../vendor/autoload.php';
 if (!file_exists($autoload)) {
     http_response_code(500);
-    echo '<h1>Erreur serveur</h1>';
-    echo '<p>Le fichier <code>vendor/autoload.php</code> est introuvable.</p>';
-    echo '<p>Solution rapide :</p>';
+    echo '<h1>Server Error</h1>';
+    echo '<p>The file <code>vendor/autoload.php</code> was not found.</p>';
+    echo '<p>Quick solution:</p>';
     echo '<ul>';
-    echo '<li>À la racine du projet, exécutez : <code>composer install</code></li>';
-    echo '<li>Vérifiez que le répertoire <code>vendor/</code> existe et que PHP peut y accéder (permissions)</li>';
-    echo '<li>Si le problème persiste, consultez <code>storage/logs/</code></li>';
+    echo '<li>At the project root, run: <code>composer install</code></li>';
+    echo '<li>Verify that the <code>vendor/</code> directory exists and PHP can access it (permissions)</li>';
+    echo '<li>If the problem persists, check <code>storage/logs/</code></li>';
     echo '</ul>';
-    echo '<p>Commande suggérée :</p>';
+    echo '<p>Suggested command:</p>';
     echo '<pre>cd '.htmlspecialchars(realpath(__DIR__.'/..')).' && composer install</pre>';
     exit(1);
 }
@@ -36,9 +36,9 @@ require $autoload;
 $appBootstrap = __DIR__.'/../bootstrap/app.php';
 if (!file_exists($appBootstrap)) {
     http_response_code(500);
-    echo '<h1>Erreur serveur</h1>';
-    echo '<p>Le fichier <code>bootstrap/app.php</code> est introuvable.</p>';
-    echo '<p>Vérifiez que vous êtes dans le bon répertoire et que tous les fichiers du framework sont présents.</p>';
+    echo '<h1>Server Error</h1>';
+    echo '<p>The file <code>bootstrap/app.php</code> was not found.</p>';
+    echo '<p>Verify that you are in the correct directory and that all framework files are present.</p>';
     exit(1);
 }
 
@@ -56,19 +56,18 @@ try {
     $kernel->terminate($request, $response);
 } catch (BindingResolutionException $e) {
     http_response_code(500);
-    echo '<h1>Erreur de résolution de dépendance</h1>';
-    echo '<p>Target class <strong>'.$e->getMessage().'</strong> introuvable.</p>';
-    echo '<p>Vérifiez vos fichiers de route (routes/web.php, routes/api.php) pour des chaînes incorrectes ou un contrôleur mal référencé.</p>';
+    echo '<h1>Dependency Resolution Error</h1>';
+    echo '<p>Target class <strong>'.$e->getMessage().'</strong> not found.</p>';
+    echo '<p>Check your route files (routes/web.php, routes/api.php) for incorrect strings or a misreferenced controller.</p>';
     echo '<ul>';
-    echo '<li>Si vous utilisez "Controller@method", soit ajoutez le $namespace dans RouteServiceProvider, soit utilisez [Controller::class, \'method\'].</li>';
-    echo '<li>Videz le cache : <code>php artisan route:clear && php artisan config:clear</code></li>';
+    echo '<li>If you are using "Controller@method", either add the $namespace in RouteServiceProvider, or use [Controller::class, \'method\'].</li>';
+    echo '<li>Clear the cache: <code>php artisan route:clear && php artisan config:clear</code></li>';
     echo '</ul>';
     exit(1);
 } catch (Throwable $e) {
     http_response_code(500);
-    echo '<h1>Erreur interne de l\'application</h1>';
-    echo '<p>Une exception est survenue lors du démarrage de l\'application.</p>';
-    echo '<p>Vérifiez : <code>storage/logs/</code>, les permissions et que l\'environnement (.env) est correctement configuré.</p>';
-    // Afficher un message minimal en prod ; pour debug local, activer APP_DEBUG dans .env
+    echo '<h1>Internal Application Error</h1>';
+    echo '<p>An exception occurred while starting the application.</p>';
+    echo '<p>Check: <code>storage/logs/</code>, permissions, and that the environment (.env) is properly configured.</p>';
     exit(1);
 }

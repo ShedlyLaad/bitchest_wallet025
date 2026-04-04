@@ -24,6 +24,6 @@ class AdminProfileController extends Controller
 
         $admin->update($request->only('name', 'email'));
 
-        return response()->json(['message' => 'Profil mis à jour', 'admin' => $admin]);
+        return response()->json(['message' => 'Profile updated', 'admin' => $admin]);
     }
 }

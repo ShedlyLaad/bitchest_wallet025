@@ -1,0 +1,5 @@
+# BitChest Support Bot
+bot/.env
+bot/__pycache__/
+bot/venv/
+

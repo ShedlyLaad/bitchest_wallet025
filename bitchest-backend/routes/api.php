@@ -12,6 +12,7 @@ use App\Http\Controllers\Admin\CryptoController as AdminCryptoController;
 use App\Http\Controllers\Admin\AdminProfileController;
 use Illuminate\Http\Request;
 use App\Services\LevelService;
+use App\Http\Controllers\SupportChatController;
 
 /*
 |--------------------------------------------------------------------------
@@ -43,6 +44,9 @@ Route::middleware(['auth:sanctum','account.status'])->group(function () {
     })->name('auth.me');
 
     Route::post('/change-password', [AuthController::class, 'changePassword'])->name('auth.change-password');
+
+    // Support bot (proxy vers FastAPI — utilisateurs connectés client ou admin)
+    Route::post('/support/chat', SupportChatController::class)->name('support.chat');
 
     /*
     |--------------------------------------------------------------------------

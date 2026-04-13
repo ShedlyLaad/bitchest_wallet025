@@ -247,93 +247,20 @@
 
     </div>
 
-    <!-- Floating Chat Widget -->
-    <div class="fixed bottom-6 right-6 z-50">
-      <Transition name="slide-up">
-        <div v-if="showChatWidget" class="mb-4 w-80 sm:w-96 bg-gray-900/95 backdrop-blur-xl rounded-2xl border border-gray-700/50 shadow-2xl overflow-hidden">
-          <div class="p-4 border-b border-gray-700/50 bg-gray-800/80 flex items-center space-x-3">
-            <div class="p-2 bg-green-500/20 rounded-lg">
-              <BotIcon class="h-5 w-5 text-green-400" />
-            </div>
-            <div class="flex-1">
-              <h3 class="font-semibold text-white text-sm">BitChest Support Bot</h3>
-              <div class="flex items-center gap-2 mt-0.5">
-                <div class="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse"></div>
-                <p class="text-xs text-gray-400">Typically replies instantly</p>
-              </div>
-            </div>
-            <button @click="showChatWidget = false" class="p-1.5 text-gray-400 hover:text-white hover:bg-gray-700/50 rounded-lg transition-colors">
-              <X class="h-4 w-4" />
-            </button>
-          </div>
-
-          <div class="p-4 h-72 overflow-y-auto bg-gray-900/30 flex flex-col gap-3" ref="chatBox">
-            <div v-for="(msg, i) in chatMessages" :key="i" :class="['flex', msg.from === 'user' ? 'justify-end' : 'justify-start']">
-              <div
-                :class="[
-                  'rounded-xl px-4 py-2.5 text-sm max-w-[80%]',
-                  msg.from === 'user'
-                    ? 'bg-green-600 text-white'
-                    : 'bg-gray-800/80 text-gray-200 border border-gray-700/50'
-                ]"
-              >
-                {{ msg.text }}
-              </div>
-            </div>
-            <div v-if="chatLoading" class="flex justify-start">
-              <div class="bg-gray-800/80 border border-gray-700/50 rounded-xl px-4 py-3 flex gap-1.5">
-                <span class="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce" style="animation-delay:0ms"></span>
-                <span class="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce" style="animation-delay:150ms"></span>
-                <span class="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce" style="animation-delay:300ms"></span>
-              </div>
-            </div>
-          </div>
-
-          <!-- Quick Replies -->
-          <div class="px-4 pt-2 pb-1 flex flex-wrap gap-1.5 border-t border-gray-700/30">
-            <button
-              v-for="r in quickReplies"
-              :key="r"
-              @click="sendQuickReply(r)"
-              class="text-xs px-2.5 py-1 bg-gray-800 hover:bg-gray-700 border border-gray-700/50 text-gray-300 rounded-lg transition-colors"
-            >
-              {{ r }}
-            </button>
-          </div>
-
-          <div class="p-3 border-t border-gray-700/50 bg-gray-800/30 flex items-center gap-2">
-            <input
-              v-model="chatMessage"
-              type="text"
-              placeholder="Type your message..."
-              class="flex-1 bg-gray-700/50 border border-gray-600 rounded-lg px-3 py-2 text-white text-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500/50 focus:border-green-500/50 transition-all"
-              @keyup.enter="handleChatSubmit"
-            />
-            <button
-              @click="handleChatSubmit"
-              class="p-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-all hover:scale-105"
-            >
-              <SendIcon class="h-4 w-4" />
-            </button>
-          </div>
-        </div>
-      </Transition>
-
-      <button
-        @click="showChatWidget = !showChatWidget"
-        class="group relative bg-gradient-to-r from-green-600 to-green-500 hover:from-green-700 hover:to-green-600 text-white p-4 rounded-full shadow-lg transition-all duration-300 hover:scale-110 hover:shadow-xl hover:shadow-green-500/40"
-      >
-        <MessageCircleIcon class="h-6 w-6 relative z-10" />
-        <div v-if="!showChatWidget" class="absolute -top-1 -right-1 w-3 h-3 bg-green-400 rounded-full border-2 border-gray-900 animate-pulse"></div>
-      </button>
-    </div>
+    <!-- BitChest Support Bot — ChatWidget -->
+    <ChatWidget
+      :open="showChatWidget"
+      :user-email="currentUserEmail"
+      @toggle="showChatWidget = !showChatWidget"
+      @close="showChatWidget = false"
+    />
 
     <UserFooter />
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, nextTick } from 'vue';
+import { ref, computed } from 'vue';
 import {
   ChevronDown as ChevronDownIcon,
   MessageCircle as MessageCircleIcon,
@@ -344,7 +271,6 @@ import {
   XCircle as XCircleIcon,
   PlusCircle as PlusCircleIcon,
   HelpCircle as HelpCircleIcon,
-  Bot as BotIcon,
   MessageSquare as MessageSquareIcon,
   FileText,
   X,
@@ -354,6 +280,9 @@ import {
 } from 'lucide-vue-next';
 
 import UserFooter from '@/components/UserFooter.vue';
+// AJOUTE ces deux imports — ne touche à rien d'autre
+import ChatWidget from '@/components/support/ChatWidget.vue';
+import { useAuthStore } from '@/stores/auth';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -373,21 +302,17 @@ interface FAQ {
   category: string;
 }
 
-interface ChatMessage {
-  from: 'bot' | 'user';
-  text: string;
-}
-
 // ─── State ───────────────────────────────────────────────────────────────────
+
+const authStore = useAuthStore();
+authStore.hydrate();
 
 const openFaq = ref<number | null>(null);
 const showNewTicketForm = ref(false);
 const showChatWidget = ref(false);
-const chatMessage = ref('');
-const chatLoading = ref(false);
+const currentUserEmail = computed(() => authStore.user?.email ?? '');
 const ticketSuccess = ref(false);
 const activeCategory = ref('All');
-const chatBox = ref<HTMLElement | null>(null);
 
 const newTicket = ref({ subject: '', message: '', category: '' });
 
@@ -532,20 +457,6 @@ const tickets = ref<SupportTicket[]>([
   },
 ]);
 
-const chatMessages = ref<ChatMessage[]>([
-  {
-    from: 'bot',
-    text: "Welcome to BitChest Support! 👋 I'm here to help with your account, wallet, or trading questions.",
-  },
-]);
-
-const quickReplies = [
-  'Check my balance',
-  'How to buy crypto?',
-  'Withdrawal help',
-  'Account issue',
-];
-
 // ─── Computed ─────────────────────────────────────────────────────────────────
 
 const filteredFaqs = computed(() => {
@@ -600,41 +511,6 @@ function handleNewTicket() {
   setTimeout(() => (ticketSuccess.value = false), 4000);
 }
 
-const botResponses: Record<string, string> = {
-  'check my balance': 'You can view your current euro balance in the top bar at all times once logged in. For detailed portfolio breakdown, visit "My Wallet".',
-  'how to buy crypto?': 'Go to the Markets section, pick a cryptocurrency, enter the amount you want to buy and confirm. Your balance will be debited at the current market rate.',
-  'withdrawal help': 'Withdrawals are processed by selling your crypto in the Wallet section. The euro value is credited to your balance instantly during the prototype phase.',
-  'account issue': "For account problems, you can open a support ticket above or describe your issue here. I'll do my best to help right away!",
-};
-
-async function handleChatSubmit() {
-  const text = chatMessage.value.trim();
-  if (!text) return;
-
-  chatMessages.value.push({ from: 'user', text });
-  chatMessage.value = '';
-  chatLoading.value = true;
-  await nextTick();
-  if (chatBox.value) chatBox.value.scrollTop = chatBox.value.scrollHeight;
-
-  await new Promise((r) => setTimeout(r, 900 + Math.random() * 600));
-  chatLoading.value = false;
-
-  const lc = text.toLowerCase();
-  const match = Object.keys(botResponses).find((k) => lc.includes(k));
-  const reply = match
-    ? botResponses[match]
-    : "Thanks for your message! Our human support team will follow up within 24 hours. For urgent issues, please open a support ticket above.";
-
-  chatMessages.value.push({ from: 'bot', text: reply });
-  await nextTick();
-  if (chatBox.value) chatBox.value.scrollTop = chatBox.value.scrollHeight;
-}
-
-function sendQuickReply(text: string) {
-  chatMessage.value = text;
-  handleChatSubmit();
-}
 </script>
 
 <style scoped>
@@ -642,9 +518,4 @@ function sendQuickReply(text: string) {
 .slide-fade-leave-active { transition: all 0.2s ease-in; }
 .slide-fade-enter-from,
 .slide-fade-leave-to { transform: translateY(-8px); opacity: 0; }
-
-.slide-up-enter-active { transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1); }
-.slide-up-leave-active { transition: all 0.2s ease-in; }
-.slide-up-enter-from,
-.slide-up-leave-to { transform: translateY(20px) scale(0.95); opacity: 0; }
 </style>

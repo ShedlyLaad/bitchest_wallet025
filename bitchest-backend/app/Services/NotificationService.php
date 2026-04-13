@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\Notification;
+use App\Models\CryptoPriceRecord;
 use App\Models\User;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schema;
@@ -255,46 +256,85 @@ class NotificationService
                 return;
             }
             
-            $gainLoss = (float) ($position->gain_loss ?? 0);
-            $gainLossPercent = (float) ($position->gain_loss_percent ?? 0);
             $quantity = (float) ($position->quantity ?? 0);
             
             if ($quantity <= 0) {
                 return;
             }
+
+            $cryptoId = (int) ($position->crypto_currency_id ?? 0);
+            if ($cryptoId <= 0) {
+                return;
+            }
+
+            // Se baser sur la variation réelle du prix (2 derniers points)
+            $priceRecords = CryptoPriceRecord::where('crypto_currency_id', $cryptoId)
+                ->orderBy('recorded_at', 'desc')
+                ->limit(2)
+                ->get();
+
+            if ($priceRecords->count() < 2) {
+                return;
+            }
+
+            $currentPrice = (float) ($priceRecords[0]->price ?? 0);
+            $previousPrice = (float) ($priceRecords[1]->price ?? 0);
+
+            if ($currentPrice <= 0 || $previousPrice <= 0) {
+                return;
+            }
+
+            if (abs($currentPrice - $previousPrice) < 0.00000001) {
+                return; // Pas de variation exploitable
+            }
+
+            $priceChangePercent = ($previousPrice > 0)
+                ? (($currentPrice - $previousPrice) / $previousPrice) * 100
+                : 0.0;
+
+            // Variation en euros pour la quantité détenue (cohérent avec l'affichage gain_loss)
+            $gainLoss = ($currentPrice - $previousPrice) * $quantity;
+            $gainLossPercent = $priceChangePercent;
+
+            // Seuil minimum pour éviter le bruit (en € OU en %)
+            if (abs($gainLoss) < self::NOTIFICATION_THRESHOLD_PROFIT && abs($gainLossPercent) < self::NOTIFICATION_THRESHOLD_PERCENT) {
+                return;
+            }
             
             // Récupérer la dernière notification pour cette crypto
-            $lastNotification = $this->getLastNotification($user->id, $position->crypto_currency_id);
-            
-            // Vérifier les notifications de profit
-            if ($gainLoss >= self::NOTIFICATION_THRESHOLD_PROFIT || 
-                $gainLossPercent >= self::NOTIFICATION_THRESHOLD_PERCENT) {
-                if ($this->shouldNotifyProfit($lastNotification, $gainLoss, $gainLossPercent)) {
-                    $this->createNotification(
-                        $user,
-                        $position,
-                        'profit',
-                        $gainLoss,
-                        $gainLossPercent,
-                        (float) ($position->current_price ?? 0)
-                    );
+            $lastNotification = $this->getLastNotification($user->id, $cryptoId);
+
+            // Cohérence / anti-doublons
+            if ($lastNotification) {
+                // Cooldown global entre notifications similaires
+                if (now()->diffInMinutes($lastNotification->created_at) < self::NOTIFICATION_COOLDOWN) {
+                    return;
+                }
+
+                $lastCurrent = (float) ($lastNotification->current_price ?? 0);
+                $lastPrevious = (float) ($lastNotification->previous_price ?? 0);
+
+                $computedType = $gainLoss >= 0 ? 'profit' : 'loss';
+
+                if (
+                    $lastNotification->type === $computedType &&
+                    abs($lastCurrent - $currentPrice) < 0.00000001 &&
+                    abs($lastPrevious - $previousPrice) < 0.00000001
+                ) {
+                    return;
                 }
             }
-            
-            // Vérifier les notifications de perte
-            if ($gainLoss <= self::NOTIFICATION_THRESHOLD_LOSS || 
-                $gainLossPercent <= -self::NOTIFICATION_THRESHOLD_PERCENT) {
-                if ($this->shouldNotifyLoss($lastNotification, $gainLoss, $gainLossPercent)) {
-                    $this->createNotification(
-                        $user,
-                        $position,
-                        'loss',
-                        $gainLoss,
-                        $gainLossPercent,
-                        (float) ($position->current_price ?? 0)
-                    );
-                }
-            }
+
+            $type = $gainLoss >= 0 ? 'profit' : 'loss';
+
+            $this->createNotification(
+                $user,
+                $position,
+                $type,
+                $gainLoss,
+                $gainLossPercent,
+                $currentPrice
+            );
         } catch (\Exception $e) {
             Log::error('Erreur dans checkPositionNotifications: ' . $e->getMessage());
         }
@@ -383,9 +423,19 @@ class NotificationService
         $sign = $isProfit ? '+' : '';
         $emoji = $isProfit ? '📈' : '📉';
         
-        // Récupérer le prix précédent
-        $lastNotification = $this->getLastNotification($user->id, $position->crypto_currency_id);
-        $previousPrice = $lastNotification ? $lastNotification->current_price : null;
+        // Récupérer le prix précédent depuis les enregistrements (cohérent avec le déclenchement)
+        $previousPrice = null;
+        $cryptoId = (int) ($position->crypto_currency_id ?? 0);
+        if ($cryptoId > 0) {
+            $priceRecords = CryptoPriceRecord::where('crypto_currency_id', $cryptoId)
+                ->orderBy('recorded_at', 'desc')
+                ->limit(2)
+                ->get();
+            if ($priceRecords->count() >= 2) {
+                $candidate = (float) ($priceRecords[1]->price ?? 0);
+                $previousPrice = $candidate > 0 ? $candidate : null;
+            }
+        }
         
         $title = $isProfit
             ? "{$emoji} Profit on {$cryptoSymbol}"

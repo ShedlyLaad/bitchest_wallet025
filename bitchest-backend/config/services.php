@@ -36,8 +36,8 @@ return [
     | Support bot (FastAPI — bot/bot_server.py)
     |--------------------------------------------------------------------------
     */
-    'support_bot' => [
-        'url' => env('SUPPORT_BOT_URL', 'http://127.0.0.1:8001'),
-    ],
+  'support_bot' => [
+    'url' => env('SUPPORT_BOT_URL'),
+],
 
 ];

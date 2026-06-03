@@ -68,12 +68,15 @@ export function useSupportBot(userEmail?: MaybeRef<string | undefined>) {
         const detail = typeof data?.detail === 'string' ? data.detail : undefined
         const message =
           typeof data?.message === 'string' ? data.message : undefined
+        const code = typeof data?.code === 'number' ? data.code : undefined
         const firstValidation =
           data?.errors && typeof data.errors === 'object'
             ? String(Object.values(data.errors as Record<string, unknown[]>).flat()[0] ?? '')
             : undefined
-        throw new Error(
+        const normalizedMessage =
           detail || message || firstValidation || `Server error ${response.status}`
+        throw new Error(
+          code ? `${normalizedMessage} (code: ${code})` : normalizedMessage
         )
       }
 
@@ -85,10 +88,19 @@ export function useSupportBot(userEmail?: MaybeRef<string | undefined>) {
         timestamp: new Date(),
       })
     } catch (err: any) {
-      error.value = err.message ?? 'Connection error'
+      const rawMessage = err?.message ?? 'Connection error'
+      error.value = rawMessage
+      const lowerMessage = String(rawMessage).toLowerCase()
+      const unavailable =
+        lowerMessage.includes('api key') ||
+        lowerMessage.includes('service unavailable') ||
+        lowerMessage.includes('groq_api_key')
+
       messages.value.push({
         role: 'assistant',
-        content: "I'm having trouble connecting right now. Please try again in a moment, or open a support ticket above.",
+        content: unavailable
+          ? "The support bot is temporarily unavailable due to server configuration. Please try again in a few minutes or contact support."
+          : "I'm having trouble connecting right now. Please try again in a moment, or open a support ticket above.",
         timestamp: new Date(),
       })
     } finally {

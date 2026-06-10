@@ -56,7 +56,9 @@
       <PartnersSection />
       <StatsSection />
       <FeaturesSection />
+      <TeamSection />
       <TestimonialsSection />
+      <CTAInvite />
       <CTASection />
       <FooterSection />
     </div>
@@ -72,7 +74,9 @@ import HeroSection from '../components/sectionsLanding/HeroSection.vue';
 import PartnersSection from '../components/sectionsLanding/PartnersSection.vue';
 import StatsSection from '../components/sectionsLanding/StatsSection.vue';
 import FeaturesSection from '../components/sectionsLanding/FeaturesSection.vue';
+import TeamSection from '../components/sectionsLanding/TeamSection.vue';
 import TestimonialsSection from '../components/sectionsLanding/TestimonialsSection.vue';
+import CTAInvite from '../components/sectionsLanding/CTAInvite.vue';
 import CTASection from '../components/sectionsLanding/CTASection.vue';
 import FooterSection from '../components/sectionsLanding/FooterSection.vue';
 

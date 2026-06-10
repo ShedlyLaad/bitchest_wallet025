@@ -1,79 +1,107 @@
 <template>
-  <div>
+  <section
+    class="relative text-white py-16 md:py-24 px-4 md:px-6 overflow-hidden"
+    :style="{ background: 'linear-gradient(135deg, #0a0f1a 0%, #1a2332 50%, #0a0f1a 100%)' }"
+  >
+    <!-- Animated particles canvas background -->
+    <canvas ref="particlesCanvas" class="absolute inset-0 w-full h-full pointer-events-none"></canvas>
+
+    <!-- Holographic grid with brand colors -->
+    <div class="absolute inset-0 opacity-[0.08] pointer-events-none z-0">
+      <div
+        class="absolute inset-0"
+        :style="{
+          backgroundImage: `linear-gradient(to right, rgba(53, 167, 255, 0.15) 1px, transparent 1px), linear-gradient(to bottom, rgba(53, 167, 255, 0.15) 1px, transparent 1px)`,
+          backgroundSize: '80px 80px',
+          transform: 'perspective(1000px) rotateX(60deg)'
+        }"
+      />
+    </div>
+
+    <!-- Background orbs with brand colors -->
+    <div class="absolute inset-0 pointer-events-none z-0">
+      <div class="absolute top-1/4 left-1/4 w-96 h-96 rounded-full blur-3xl opacity-10 animate-pulse" :style="{ backgroundColor: 'var(--blue-dark)' }"></div>
+      <div class="absolute bottom-1/3 right-1/4 w-80 h-80 rounded-full blur-3xl opacity-10 animate-pulse delay-1000" :style="{ backgroundColor: 'var(--blue)' }"></div>
+      <div class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] rounded-full blur-3xl opacity-5 animate-pulse delay-2000" :style="{ backgroundColor: 'var(--accent-green)' }"></div>
+    </div>
+
     <div v-if="MotionAvailable">
-      <Motion tag="div"
-        class="relative text-white py-16 md:py-24 px-4 md:px-6 overflow-hidden"
-        :style="{ background: 'linear-gradient(135deg, #0a0f1a 0%, #1a2332 50%, #0a0f1a 100%)' }"
+      <Motion
+        tag="div"
+        class="relative z-10 max-w-6xl mx-auto"
         :initial="sectionInitial"
         :while-in-view="sectionAnimate"
         :viewport="{ once: true, margin: '-100px' }"
       >
-        <!-- Animated particles canvas background -->
-        <canvas ref="particlesCanvas" class="absolute inset-0 w-full h-full pointer-events-none"></canvas>
-
-        <!-- Holographic grid with brand colors -->
-        <div class="absolute inset-0 opacity-[0.08] pointer-events-none z-0">
-          <div
-            class="absolute inset-0"
-            :style="{
-              backgroundImage: `linear-gradient(to right, rgba(53, 167, 255, 0.15) 1px, transparent 1px), linear-gradient(to bottom, rgba(53, 167, 255, 0.15) 1px, transparent 1px)`,
-              backgroundSize: '80px 80px',
-              transform: 'perspective(1000px) rotateX(60deg)'
-            }"
-          />
-        </div>
-
-        <!-- Background orbs with brand colors -->
-        <div class="absolute inset-0 pointer-events-none">
-          <div class="absolute top-1/4 left-1/4 w-96 h-96 rounded-full blur-3xl opacity-[0.08]" :style="{ backgroundColor: 'var(--blue-dark)' }"></div>
-          <div class="absolute bottom-1/3 right-1/4 w-80 h-80 rounded-full blur-3xl opacity-[0.08]" :style="{ backgroundColor: 'var(--blue)' }"></div>
-        </div>
-        <Motion tag="div" class="relative z-10 max-w-6xl mx-auto grid lg:grid-cols-2 gap-8 lg:gap-16" :variants="staggerContainer">
+        <Motion tag="div" class="grid lg:grid-cols-2 gap-8 lg:gap-16" :variants="staggerContainer">
           <!-- Left column -->
           <Motion tag="div" class="flex flex-col justify-center" :variants="fadeInUp">
-            <Motion tag="h2"
-              class="text-3xl md:text-5xl font-bold mb-6 text-app-secondary leading-tight"
-              :variants="fadeInUp"
+            <!-- Live badge -->
+            <Motion
+              tag="div"
+              class="inline-flex items-center gap-2 px-4 py-2 rounded-full border mb-6 w-fit transition-all duration-300"
+              :style="{
+                backgroundColor: 'rgba(56, 97, 140, 0.15)',
+                borderColor: 'var(--blue)',
+                boxShadow: '0 0 20px rgba(53, 167, 255, 0.2)'
+              }"
+              :while-hover="{ scale: 1.05 }"
             >
-              Prêt à transformer votre expérience crypto?
+              <span class="h-2 w-2 rounded-full animate-pulse" :style="{ backgroundColor: 'var(--accent-green)' }"></span>
+              <span class="text-sm font-medium" style="color: var(--blue)">BitChest Platform — Live</span>
+            </Motion>
+
+            <!-- H2 with gradient-shift -->
+            <Motion tag="h2" class="text-3xl md:text-5xl font-bold mb-6 leading-tight" :variants="fadeInUp">
+              <span class="block text-white mb-2">Ready to Transform Your</span>
+              <span
+                class="block bg-clip-text text-transparent"
+                :style="{
+                  background: 'linear-gradient(to right, var(--accent-green), var(--blue), var(--blue-dark), var(--accent-green))',
+                  WebkitBackgroundClip: 'text',
+                  WebkitTextFillColor: 'transparent',
+                  backgroundSize: '200% 200%',
+                  animation: 'gradient-shift 4s ease infinite'
+                }"
+              >
+                Crypto Experience?
+              </span>
             </Motion>
 
             <Motion tag="p" class="text-lg text-slate-300 mb-8" :variants="fadeInUp">
-              Rejoignez des millions d'utilisateurs dès aujourd'hui.
-              <Motion tag="span" class="block mt-2 text-app-secondary font-semibold" :while-hover="{ scale: 1.05 }">
-                Aucun dépôt minimum requis.
-              </Motion>
+              Join millions of traders worldwide who trust BitChest for secure, fast, and innovative cryptocurrency trading.
+              <span class="block mt-2 text-app-secondary font-semibold">No minimum deposit required.</span>
             </Motion>
 
-            <Motion tag="div" :while-hover="{ scale: 1.05 }" :while-tap="{ scale: 0.95 }">
+            <Motion tag="div" :variants="fadeInUp" :while-hover="{ scale: 1.05, y: -2 }" :while-tap="{ scale: 0.98 }">
               <RouterLink
                 data-cta-button
                 to="/signup"
-                class="inline-flex items-center text-white px-8 py-4 rounded-xl font-semibold transition-all hover:shadow-xl hover:scale-105 relative overflow-hidden group"
+                class="inline-flex items-center text-white px-8 py-4 rounded-xl font-semibold transition-all hover:shadow-xl relative overflow-hidden group"
                 :style="primaryButtonStyle"
                 @mouseenter="primaryHover(true)"
                 @mouseleave="primaryHover(false)"
               >
-                Créer un compte gratuit
+                Create Free Account
                 <Motion tag="div" :animate="{ x: [0, 5, 0] }" :transition="{ repeat: Infinity, duration: 1.5 }">
                   <ArrowRight class="ml-2 h-5 w-5" />
                 </Motion>
-
                 <div class="absolute inset-0 rounded-xl bg-white opacity-0 group-hover:opacity-10 transition-opacity duration-300 pointer-events-none"></div>
-                <!-- Shine effect -->
                 <div class="absolute inset-0 -translate-x-full group-hover:translate-x-full transition-transform duration-700 bg-gradient-to-r from-transparent via-white/30 to-transparent"></div>
               </RouterLink>
             </Motion>
 
             <Motion tag="div" class="flex flex-wrap gap-6 mt-10" :variants="staggerContainer">
-              <Motion tag="div"
+              <Motion
                 v-for="(item, i) in leftBullets"
                 :key="i"
+                tag="div"
                 class="flex items-center space-x-2 text-slate-400 hover:text-white transition-colors"
                 :variants="fadeInUp"
                 :while-hover="{ scale: 1.1 }"
               >
-                <Motion tag="div"
+                <Motion
+                  tag="div"
                   class="text-app-secondary"
                   :animate="{ rotate: [0, 15, -15, 0] }"
                   :transition="{ duration: 2, repeat: Infinity }"
@@ -88,36 +116,36 @@
           <!-- Right column -->
           <Motion tag="div" class="flex flex-col justify-center" :variants="fadeInUp">
             <Motion tag="h3" class="text-3xl font-bold text-app-secondary mb-6" :variants="fadeInUp">
-              Excellence reconnue
-            </Motion>
-
-            <Motion tag="p" class="text-lg text-slate-400 mb-8" :variants="fadeInUp">
-              Établir de nouveaux standards dans le trading de cryptomonnaies
+              Platform Highlights
             </Motion>
 
             <Motion tag="div" class="grid sm:grid-cols-2 gap-6" :variants="staggerContainer">
-              <Motion tag="div"
-                v-for="(award, i) in awards"
+              <Motion
+                v-for="(card, i) in platformCards"
                 :key="i"
+                tag="div"
                 class="bg-slate-800/50 backdrop-blur-sm p-6 rounded-xl border border-slate-700 transition-all hover:shadow-lg"
                 :style="awardCardStyle"
-                @mouseenter="awardHover($event, true)"
-                @mouseleave="awardHover($event, false)"
                 :variants="fadeInUp"
                 :while-hover="{ y: -5 }"
+                @mouseenter="awardHover($event, true)"
+                @mouseleave="awardHover($event, false)"
               >
                 <Motion tag="div" class="mb-4" :animate="{ rotate: [0, 10, -10, 0] }" :transition="{ duration: 5, repeat: Infinity }">
-                  <component :is="award.iconComponent" class="h-8 w-8" v-if="award.iconComponent" />
-                  <div v-else v-html="award.iconHtml"></div>
+                  <component :is="card.icon" class="h-8 w-8 text-app-secondary" />
                 </Motion>
 
-                <h4 class="text-white font-semibold mb-2">{{ award.title }}</h4>
-                <p class="text-slate-400 text-sm">{{ award.subtitle }}</p>
+                <h4 class="text-white font-semibold mb-2">{{ card.title }}</h4>
+                <p class="text-slate-400 text-sm">{{ card.subtitle }}</p>
 
-                <Motion tag="button" class="mt-4 flex items-center text-app-secondary hover:text-white transition-colors group" :while-hover="{ x: 5 }">
-                  En savoir plus
+                <RouterLink
+                  v-if="card.link"
+                  :to="card.link"
+                  class="mt-4 flex items-center text-app-secondary hover:text-white transition-colors group"
+                >
+                  Learn more
                   <ChevronRight class="ml-1 h-4 w-4 group-hover:translate-x-1 transition-transform" />
-                </Motion>
+                </RouterLink>
               </Motion>
             </Motion>
           </Motion>
@@ -125,63 +153,94 @@
       </Motion>
     </div>
 
-    <div v-else class="bg-slate-900 text-white py-12 px-4 rounded-lg">
-      <div class="max-w-4xl mx-auto text-center">
-        <h2 class="text-2xl font-bold text-app-secondary mb-3">Prêt à transformer votre expérience crypto?</h2>
-        <p class="text-slate-300 mb-4">Rejoignez des millions d'utilisateurs dès aujourd'hui. Aucun dépôt minimum requis.</p>
-        <RouterLink to="/signup" class="inline-block bg-blue-600 text-white px-6 py-3 rounded-lg font-semibold">Créer un compte gratuit</RouterLink>
+    <div v-else class="relative z-10 max-w-6xl mx-auto">
+      <div class="grid lg:grid-cols-2 gap-8 lg:gap-16">
+        <div class="flex flex-col justify-center">
+          <div
+            class="inline-flex items-center gap-2 px-4 py-2 rounded-full border mb-6 w-fit"
+            :style="{
+              backgroundColor: 'rgba(56, 97, 140, 0.15)',
+              borderColor: 'var(--blue)',
+              boxShadow: '0 0 20px rgba(53, 167, 255, 0.2)'
+            }"
+          >
+            <span class="h-2 w-2 rounded-full animate-pulse" :style="{ backgroundColor: 'var(--accent-green)' }"></span>
+            <span class="text-sm font-medium" style="color: var(--blue)">BitChest Platform — Live</span>
+          </div>
+          <h2 class="text-3xl md:text-5xl font-bold mb-6 text-app-secondary leading-tight">Ready to Transform Your Crypto Experience?</h2>
+          <p class="text-lg text-slate-300 mb-8">Join millions of traders worldwide. No minimum deposit required.</p>
+          <RouterLink
+            data-cta-button
+            to="/signup"
+            class="inline-flex items-center text-white px-8 py-4 rounded-lg font-semibold"
+            :style="primaryButtonStyle"
+          >
+            Create Free Account
+            <ArrowRight class="ml-2 h-5 w-5" />
+          </RouterLink>
+        </div>
+        <div class="grid sm:grid-cols-2 gap-6">
+          <div
+            v-for="(card, i) in platformCards"
+            :key="i"
+            class="bg-slate-800/50 p-6 rounded-xl border border-slate-700"
+          >
+            <component :is="card.icon" class="h-8 w-8 text-app-secondary mb-4" />
+            <h4 class="text-white font-semibold mb-2">{{ card.title }}</h4>
+            <p class="text-slate-400 text-sm">{{ card.subtitle }}</p>
+            <RouterLink v-if="card.link" :to="card.link" class="mt-4 inline-flex items-center text-app-secondary">
+              Learn more
+              <ChevronRight class="ml-1 h-4 w-4" />
+            </RouterLink>
+          </div>
+        </div>
       </div>
     </div>
-  </div>
+
+    <!-- Bottom decorative line -->
+    <div class="absolute bottom-0 left-0 w-full h-1 opacity-20" :style="{ background: 'linear-gradient(to right, transparent, var(--blue-dark), var(--blue), var(--blue-dark), transparent)' }"></div>
+  </section>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue';
 import { Motion } from '@motionone/vue';
 import { RouterLink } from 'vue-router';
-import { ArrowRight, Shield, Zap, Users, Star, TrendingUp, ChevronRight } from 'lucide-vue-next';
+import {
+  ArrowRight, Shield, Zap, Users,
+  Wallet, TrendingUp, ChevronRight,
+  BarChart2, Lock
+} from 'lucide-vue-next';
 import { useAnimatedBackground } from '../../composables/useAnimatedBackground';
 
 const { particlesCanvas } = useAnimatedBackground();
 
-/* Motion presets (mirrors framer-motion setup) */
-const fadeInUp = {
-  initial: { y: 60, opacity: 0 },
-  animate: { y: 0, opacity: 1 },
-  transition: { duration: 0.6, ease: 'easeOut' }
-};
+const fadeInUp = { initial: { y: 60, opacity: 0 }, animate: { y: 0, opacity: 1 }, transition: { duration: 0.6, ease: 'easeOut' } };
 const staggerContainer = { animate: { transition: { staggerChildren: 0.1 } } };
-
 const sectionInitial = { opacity: 0 };
 const sectionAnimate = { opacity: 1 };
 
-/* Left column bullets */
 const leftBullets = [
-  { icon: Shield, text: 'Sécurité bancaire' },
-  { icon: Zap, text: 'Transactions instantanées' },
-  { icon: Users, text: 'Support 24/7' }
+  { icon: Shield, text: 'Bank-level security' },
+  { icon: Zap, text: 'Instant trades' },
+  { icon: Users, text: '24/7 Support' }
 ];
 
-/* Awards on right column - mix of components and small HTML */
-const awards = [
-  { iconComponent: Star, title: 'Meilleure plateforme crypto 2024', subtitle: 'FinTech Awards' },
-  { iconComponent: null, iconHtml: '<div class="text-2xl font-bold PnL--pos">4.9</div>', title: 'Note Trustpilot', subtitle: '10 000+ avis' },
-  { iconComponent: TrendingUp, title: 'Recommandé par', subtitle: 'Forbes, Bloomberg, TechCrunch' }
+const platformCards = [
+  { icon: Wallet, title: '€500 Starting Balance', subtitle: 'Every new account is credited for the prototype phase.', link: '/signup' },
+  { icon: BarChart2, title: '10 Cryptocurrencies', subtitle: 'BTC, ETH, XRP, BCH, ADA, LTC, NEM, XLM, IOTA, DASH.', link: null },
+  { icon: TrendingUp, title: 'Real-time Charts', subtitle: 'Track price evolution over the last 30 days for every asset.', link: null },
+  { icon: Lock, title: 'Secure Admin Panel', subtitle: 'Separate interfaces for admins and clients. RBAC enforced.', link: '/support' }
 ];
 
-/* Styles + hover state */
-const primaryHovered = ref(false);
 const primaryButtonStyle = {
   background: 'linear-gradient(to right, var(--blue), var(--blue-dark))',
   boxShadow: '0 0 30px rgba(53, 167, 255, 0.3), 0 0 20px rgba(56, 97, 140, 0.25)'
 };
 
-function primaryHover(enter = true) {
-  primaryHovered.value = enter;
-}
+const awardCardStyle = { '--hover-border': 'var(--blue)' } as Record<string, string>;
 
-/* Award card hover helpers to mimic inline behavior */
-const awardCardStyle = { '--hover-border': 'var(--blue)' } as Record<string, any>;
+function primaryHover(enter = true) {}
+
 function awardHover(e: Event, enter: boolean) {
   const el = e.currentTarget as HTMLElement;
   if (enter) {
@@ -193,12 +252,15 @@ function awardHover(e: Event, enter: boolean) {
   }
 }
 
-// Particles animation is handled by useAnimatedBackground composable
-
-// new: drapeau indiquant si Motion est disponible au runtime
 const MotionAvailable = typeof Motion !== 'undefined' && Motion !== null;
 </script>
 
 <style scoped>
-/* No additional styles - everything uses Tailwind utilities and inline styles */
+@keyframes gradient-shift {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+
+.delay-1000 { animation-delay: 1s; }
+.delay-2000 { animation-delay: 2s; }
 </style>

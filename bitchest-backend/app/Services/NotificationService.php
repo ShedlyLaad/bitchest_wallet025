@@ -3,7 +3,6 @@
 namespace App\Services;
 
 use App\Models\Notification;
-use App\Models\CryptoPriceRecord;
 use App\Models\User;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schema;
@@ -268,7 +267,7 @@ class NotificationService
             }
 
             // Se baser sur la variation réelle du prix (2 derniers points)
-            $priceRecords = CryptoPriceRecord::where('crypto_currency_id', $cryptoId)
+            $priceRecords = \App\Models\CryptoPriceRecord::where('crypto_currency_id', $cryptoId)
                 ->orderBy('recorded_at', 'desc')
                 ->limit(2)
                 ->get();
@@ -301,23 +300,21 @@ class NotificationService
                 return;
             }
             
-            // Récupérer la dernière notification pour cette crypto
+            $type = $gainLoss >= 0 ? 'profit' : 'loss';
+
+            // Cooldown (inchangé) : dernière notification profit/loss pour cette crypto
             $lastNotification = $this->getLastNotification($user->id, $cryptoId);
+            if ($lastNotification && now()->diffInMinutes($lastNotification->created_at) < self::NOTIFICATION_COOLDOWN) {
+                return;
+            }
 
-            // Cohérence / anti-doublons
-            if ($lastNotification) {
-                // Cooldown global entre notifications similaires
-                if (now()->diffInMinutes($lastNotification->created_at) < self::NOTIFICATION_COOLDOWN) {
-                    return;
-                }
-
-                $lastCurrent = (float) ($lastNotification->current_price ?? 0);
-                $lastPrevious = (float) ($lastNotification->previous_price ?? 0);
-
-                $computedType = $gainLoss >= 0 ? 'profit' : 'loss';
+            // Anti-doublons : même user + crypto + type + mêmes prix
+            $lastNotificationForType = $this->getLastNotification($user->id, $cryptoId, $type);
+            if ($lastNotificationForType) {
+                $lastCurrent = (float) ($lastNotificationForType->current_price ?? 0);
+                $lastPrevious = (float) ($lastNotificationForType->previous_price ?? 0);
 
                 if (
-                    $lastNotification->type === $computedType &&
                     abs($lastCurrent - $currentPrice) < 0.00000001 &&
                     abs($lastPrevious - $previousPrice) < 0.00000001
                 ) {
@@ -325,15 +322,14 @@ class NotificationService
                 }
             }
 
-            $type = $gainLoss >= 0 ? 'profit' : 'loss';
-
             $this->createNotification(
                 $user,
                 $position,
                 $type,
                 $gainLoss,
                 $gainLossPercent,
-                $currentPrice
+                $currentPrice,
+                $previousPrice
             );
         } catch (\Exception $e) {
             Log::error('Erreur dans checkPositionNotifications: ' . $e->getMessage());
@@ -343,13 +339,17 @@ class NotificationService
     /**
      * Récupère la dernière notification pour une crypto
      */
-    private function getLastNotification(int $userId, int $cryptoId): ?Notification
+    private function getLastNotification(int $userId, int $cryptoId, ?string $type = null): ?Notification
     {
-        return Notification::where('user_id', $userId)
+        $query = Notification::where('user_id', $userId)
             ->where('crypto_currency_id', $cryptoId)
-            ->whereIn('type', ['profit', 'loss'])
-            ->orderBy('created_at', 'desc')
-            ->first();
+            ->whereIn('type', ['profit', 'loss']);
+
+        if ($type !== null) {
+            $query->where('type', $type);
+        }
+
+        return $query->orderBy('created_at', 'desc')->first();
     }
     
     /**
@@ -413,29 +413,28 @@ class NotificationService
         string $type,
         float $gainLoss,
         float $gainLossPercent,
-        float $currentPrice
+        float $currentPrice,
+        float $previousPrice
     ): void {
         $cryptoSymbol = $position->crypto->symbol ?? 'Unknown';
         $cryptoName = $position->crypto->name ?? 'Unknown';
         $quantity = (float) ($position->quantity ?? 0);
+
+        $portfolioId = \App\Models\Portfolio::where('user_id', $user->id)
+            ->where('crypto_currency_id', (int) ($position->crypto_currency_id ?? 0))
+            ->value('id');
+
+        if (!$portfolioId) {
+            Log::warning('Portfolio introuvable pour la notification', [
+                'user_id' => $user->id,
+                'crypto_currency_id' => $position->crypto_currency_id ?? null,
+            ]);
+            return;
+        }
         
         $isProfit = $type === 'profit';
         $sign = $isProfit ? '+' : '';
         $emoji = $isProfit ? '📈' : '📉';
-        
-        // Récupérer le prix précédent depuis les enregistrements (cohérent avec le déclenchement)
-        $previousPrice = null;
-        $cryptoId = (int) ($position->crypto_currency_id ?? 0);
-        if ($cryptoId > 0) {
-            $priceRecords = CryptoPriceRecord::where('crypto_currency_id', $cryptoId)
-                ->orderBy('recorded_at', 'desc')
-                ->limit(2)
-                ->get();
-            if ($priceRecords->count() >= 2) {
-                $candidate = (float) ($priceRecords[1]->price ?? 0);
-                $previousPrice = $candidate > 0 ? $candidate : null;
-            }
-        }
         
         $title = $isProfit
             ? "{$emoji} Profit on {$cryptoSymbol}"
@@ -451,7 +450,7 @@ class NotificationService
 
         $notification = Notification::create([
             'user_id' => $user->id,
-            'portfolio_id' => $position->id,
+            'portfolio_id' => $portfolioId,
             'crypto_currency_id' => $position->crypto_currency_id,
             'type' => $type,
             'title' => $title,
@@ -460,7 +459,7 @@ class NotificationService
             'gain_loss' => round($gainLoss, 8),
             'gain_loss_percent' => round($gainLossPercent, 2),
             'current_price' => round($currentPrice, 8),
-            'previous_price' => $previousPrice ? round($previousPrice, 8) : null,
+            'previous_price' => round($previousPrice, 8),
             'is_read' => false,
         ]);
 

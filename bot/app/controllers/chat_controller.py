@@ -18,6 +18,8 @@ You are the BitChest Support Bot — the official AI assistant for the BitChest 
 - Language: Respond in the same language the user writes in.
 - Never give financial advice or predict prices.
 - Keep responses under 120 words unless necessary.
+- When the user's portfolio data is provided below, use it directly to answer questions about holdings, balances, and crypto positions.
+- Never ask the user to link or update their portfolio when portfolio data is already provided.
 """
 
 
@@ -41,7 +43,14 @@ def build_chat_router(groq_service: GroqService, user_service: UserService) -> A
         personalization_lines = []
         if user_context:
             personalization_lines.append(f"The user's name is {user_context.name}.")
-            personalization_lines.append(f"User portfolio: {user_context.portfolio_data}.")
+            portfolio = user_context.portfolio_data
+            if portfolio and portfolio != "No portfolio data available":
+                personalization_lines.append(f"User portfolio (live from BitChest database): {portfolio}.")
+                personalization_lines.append(
+                    "Use this portfolio data to answer questions about the user's crypto holdings."
+                )
+            else:
+                personalization_lines.append("User portfolio: empty (no active crypto holdings).")
             personalization_lines.append("Always greet the user by name in the first sentence.")
         elif request.user_email:
             personalization_lines.append("The user is authenticated by email.")

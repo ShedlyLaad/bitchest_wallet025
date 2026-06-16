@@ -15,7 +15,7 @@
             <h3 class="font-semibold text-white text-sm">BitChest Support Bot</h3>
             <div class="flex items-center gap-2 mt-0.5">
               <div :class="['w-1.5 h-1.5 rounded-full', isLoading ? 'bg-yellow-400 animate-pulse' : 'bg-green-400 animate-pulse']"></div>
-              <p class="text-xs text-gray-400 truncate">{{ isLoading ? 'Typing...' : 'Powered by Google Gemini' }}</p>
+              <p class="text-xs text-gray-400 truncate">{{ isLoading ? 'Typing...' : 'Powered by Groq' }}</p>
             </div>
           </div>
           <button @click="$emit('close')" class="p-1.5 text-gray-400 hover:text-white hover:bg-gray-700/50 rounded-lg transition-colors flex-shrink-0">

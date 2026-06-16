@@ -182,36 +182,67 @@ class UserService:
         return {str(row.get("Field", "")).strip() for row in rows if row.get("Field")}
 
     def _load_portfolio_from_tables(self, cursor, user_id: int) -> str:
-        if self._table_exists(cursor, "portfolios"):
-            portfolio_columns = self._get_table_columns(cursor, "portfolios")
-            if "user_id" in portfolio_columns and "summary" in portfolio_columns:
-                cursor.execute("SELECT summary FROM portfolios WHERE user_id = %s LIMIT 1", (user_id,))
-                row = cursor.fetchone()
-                if row and row.get("summary"):
-                    return str(row["summary"])
+        if not self._table_exists(cursor, "portfolios"):
+            return ""
 
-        if self._table_exists(cursor, "wallets"):
-            wallet_columns = self._get_table_columns(cursor, "wallets")
-            if "user_id" in wallet_columns and "holdings" in wallet_columns:
-                cursor.execute("SELECT holdings FROM wallets WHERE user_id = %s LIMIT 1", (user_id,))
-                row = cursor.fetchone()
-                if row and row.get("holdings"):
-                    return str(row["holdings"])
+        portfolio_columns = self._get_table_columns(cursor, "portfolios")
+        if "user_id" not in portfolio_columns:
+            return ""
 
-        if self._table_exists(cursor, "transactions"):
+        if self._table_exists(cursor, "crypto_currencies") and self._table_exists(cursor, "transactions"):
             tx_columns = self._get_table_columns(cursor, "transactions")
-            if {"user_id", "asset", "quantity"}.issubset(tx_columns):
+            if {"portfolio_id", "type", "quantity"}.issubset(tx_columns):
                 cursor.execute(
                     """
-                    SELECT CONCAT(asset, ':', SUM(quantity)) AS line
-                    FROM transactions
-                    WHERE user_id = %s
-                    GROUP BY asset
+                    SELECT
+                        cc.symbol,
+                        cc.name AS crypto_name,
+                        p.total_crypto_value,
+                        COALESCE(SUM(CASE WHEN t.type = 'buy' THEN t.quantity ELSE 0 END), 0) AS buy_qty,
+                        COALESCE(SUM(CASE WHEN t.type = 'sell' THEN t.quantity ELSE 0 END), 0) AS sell_qty
+                    FROM portfolios p
+                    INNER JOIN crypto_currencies cc ON cc.id = p.crypto_currency_id
+                    LEFT JOIN transactions t ON t.portfolio_id = p.id
+                    WHERE p.user_id = %s
+                    GROUP BY p.id, cc.symbol, cc.name, p.total_crypto_value
+                    ORDER BY cc.symbol
                     """,
                     (user_id,),
                 )
                 rows = cursor.fetchall() or []
-                if rows:
-                    return ", ".join(r["line"] for r in rows if r.get("line"))
+                holdings: list[str] = []
+                for row in rows:
+                    buy_qty = float(row.get("buy_qty") or 0)
+                    sell_qty = float(row.get("sell_qty") or 0)
+                    quantity = max(0.0, buy_qty - sell_qty)
+                    if quantity <= 0:
+                        continue
+                    symbol = row.get("symbol") or "?"
+                    crypto_name = row.get("crypto_name") or symbol
+                    invested = float(row.get("total_crypto_value") or 0)
+                    holdings.append(
+                        f"{symbol} ({crypto_name}): {quantity:.8f} units held, "
+                        f"EUR {invested:.2f} invested value"
+                    )
+                if holdings:
+                    return "; ".join(holdings)
+
+        if "total_crypto_value" in portfolio_columns and self._table_exists(cursor, "crypto_currencies"):
+            cursor.execute(
+                """
+                SELECT cc.symbol, cc.name AS crypto_name, p.total_crypto_value
+                FROM portfolios p
+                INNER JOIN crypto_currencies cc ON cc.id = p.crypto_currency_id
+                WHERE p.user_id = %s AND p.total_crypto_value > 0
+                ORDER BY cc.symbol
+                """,
+                (user_id,),
+            )
+            rows = cursor.fetchall() or []
+            if rows:
+                return "; ".join(
+                    f"{r.get('symbol')} ({r.get('crypto_name')}): EUR {float(r.get('total_crypto_value') or 0):.2f} invested"
+                    for r in rows
+                )
 
         return ""

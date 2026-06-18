@@ -905,7 +905,9 @@ const canSell = computed(() => {
 // Set quantity to all available
 function sellAllQuantity() {
   if (!selectedHolding.value) return;
-  sellQuantity.value = selectedHolding.value.quantity.toFixed(8);
+  // CORRIGÉ : valeur exacte de l'API, tronquée vers le bas à 8 décimales (jamais au-dessus du solde)
+  const exactQty = Number(selectedHolding.value.quantity);
+  sellQuantity.value = String(Math.floor(exactQty * 1e8) / 1e8);
 }
 
 // Set quantity to half (50%)
@@ -992,22 +994,26 @@ async function handleSell() {
   isSelling.value = true;
   
   try {
-    const quantity = parseFloat(sellQuantity.value);
+    const availableQty = Number(selectedHolding.value.quantity);
+    // CORRIGÉ : Number explicite + plafonné au solde API pour éviter les dépassements flottants
+    let quantity = Math.min(parseFloat(sellQuantity.value), availableQty);
+    quantity = Math.floor(quantity * 1e8) / 1e8;
     
     if (quantity <= 0) {
       sellError.value = 'Please enter a valid quantity greater than 0';
       return;
     }
     
-    if (quantity > selectedHolding.value.quantity) {
-      sellError.value = `Insufficient quantity. Available: ${selectedHolding.value.quantity.toFixed(8)} ${selectedHolding.value.symbol}`;
+    // CORRIGÉ : tolérance epsilon au lieu d'une comparaison stricte
+    if (quantity > availableQty + 1e-8) {
+      sellError.value = `Insufficient quantity. Available: ${availableQty.toFixed(8)} ${selectedHolding.value.symbol}`;
       return;
     }
     
     // Execute sell
     const sellResponse = await sellCrypto({
       symbol: selectedHolding.value.symbol,
-      quantity: quantity
+      quantity: Number(quantity) // CORRIGÉ : envoi en Number, pas String
     });
     
     // Update user balance from response

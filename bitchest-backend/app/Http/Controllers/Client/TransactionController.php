@@ -14,6 +14,7 @@ use App\Services\TransactionService;
 use App\Services\TransactionCacheService;
 use Illuminate\Support\Facades\Log;
 use App\Models\Transaction;
+use App\Models\Portfolio;
 
 class TransactionController extends Controller
 {
@@ -174,10 +175,31 @@ class TransactionController extends Controller
         }
 
         try {
+            $quantity = round((float) $request->quantity, 8);
+            $portfolio = Portfolio::where('user_id', $user->id)
+                ->where('crypto_currency_id', $crypto->id)
+                ->first();
+            if ($portfolio) {
+                $availableQuantity = Transaction::getCachedQuantity($portfolio->id, 'buy')
+                    - Transaction::getCachedQuantity($portfolio->id, 'sell');
+                $displayAvailable = round($availableQuantity, 8);
+                // CORRIGÉ : tolérance flottante sur la valeur affichée (8 décimales)
+                if ($quantity > $displayAvailable + 0.00000001) {
+                    return response()->json([
+                        'message' => 'Insufficient quantity for sale. You only own '
+                            . number_format($displayAvailable, 8) . '.',
+                    ], 400);
+                }
+                // CORRIGÉ : plafonnement au solde brut pour que processSell ne rejette pas un "Sell All"
+                if ($quantity > $availableQuantity) {
+                    $quantity = $availableQuantity;
+                }
+            }
+
             $transaction = $this->transactionService->processTransaction(
                 $user,
                 $crypto,
-                (float) $request->quantity,
+                $quantity,
                 $price,
                 'sell'
             );

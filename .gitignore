@@ -1,5 +1,25 @@
-# BitChest Support Bot
-bot/.env
-bot/__pycache__/
+# Python virtual environments (never commit; each dev creates their own via requirements.txt)
+venv/
+.venv/
 bot/venv/
+bot/.venv/
+__pycache__/
+*.pyc
+
+# Secrets and environment files
+.env
+.env.*
+!.env.example
+bot/.env
+bot/.env.*
+!bot/.env.example
+*.pem
+*.key
+
+# Logs and temporary files
+*.log
+logs/
+bot/logs/
+*.tmp
+*.temp
 

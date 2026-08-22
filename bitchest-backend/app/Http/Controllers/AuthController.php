@@ -118,7 +118,18 @@ class AuthController extends Controller
 
         $data = $request->validate([
             'current_password' => ['required', 'string'],
-            'password' => ['required', 'confirmed', 'min:8'],
+            'password' => [
+                'required',
+                'string',
+                'confirmed',
+                'min:8',
+                'regex:/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).+$/',
+            ],
+        ], [
+            'password.required' => 'A new password is required.',
+            'password.min' => 'The new password must be at least 8 characters long.',
+            'password.confirmed' => 'The two passwords do not match.',
+            'password.regex' => 'The new password must contain at least 1 uppercase letter, 1 lowercase letter and 1 digit.',
         ]);
 
         if (!Hash::check($data['current_password'], $user->password)) {

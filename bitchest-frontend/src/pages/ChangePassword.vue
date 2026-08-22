@@ -45,12 +45,21 @@
           <div class="relative">
             <input
               v-model="form.current_password"
-              type="password"
+              :type="showCurrentPassword ? 'text' : 'password'"
               required
               placeholder="Enter your temporary password"
-              class="w-full bg-gray-900/50 border-2 border-gray-700 rounded-xl px-4 py-3 pl-11 text-white placeholder-gray-500 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/30 transition-all duration-200"
+              class="w-full bg-gray-900/50 border-2 border-gray-700 rounded-xl px-4 py-3 pl-11 pr-11 text-white placeholder-gray-500 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/30 transition-all duration-200"
             />
             <Lock class="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-500" />
+            <button
+              type="button"
+              @click="showCurrentPassword = !showCurrentPassword"
+              class="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-gray-500 hover:text-white rounded-lg hover:bg-gray-700/50 transition-all duration-200"
+              tabindex="-1"
+            >
+              <EyeOff v-if="showCurrentPassword" class="h-5 w-5" />
+              <Eye v-else class="h-5 w-5" />
+            </button>
           </div>
         </div>
 
@@ -64,29 +73,64 @@
           <div class="relative">
             <input
               v-model="form.password"
-              type="password"
+              :type="showNewPassword ? 'text' : 'password'"
               required
               minlength="8"
               placeholder="Enter your new password"
-              class="w-full bg-gray-900/50 border-2 border-gray-700 rounded-xl px-4 py-3 pl-11 text-white placeholder-gray-500 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/30 transition-all duration-200"
-              :class="{ 'border-green-500/50': form.password.length >= 8 && !passwordMismatch }"
+              class="w-full bg-gray-900/50 border-2 rounded-xl px-4 py-3 pl-11 pr-11 text-white placeholder-gray-500 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/30 transition-all duration-200"
+              :class="{
+                'border-gray-700': !form.password,
+                'border-red-500/50': form.password && !isPasswordStrongEnough,
+                'border-green-500/50': form.password && isPasswordStrongEnough
+              }"
             />
             <Lock class="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-500" />
+            <button
+              type="button"
+              @click="showNewPassword = !showNewPassword"
+              class="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-gray-500 hover:text-white rounded-lg hover:bg-gray-700/50 transition-all duration-200"
+              tabindex="-1"
+            >
+              <EyeOff v-if="showNewPassword" class="h-5 w-5" />
+              <Eye v-else class="h-5 w-5" />
+            </button>
           </div>
-          <div v-if="form.password && form.password.length > 0" class="flex items-center gap-2 text-xs">
+
+          <!-- Live strength indicator -->
+          <div v-if="form.password" class="flex items-center gap-2 text-xs">
             <div class="flex-1 h-1 bg-gray-700 rounded-full overflow-hidden">
               <div
                 class="h-full rounded-full transition-all duration-300"
                 :class="{
-                  'bg-red-500': form.password.length < 4,
-                  'bg-yellow-500': form.password.length >= 4 && form.password.length < 8,
-                  'bg-green-500': form.password.length >= 8
+                  'bg-red-500': passwordStrength.level === 1,
+                  'bg-yellow-500': passwordStrength.level === 2,
+                  'bg-green-500': passwordStrength.level === 3
                 }"
-                :style="{ width: `${Math.min(100, (form.password.length / 8) * 100)}%` }"
+                :style="{ width: `${passwordStrength.width}%` }"
               ></div>
             </div>
-            <span class="text-gray-500 font-medium">{{ form.password.length }}/8</span>
+            <span
+              class="font-semibold"
+              :class="{
+                'text-red-400': passwordStrength.level === 1,
+                'text-yellow-400': passwordStrength.level === 2,
+                'text-green-400': passwordStrength.level === 3
+              }"
+            >{{ passwordStrength.label }}</span>
           </div>
+
+          <!-- Live requirements -->
+          <ul v-if="form.password" class="space-y-1.5 pt-1">
+            <li
+              v-for="rule in passwordRules"
+              :key="rule.key"
+              class="flex items-center gap-2 text-xs"
+            >
+              <CheckCircle v-if="rule.valid" class="h-3.5 w-3.5 flex-shrink-0 text-green-500" />
+              <XCircle v-else class="h-3.5 w-3.5 flex-shrink-0 text-red-500" />
+              <span :class="rule.valid ? 'text-green-400' : 'text-gray-400'">{{ rule.label }}</span>
+            </li>
+          </ul>
         </div>
 
         <!-- Confirm Password -->
@@ -98,26 +142,35 @@
           <div class="relative">
             <input
               v-model="form.password_confirmation"
-              type="password"
+              :type="showConfirmPassword ? 'text' : 'password'"
               required
               minlength="8"
               placeholder="Confirm your new password"
-              class="w-full bg-gray-900/50 border-2 rounded-xl px-4 py-3 pl-11 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500/30 transition-all duration-200"
+              class="w-full bg-gray-900/50 border-2 rounded-xl px-4 py-3 pl-11 pr-16 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500/30 transition-all duration-200"
               :class="{
                 'border-gray-700': !form.password_confirmation,
                 'border-red-500/50': form.password_confirmation && passwordMismatch,
-                'border-green-500/50': form.password_confirmation && !passwordMismatch && form.password_confirmation.length >= 8
+                'border-green-500/50': form.password_confirmation && !passwordMismatch && isPasswordStrongEnough
               }"
             />
             <Lock class="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-500" />
             <CheckCircle
-              v-if="form.password_confirmation && !passwordMismatch && form.password_confirmation.length >= 8"
-              class="absolute right-3 top-1/2 -translate-y-1/2 h-5 w-5 text-green-500"
+              v-if="form.password_confirmation && !passwordMismatch && isPasswordStrongEnough"
+              class="absolute right-10 top-1/2 -translate-y-1/2 h-5 w-5 text-green-500"
             />
             <XCircle
               v-if="form.password_confirmation && passwordMismatch"
-              class="absolute right-3 top-1/2 -translate-y-1/2 h-5 w-5 text-red-500"
+              class="absolute right-10 top-1/2 -translate-y-1/2 h-5 w-5 text-red-500"
             />
+            <button
+              type="button"
+              @click="showConfirmPassword = !showConfirmPassword"
+              class="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-gray-500 hover:text-white rounded-lg hover:bg-gray-700/50 transition-all duration-200"
+              tabindex="-1"
+            >
+              <EyeOff v-if="showConfirmPassword" class="h-5 w-5" />
+              <Eye v-else class="h-5 w-5" />
+            </button>
           </div>
           <Transition name="slide-fade">
             <p v-if="form.password_confirmation && passwordMismatch" class="text-xs text-red-400 flex items-center gap-1">
@@ -167,7 +220,7 @@
 <script setup lang="ts">
 import { reactive, ref, computed } from 'vue';
 import { useRouter } from 'vue-router';
-import { Lock, Key, CheckCircle, AlertCircle, XCircle, Info } from 'lucide-vue-next';
+import { Lock, Key, CheckCircle, AlertCircle, XCircle, Info, Eye, EyeOff } from 'lucide-vue-next';
 import { changePassword } from '@/services/api';
 import { useAuthStore } from '@/stores/auth';
 
@@ -184,25 +237,64 @@ const loading = ref(false);
 const successMessage = ref('');
 const errorMessage = ref('');
 
+const showCurrentPassword = ref(false);
+const showNewPassword = ref(false);
+const showConfirmPassword = ref(false);
+
 // Check if passwords match
 const passwordMismatch = computed(() => {
   if (!form.password || !form.password_confirmation) return false;
   return form.password !== form.password_confirmation;
 });
 
+// Mandatory rules, evaluated live (same rules as the backend)
+const passwordRules = computed(() => [
+  { key: 'length', label: 'At least 8 characters', valid: form.password.length >= 8 },
+  { key: 'uppercase', label: 'At least 1 uppercase letter (A-Z)', valid: /[A-Z]/.test(form.password) },
+  { key: 'lowercase', label: 'At least 1 lowercase letter (a-z)', valid: /[a-z]/.test(form.password) },
+  { key: 'digit', label: 'At least 1 digit (0-9)', valid: /[0-9]/.test(form.password) }
+]);
+
+const isPasswordStrongEnough = computed(() => passwordRules.value.every(rule => rule.valid));
+
+// Live strength: Faible / Moyen / Fort
+const passwordStrength = computed(() => {
+  if (!form.password) return { level: 0, label: '', width: 0 };
+
+  if (!isPasswordStrongEnough.value) return { level: 1, label: 'Faible', width: 33 };
+
+  const isLong = form.password.length >= 12;
+  const hasSymbol = /[^A-Za-z0-9]/.test(form.password);
+
+  return isLong || hasSymbol
+    ? { level: 3, label: 'Fort', width: 100 }
+    : { level: 2, label: 'Moyen', width: 66 };
+});
+
 // Check if form is valid
 const isFormValid = computed(() => {
   return (
     form.current_password.length > 0 &&
-    form.password.length >= 8 &&
-    form.password_confirmation.length >= 8 &&
+    isPasswordStrongEnough.value &&
+    form.password_confirmation.length > 0 &&
     !passwordMismatch.value
   );
 });
 
 async function handleSubmit() {
-  if (passwordMismatch.value || !isFormValid.value) {
-    errorMessage.value = 'Please ensure all fields are filled correctly and passwords match.';
+  if (!form.current_password) {
+    errorMessage.value = 'Please enter your temporary password.';
+    return;
+  }
+
+  if (!isPasswordStrongEnough.value) {
+    const missing = passwordRules.value.filter(rule => !rule.valid).map(rule => rule.label.toLowerCase());
+    errorMessage.value = `Your new password must contain: ${missing.join(', ')}.`;
+    return;
+  }
+
+  if (passwordMismatch.value || !form.password_confirmation) {
+    errorMessage.value = 'The two passwords do not match.';
     return;
   }
 
@@ -218,6 +310,9 @@ async function handleSubmit() {
     form.current_password = '';
     form.password = '';
     form.password_confirmation = '';
+    showCurrentPassword.value = false;
+    showNewPassword.value = false;
+    showConfirmPassword.value = false;
     
     // Logout and redirect
     await auth.logout();
@@ -225,7 +320,11 @@ async function handleSubmit() {
       router.push({ name: 'Signin', query: { reason: 'pending_validation' } });
     }, 1500);
   } catch (e: any) {
-    errorMessage.value = e?.response?.data?.message || 'Failed to update password. Please try again.';
+    const validationErrors = e?.response?.data?.errors;
+    errorMessage.value =
+      (validationErrors && Object.values(validationErrors).flat()[0] as string) ||
+      e?.response?.data?.message ||
+      'Failed to update password. Please try again.';
   } finally {
     loading.value = false;
   }

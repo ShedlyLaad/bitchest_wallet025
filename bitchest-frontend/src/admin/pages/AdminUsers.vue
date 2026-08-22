@@ -554,7 +554,7 @@ async function fetchUsers() {
   try {
     users.value = await getAdminUsers();
   } catch (e: any) {
-    errorMessage.value = e?.response?.data?.message || 'Impossible de charger les utilisateurs';
+    errorMessage.value = e?.response?.data?.message || 'Unable to load users';
   } finally {
     loading.value = false;
   }
@@ -573,7 +573,7 @@ async function handleCreateUser() {
     const { user, temporary_password } = await createAdminUser(payload);
     users.value = [...users.value, user];
     createdTempPassword.value = temporary_password;
-    successMessage.value = 'Utilisateur créé. Un email avec mot de passe temporaire a été envoyé.';
+    successMessage.value = 'User created. An email with a temporary password has been sent.';
     createFormData.value = { email: '', firstName: '', lastName: '', role: 'client' };
     isCreateModalOpen.value = false;
   } catch (e: any) {
@@ -686,7 +686,7 @@ async function openUserDetails(userId: number) {
       last_name: selectedUserDetails.value.user.last_name || '',
     };
   } catch (e: any) {
-    userDetailsError.value = e?.response?.data?.message || 'Impossible de charger les détails';
+    userDetailsError.value = e?.response?.data?.message || 'Unable to load user details';
   } finally {
     userDetailsLoading.value = false;
   }

@@ -224,7 +224,7 @@
               :current-price="selectedCrypto?.price || 0"
               :change24h="selectedCrypto?.change24h || 0"
               :crypto-icon="selectedCrypto?.icon"
-              :market-cap="(selectedCrypto?.price || 0) * 21000000"
+              :market-cap="selectedCrypto?.marketCap ? Number(selectedCrypto.marketCap) : undefined"
               :height="500"
               currency="EUR"
             />
@@ -1004,7 +1004,7 @@ async function loadMarket(forceRefresh = false) {
     }
   } catch (e: any) {
     console.error('Error loading market:', e);
-    errorMessage.value = e?.response?.data?.message || e?.message || 'Impossible de charger le marché';
+    errorMessage.value = e?.response?.data?.message || e?.message || 'Unable to load the market';
     // Ne PAS utiliser de données mockées comme fallback - garder le tableau vide si l'API échoue
     // Les données affichées proviennent directement de Coinbase API via le backend
     cryptocurrencies.value = [];

@@ -56,25 +56,19 @@
           </span>
         </div>
         
-        <!-- High -->
+        <!-- Period High -->
         <div class="flex items-center gap-1">
-          <span class="text-gray-500">24h Hi:</span>
+          <span class="text-gray-500">{{ selectedTimeframe }} High:</span>
           <span class="text-green-400">{{ formatPrice(highPrice) }}</span>
         </div>
-        
-        <!-- Low -->
+
+        <!-- Period Low -->
         <div class="flex items-center gap-1">
-          <span class="text-gray-500">24h Lo:</span>
+          <span class="text-gray-500">{{ selectedTimeframe }} Low:</span>
           <span class="text-red-400">{{ formatPrice(lowPrice) }}</span>
         </div>
-        
-        <!-- Volume -->
-        <div class="flex items-center gap-1">
-          <span class="text-gray-500">24h Vol:</span>
-          <span class="text-white">{{ formatVolume(volume) }}</span>
-        </div>
-        
-        <!-- Market Cap (if provided) -->
+
+        <!-- Market Cap (only shown when provided by the caller — never estimated) -->
         <div v-if="marketCap" class="flex items-center gap-1">
           <span class="text-gray-500">Market Cap:</span>
           <span class="text-white">{{ formatVolume(marketCap) }}</span>
@@ -239,23 +233,20 @@ const marketData = computed(() => {
       const close = prices[prices.length - 1];
       const high = Math.max(...prices);
       const low = Math.min(...prices);
-      // Volume estimé basé sur le nombre de points (approximation)
-      const volume = prices.length * 1000000;
-      return { open, high, low, close, volume };
+      return { open, high, low, close };
     }
   }
-  
+
   // Fallback to priceData array (format simple: number[])
   if (props.priceData && props.priceData.length > 0) {
     const prices = props.priceData.map(p => Number(p)).filter(p => !isNaN(p) && p > 0);
-    
+
     if (prices.length > 0) {
       const open = prices[0];
       const close = prices[prices.length - 1];
       const high = Math.max(...prices);
       const low = Math.min(...prices);
-      const volume = prices.length * 1000000;
-      return { open, high, low, close, volume };
+      return { open, high, low, close };
     }
   }
 
@@ -264,8 +255,7 @@ const marketData = computed(() => {
     open: props.currentPrice || 0,
     high: props.currentPrice || 0,
     low: props.currentPrice || 0,
-    close: props.currentPrice || 0,
-    volume: 0
+    close: props.currentPrice || 0
   };
 });
 
@@ -273,7 +263,6 @@ const currentPrice = computed(() => props.currentPrice || marketData.value.close
 const openPrice = computed(() => marketData.value.open);
 const highPrice = computed(() => marketData.value.high);
 const lowPrice = computed(() => marketData.value.low);
-const volume = computed(() => marketData.value.volume);
 
 // Helper function for rounding (définie avant utilisation)
 function round(value: number, decimals: number): number {
@@ -596,7 +585,7 @@ const chartOptions = computed<ApexOptions>(() => {
         width: 1,
         position: 'back',
         stroke: {
-          color: '#60a5fa',
+          color: 'var(--blue)',
           width: 1,
           dashArray: 4
         },
@@ -633,7 +622,7 @@ const chartOptions = computed<ApexOptions>(() => {
         show: true,
         position: 'back',
         stroke: {
-          color: '#60a5fa',
+          color: 'var(--blue)',
           width: 1,
           dashArray: 4
         }
@@ -696,7 +685,7 @@ const chartOptions = computed<ApexOptions>(() => {
     stroke: {
       width: selectedChartType.value === 'line' ? 3 : 2,
       curve: 'smooth',
-      colors: selectedChartType.value === 'line' ? ['#60a5fa'] : ['#10b981'],
+      colors: selectedChartType.value === 'line' ? ['var(--blue)'] : ['var(--accent-green)'],
       lineCap: 'round',
       show: true,
       dashArray: 0
@@ -712,13 +701,13 @@ const chartOptions = computed<ApexOptions>(() => {
       gradient: selectedChartType.value === 'area' ? {
         type: 'vertical',
         shadeIntensity: 1,
-        gradientToColors: ['#10b981'],
+        gradientToColors: ['var(--accent-green)'],
         inverseColors: false,
         opacityFrom: 0.4,
         opacityTo: 0.1,
         stops: [0, 50, 100]
       } : undefined,
-      colors: selectedChartType.value === 'area' ? ['#10b981'] : ['transparent'],
+      colors: selectedChartType.value === 'area' ? ['var(--accent-green)'] : ['transparent'],
       opacity: selectedChartType.value === 'area' ? 1 : 0
     },
     dataLabels: {
@@ -788,14 +777,14 @@ watch(selectedChartType, () => {
 /* Assurer la visibilité des lignes du chart */
 .chart-wrapper :deep(.apexcharts-line-series path) {
   stroke-width: 3px !important;
-  stroke: #60a5fa !important;
+  stroke: var(--blue) !important;
   fill: none !important;
-  filter: drop-shadow(0 0 2px rgba(96, 165, 250, 0.5));
+  filter: drop-shadow(0 0 2px rgba(53, 167, 255, 0.5));
 }
 
 .chart-wrapper :deep(.apexcharts-area-series path) {
   stroke-width: 2px !important;
-  stroke: #10b981 !important;
+  stroke: var(--accent-green) !important;
   fill: url(#gradient) !important;
 }
 
@@ -806,7 +795,7 @@ watch(selectedChartType, () => {
 
 .chart-wrapper :deep(.apexcharts-area-series .apexcharts-area) {
   stroke-width: 2px !important;
-  stroke: #10b981 !important;
+  stroke: var(--accent-green) !important;
 }
 
 /* Ensure gradients are visible for area charts */

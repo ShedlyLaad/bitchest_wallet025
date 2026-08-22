@@ -1,27 +1,7 @@
 <template>
   <ScrollReveal width="100%">
-    <section class="relative py-16 md:py-24 overflow-hidden" :style="{ background: 'linear-gradient(135deg, #0a0f1a 0%, #1a2332 50%, #0a0f1a 100%)' }">
-      <!-- Animated particles canvas background -->
-      <canvas ref="particlesCanvas" class="absolute inset-0 w-full h-full pointer-events-none"></canvas>
-
-      <!-- Holographic grid with brand colors -->
-      <div class="absolute inset-0 opacity-[0.08] pointer-events-none z-0">
-        <div
-          class="absolute inset-0"
-          :style="{
-            backgroundImage: `linear-gradient(to right, rgba(53, 167, 255, 0.15) 1px, transparent 1px), linear-gradient(to bottom, rgba(53, 167, 255, 0.15) 1px, transparent 1px)`,
-            backgroundSize: '80px 80px',
-            transform: 'perspective(1000px) rotateX(60deg)'
-          }"
-        />
-      </div>
-
-      <!-- Background Effects -->
-      <div class="absolute inset-0 pointer-events-none z-0">
-        <div class="absolute -top-40 -right-40 w-80 h-80 bg-blue-500/10 rounded-full blur-3xl animate-pulse"></div>
-        <div class="absolute -bottom-40 -left-40 w-80 h-80 rounded-full blur-3xl animate-pulse delay-1000" :style="{ backgroundColor: 'var(--blue-dark)', opacity: 0.1 }"></div>
-        <div class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-green-500/5 rounded-full blur-3xl animate-pulse delay-2000"></div>
-      </div>
+    <section class="relative py-16 md:py-24 overflow-hidden bg-gray-900">
+      <SectionBackground :orbs="[{ size: '420px', color: 'var(--blue)', top: '-15%', right: '-10%' }]" />
 
       <div class="relative max-w-[90vw] mx-auto">
         <div class="text-center mb-8 md:mb-12">
@@ -39,6 +19,11 @@
               <div class="w-3 h-3 bg-green-500 rounded-full animate-bounce" style="animation-delay: 0.2s"></div>
               <div class="w-3 h-3 bg-blue-dark rounded-full animate-bounce" style="animation-delay: 0.4s"></div>
             </div>
+          </div>
+
+          <!-- Empty State -->
+          <div v-else-if="cryptos.length === 0" class="flex items-center justify-center py-12 text-gray-400">
+            No market data available
           </div>
 
           <!-- Crypto Cards -->
@@ -151,11 +136,9 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
 import ScrollReveal from '../ScrollReveal.vue';
+import SectionBackground from './SectionBackground.vue';
 import type { CryptoCurrency } from '../../types';
 import { getPublicMarket } from '../../services/api';
-import { useAnimatedBackground } from '../../composables/useAnimatedBackground';
-
-const { particlesCanvas } = useAnimatedBackground();
 
 // State
 const cryptos = ref<CryptoCurrency[]>([]);

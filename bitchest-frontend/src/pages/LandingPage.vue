@@ -1,24 +1,7 @@
 <template>
   <div class="min-h-screen bg-gray-900 text-white overflow-hidden relative">
-    <!-- Enhanced Animated Background Gradient -->
-    <div class="fixed inset-0 pointer-events-none z-0">
-      <div class="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-gray-900 via-gray-900 to-gray-950"></div>
-      <!-- Animated orbs with brand colors - Enhanced -->
-      <div 
-        class="absolute top-1/4 -left-40 w-96 h-96 rounded-full blur-3xl opacity-20 animate-pulse"
-        :style="{ backgroundColor: 'var(--blue-dark)' }"
-      ></div>
-      <div 
-        class="absolute bottom-1/4 -right-40 w-96 h-96 rounded-full blur-3xl opacity-20 animate-pulse delay-1000"
-        :style="{ backgroundColor: 'var(--blue)' }"
-      ></div>
-      <div 
-        class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] rounded-full blur-3xl opacity-10 animate-pulse delay-2000"
-        :style="{ backgroundColor: 'var(--accent-green)' }"
-      ></div>
-      <!-- Additional animated grid overlay -->
-      <div class="absolute inset-0 opacity-[0.02]" style="background-image: linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.1) 1px, transparent 1px); background-size: 50px 50px;"></div>
-    </div>
+    <!-- Base background: each section layers its own subtle depth via SectionBackground -->
+    <div class="fixed inset-0 pointer-events-none z-0 bg-gradient-to-br from-gray-900 via-gray-900 to-gray-950"></div>
 
     <!-- Scroll to Top Button -->
     <Motion
@@ -57,7 +40,6 @@
       <PartnersSection />
       <StatsSection />
       <FeaturesSection />
-      <TestimonialsSection />
       <!-- Team intentionally commented out like original -->
       <!-- <TeamSection /> -->
       <CTASection />
@@ -75,8 +57,6 @@ import HeroSection from '../components/sectionsLanding/HeroSection.vue';
 import PartnersSection from '../components/sectionsLanding/PartnersSection.vue';
 import StatsSection from '../components/sectionsLanding/StatsSection.vue';
 import FeaturesSection from '../components/sectionsLanding/FeaturesSection.vue';
-import TestimonialsSection from '../components/sectionsLanding/TestimonialsSection.vue';
-import TeamSection from '../components/sectionsLanding/TeamSection.vue';
 import CTASection from '../components/sectionsLanding/CTASection.vue';
 import FooterSection from '../components/sectionsLanding/FooterSection.vue';
 

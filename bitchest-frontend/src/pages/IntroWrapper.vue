@@ -51,7 +51,7 @@ export const LoadingFallback = defineComponent({
   name: 'LoadingFallback',
   setup() {
     return () => h('div', { class: 'fixed inset-0 bg-black flex items-center justify-center' }, [
-      h('div', { class: 'text-white text-2xl animate-pulse' }, 'Chargement...')
+      h('div', { class: 'text-white text-2xl animate-pulse' }, 'Loading...')
     ]);
   }
 });

@@ -30,34 +30,12 @@
           </p>
         </div>
 
-        <div class="grid grid-cols-2 gap-4 text-center">
-          <div class="group relative bg-gradient-to-br from-gray-800/60 to-gray-800/40 backdrop-blur-xl rounded-xl p-6 border border-gray-700/50 hover:border-blue-500/50 transition-all duration-300 hover:scale-105 hover:shadow-xl hover:shadow-blue-500/20 overflow-hidden">
-            <div class="absolute inset-0 bg-gradient-to-br from-green-500/0 to-green-500/0 group-hover:from-green-500/10 group-hover:to-transparent transition-all duration-300"></div>
-            <div class="relative">
-              <div class="text-3xl font-bold text-green-400 mb-2 transition-transform duration-300 group-hover:scale-110">$50B+</div>
-              <div class="text-gray-300 text-sm">Volume Traded</div>
+        <div class="space-y-3">
+          <div v-for="(feature, i) in securityFeatures" :key="i" class="group flex items-center space-x-3 p-3 bg-gray-800/30 backdrop-blur-sm rounded-lg border border-gray-700/50 hover:border-blue-500/50 hover:bg-gray-800/50 transition-all duration-300">
+            <div class="p-1.5 bg-blue-500/20 rounded-lg group-hover:bg-blue-500/30 transition-colors">
+              <CheckCircle class="h-4 w-4 text-blue-400 flex-shrink-0" />
             </div>
-          </div>
-          <div class="group relative bg-gradient-to-br from-gray-800/60 to-gray-800/40 backdrop-blur-xl rounded-xl p-6 border border-gray-700/50 hover:border-blue-500/50 transition-all duration-300 hover:scale-105 hover:shadow-xl hover:shadow-blue-500/20 overflow-hidden">
-            <div class="absolute inset-0 bg-gradient-to-br from-blue-500/0 to-blue-500/0 group-hover:from-blue-500/10 group-hover:to-transparent transition-all duration-300"></div>
-            <div class="relative">
-              <div class="text-3xl font-bold text-blue-400 mb-2 transition-transform duration-300 group-hover:scale-110">5M+</div>
-              <div class="text-gray-300 text-sm">Active Users</div>
-            </div>
-          </div>
-          <div class="group relative bg-gradient-to-br from-gray-800/60 to-gray-800/40 backdrop-blur-xl rounded-xl p-6 border border-gray-700/50 hover:border-purple-500/50 transition-all duration-300 hover:scale-105 hover:shadow-xl hover:shadow-purple-500/20 overflow-hidden">
-            <div class="absolute inset-0 bg-gradient-to-br from-purple-500/0 to-purple-500/0 group-hover:from-purple-500/10 group-hover:to-transparent transition-all duration-300"></div>
-            <div class="relative">
-              <div class="text-3xl font-bold text-purple-400 mb-2 transition-transform duration-300 group-hover:scale-110">200+</div>
-              <div class="text-gray-300 text-sm">Countries</div>
-            </div>
-          </div>
-          <div class="group relative bg-gradient-to-br from-gray-800/60 to-gray-800/40 backdrop-blur-xl rounded-xl p-6 border border-gray-700/50 hover:border-yellow-500/50 transition-all duration-300 hover:scale-105 hover:shadow-xl hover:shadow-yellow-500/20 overflow-hidden">
-            <div class="absolute inset-0 bg-gradient-to-br from-yellow-500/0 to-yellow-500/0 group-hover:from-yellow-500/10 group-hover:to-transparent transition-all duration-300"></div>
-            <div class="relative">
-              <div class="text-3xl font-bold text-yellow-400 mb-2 transition-transform duration-300 group-hover:scale-110">99.9%</div>
-              <div class="text-gray-300 text-sm">Uptime</div>
-            </div>
+            <span class="text-gray-300 group-hover:text-white transition-colors">{{ feature }}</span>
           </div>
         </div>
       </div>
@@ -186,45 +164,6 @@
           </button>
         </form>
 
-        <!-- Alternative Login Options -->
-        <div class="space-y-4">
-          <div class="relative">
-            <div class="absolute inset-0 flex items-center">
-              <div class="w-full border-t border-gray-700"></div>
-            </div>
-            <div class="relative flex justify-center text-sm">
-              <span class="px-2 bg-gray-900 text-gray-400">Or Continue </span>
-            </div>
-          </div>
-
-          <div class="flex flex-col gap-3">
-            <!-- Google -->
-            <button
-              type="button"
-              class="w-full bg-white hover:bg-gray-100 border border-gray-300 text-gray-700 font-medium py-3 px-4 rounded-lg transition-colors flex items-center justify-center space-x-2"
-            >
-              <svg class="h-5 w-5 flex-shrink-0" viewBox="0 0 48 48">
-                <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
-                <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
-                <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
-                <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
-              </svg>
-              <span>Continue with Google</span>
-            </button>
-
-            <!-- Apple -->
-            <button
-              type="button"
-              class="w-full bg-black hover:bg-gray-900 border border-gray-800 text-white font-medium py-3 px-4 rounded-lg transition-colors flex items-center justify-center space-x-2"
-            >
-              <svg class="h-5 w-5 flex-shrink-0" viewBox="0 0 814 1000" fill="white">
-                <path d="M788.1 340.9c-5.8 4.5-108.2 62.2-108.2 190.5 0 148.4 130.3 200.9 134.2 202.2-.6 3.2-20.7 71.9-68.7 141.9-42.8 61.6-87.5 123.1-155.5 123.1s-85.5-39.5-164-39.5c-76 0-103.7 40.8-165.9 40.8s-105-57.8-155.5-127.4C46 790.7 0 663 0 541.8c0-207.5 133.4-317.1 264.4-317.1 70.1 0 128.5 46.4 170.4 46.4 41.3 0 106-49.1 183.9-49.1 23.8 0 108 2.6 168.8 101.9zm-234.5-185.5c31.1-36.9 53.1-88.1 53.1-139.3 0-7.1-.6-14.3-1.9-20.1-50.6 1.9-110.8 33.7-147.1 75.8-28.5 32.4-55.1 83.6-55.1 135.5 0 7.8 1.3 15.6 1.9 18.1 3.2.6 8.4 1.3 13.6 1.3 45.4 0 102.5-30.4 135.5-71.3z"/>
-              </svg>
-              <span>Continue with Apple</span>
-            </button>
-          </div>
-        </div>
-
         <!-- Security Notice -->
         <div class="bg-yellow-600/10 border border-yellow-600/30 rounded-lg p-4">
           <div class="flex items-start space-x-3">
@@ -254,7 +193,7 @@
 <script setup lang="ts">
 import { reactive, ref, computed } from 'vue';
 import { RouterLink, useRoute, useRouter } from 'vue-router';
-import { Eye, EyeOff, Lock, Mail, Shield, AlertCircle } from 'lucide-vue-next';
+import { Eye, EyeOff, Lock, Mail, Shield, AlertCircle, CheckCircle } from 'lucide-vue-next';
 import { useAuthStore } from '@/stores/auth';
 import BitchestLogo from '@/assets/bitchest_logo.png';
 
@@ -278,11 +217,18 @@ const form = reactive({
 
 const infoMessage = computed(() => {
   const reason = route.query.reason as string | undefined;
-  if (reason === 'pending_validation') return 'Votre compte est en attente de validation par un administrateur.';
-  if (reason === 'blocked') return 'Votre compte est bloqué. Contactez le support.';
-  if (reason === 'pending') return 'Veuillez changer votre mot de passe temporaire avant de continuer.';
+  if (reason === 'pending_validation') return 'Your account is pending validation by an administrator.';
+  if (reason === 'blocked') return 'Your account has been blocked. Please contact support.';
+  if (reason === 'pending') return 'Please change your temporary password before continuing.';
   return '';
 });
+
+const securityFeatures = [
+  'Bank-level 256-bit SSL encryption',
+  'Cold storage for the majority of funds',
+  'Role-based admin access control',
+  'Account validation before first trade'
+];
 
 async function handleSubmit() {
   errorMessage.value = '';
@@ -296,7 +242,7 @@ async function handleSubmit() {
     const redirect = (route.query.redirect as string) || (auth.user?.role === 'admin' ? '/admin' : '/dashboard');
     router.push(redirect);
   } catch (e: any) {
-    errorMessage.value = e?.response?.data?.message || 'Impossible de vous connecter';
+    errorMessage.value = e?.response?.data?.message || 'Unable to sign in';
   } finally {
     loading.value = false;
   }

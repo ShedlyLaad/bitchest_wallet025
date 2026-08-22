@@ -208,12 +208,12 @@
         <div class="group relative bg-gradient-to-br from-gray-800/60 to-gray-800/40 backdrop-blur-xl rounded-xl p-6 border border-gray-700/50 hover:border-blue-500/50 transition-all duration-300 hover:shadow-xl hover:shadow-blue-500/20 overflow-hidden">
           <div class="absolute inset-0 bg-gradient-to-br from-blue-500/0 to-blue-500/0 group-hover:from-blue-500/10 group-hover:to-transparent transition-all duration-300"></div>
           <div class="text-center relative">
-            <div class="text-3xl font-bold text-blue-400 mb-2 transition-transform duration-300 group-hover:scale-110">5M+</div>
-            <div class="text-gray-300 mb-4">Trusted Users Worldwide</div>
+            <div class="text-2xl font-bold text-blue-400 mb-2">€500 Starting Balance</div>
+            <div class="text-gray-300 mb-4">Credited to every new account for the prototype phase</div>
             <div class="flex items-center justify-center space-x-4 text-sm text-gray-400">
               <div class="flex items-center space-x-2 px-3 py-1.5 bg-green-500/10 rounded-lg border border-green-500/20">
                 <div class="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
-                <span>99.9% Uptime</span>
+                <span>Admin-reviewed accounts</span>
               </div>
               <div class="flex items-center space-x-2 px-3 py-1.5 bg-blue-500/10 rounded-lg border border-blue-500/20">
                 <div class="w-2 h-2 bg-blue-400 rounded-full animate-pulse"></div>
@@ -265,7 +265,7 @@ async function handleSubmit() {
   successMessage.value = '';
   errorMessage.value = '';
   if (!form.agreeToTerms) {
-    errorMessage.value = 'Vous devez accepter les conditions';
+    errorMessage.value = 'You must agree to the Terms of Service';
     return;
   }
   loading.value = true;
@@ -276,10 +276,10 @@ async function handleSubmit() {
       email: form.email,
       email_confirmation: form.email_confirmation
     });
-    successMessage.value = message || 'Compte créé. En attente de validation par un administrateur.';
+    successMessage.value = message || 'Account created. Pending validation by an administrator.';
     setTimeout(() => router.push({ name: 'Signin', query: { reason: 'pending' } }), 1200);
   } catch (e: any) {
-    errorMessage.value = e?.response?.data?.message || 'Inscription impossible';
+    errorMessage.value = e?.response?.data?.message || 'Unable to create your account';
   } finally {
     loading.value = false;
   }

@@ -1,29 +1,6 @@
 <template>
-  <section
-    class="relative text-white py-16 md:py-24 px-4 md:px-6 overflow-hidden"
-    :style="{ background: 'linear-gradient(135deg, #0a0f1a 0%, #1a2332 50%, #0a0f1a 100%)' }"
-  >
-    <!-- Animated particles canvas background -->
-    <canvas ref="particlesCanvas" class="absolute inset-0 w-full h-full pointer-events-none"></canvas>
-
-    <!-- Holographic grid with brand colors -->
-    <div class="absolute inset-0 opacity-[0.08] pointer-events-none z-0">
-      <div
-        class="absolute inset-0"
-        :style="{
-          backgroundImage: `linear-gradient(to right, rgba(53, 167, 255, 0.15) 1px, transparent 1px), linear-gradient(to bottom, rgba(53, 167, 255, 0.15) 1px, transparent 1px)`,
-          backgroundSize: '80px 80px',
-          transform: 'perspective(1000px) rotateX(60deg)'
-        }"
-      />
-    </div>
-
-    <!-- Background orbs with brand colors -->
-    <div class="absolute inset-0 pointer-events-none z-0">
-      <div class="absolute top-1/4 left-1/4 w-96 h-96 rounded-full blur-3xl opacity-10 animate-pulse" :style="{ backgroundColor: 'var(--blue-dark)' }"></div>
-      <div class="absolute bottom-1/3 right-1/4 w-80 h-80 rounded-full blur-3xl opacity-10 animate-pulse delay-1000" :style="{ backgroundColor: 'var(--blue)' }"></div>
-      <div class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] rounded-full blur-3xl opacity-5 animate-pulse delay-2000" :style="{ backgroundColor: 'var(--accent-green)' }"></div>
-    </div>
+  <section class="relative text-white py-16 md:py-24 px-4 md:px-6 overflow-hidden bg-gray-900">
+    <SectionBackground />
 
     <div v-if="MotionAvailable">
       <Motion
@@ -210,9 +187,7 @@ import {
   Wallet, TrendingUp, ChevronRight,
   BarChart2, Lock
 } from 'lucide-vue-next';
-import { useAnimatedBackground } from '../../composables/useAnimatedBackground';
-
-const { particlesCanvas } = useAnimatedBackground();
+import SectionBackground from './SectionBackground.vue';
 
 const fadeInUp = { initial: { y: 60, opacity: 0 }, animate: { y: 0, opacity: 1 }, transition: { duration: 0.6, ease: 'easeOut' } };
 const staggerContainer = { animate: { transition: { staggerChildren: 0.1 } } };

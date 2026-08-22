@@ -1,77 +1,30 @@
 <template>
   <ScrollReveal width="100%">
-    <section class="relative py-16 md:py-24 overflow-hidden" :style="{ background: 'linear-gradient(135deg, #0a0f1a 0%, #1a2332 50%, #0a0f1a 100%)' }">
-      <!-- Animated particles canvas background -->
-      <canvas ref="particlesCanvas" class="absolute inset-0 w-full h-full pointer-events-none"></canvas>
-
-      <!-- Holographic grid with brand colors -->
-      <div class="absolute inset-0 opacity-[0.08] pointer-events-none z-0">
-        <div
-          class="absolute inset-0"
-          :style="{
-            backgroundImage: `linear-gradient(to right, rgba(53, 167, 255, 0.15) 1px, transparent 1px), linear-gradient(to bottom, rgba(53, 167, 255, 0.15) 1px, transparent 1px)`,
-            backgroundSize: '80px 80px',
-            transform: 'perspective(1000px) rotateX(60deg)'
-          }"
-        />
-      </div>
-
-      <!-- Background effects with brand colors -->
-      <div class="absolute inset-0 pointer-events-none z-0">
-        <div 
-          class="absolute top-1/2 left-1/4 w-64 h-64 rounded-full blur-3xl opacity-10"
-          :style="{ backgroundColor: 'var(--blue)' }"
-        ></div>
-        <div 
-          class="absolute bottom-1/4 right-1/4 w-64 h-64 rounded-full blur-3xl opacity-10"
-          :style="{ backgroundColor: 'var(--blue-dark)' }"
-        ></div>
-      </div>
+    <section class="relative py-16 md:py-24 overflow-hidden bg-gray-900">
+      <SectionBackground :particles="false" />
 
       <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 z-10">
+        <div class="text-center mb-12 md:mb-16">
+          <h2 class="text-3xl md:text-4xl font-bold text-white">Platform Highlights</h2>
+          <p class="mt-3 text-gray-400 max-w-2xl mx-auto">What you actually get on BitChest — no marketing fluff, just the facts.</p>
+        </div>
+
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 md:gap-8">
           <div
-            v-for="(stat, index) in stats"
+            v-for="(item, index) in highlights"
             :key="index"
-            class="group relative text-center transform transition-all duration-500 hover:scale-105"
-            :style="{ transitionDelay: `${index * 100}ms` }"
+            class="group relative text-center"
           >
-            <!-- Card with gradient border -->
-            <div class="relative bg-gray-800/50 backdrop-blur-xl rounded-2xl p-8 border border-gray-700/30 transition-all duration-500 hover:border-opacity-60 overflow-hidden">
-              <!-- Hover glow effect -->
-              <div 
-                class="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500"
-                :style="{ background: `radial-gradient(circle at center, ${stat.glowColor}20, transparent 70%)` }"
-              ></div>
-              
-              <!-- Content -->
-              <div class="relative z-10">
-                <div 
-                  :class="`text-4xl lg:text-5xl xl:text-6xl font-bold mb-3 transition-all duration-300 group-hover:scale-110`"
-                  :style="{ color: stat.colorValue }"
-                >
-                  <AnimatedCounter
-                    :value="stat.value"
-                    :suffix="stat.suffix"
-                    :prefix="stat.prefix || ''"
-                    :decimals="stat.decimals || 0"
-                  />
-                </div>
-                <div class="text-gray-300 text-base md:text-lg font-medium group-hover:text-white transition-colors">
-                  {{ stat.label }}
-                </div>
-                
-                <!-- Decorative line -->
-                <div 
-                  class="mt-4 h-1 w-16 mx-auto rounded-full transition-all duration-500 group-hover:w-24"
-                  :style="{ backgroundColor: stat.colorValue, opacity: 0.6 }"
-                ></div>
+            <div class="relative bg-gray-800/50 backdrop-blur-xl rounded-2xl p-8 border border-gray-700/40 transition-all duration-300 hover:border-gray-600/60 h-full flex flex-col items-center">
+              <div class="p-3 rounded-xl mb-4" :style="{ backgroundColor: 'rgba(53, 167, 255, 0.12)', border: '1px solid rgba(53, 167, 255, 0.25)' }">
+                <component :is="item.icon" class="h-6 w-6" style="color: var(--blue)" />
               </div>
 
-              <!-- Animated background pattern -->
-              <div class="absolute inset-0 opacity-0 group-hover:opacity-10 transition-opacity duration-500">
-                <div class="absolute inset-0" :style="{ backgroundImage: `linear-gradient(45deg, ${stat.glowColor}10 25%, transparent 25%, transparent 75%, ${stat.glowColor}10 75%), linear-gradient(45deg, ${stat.glowColor}10 25%, transparent 25%, transparent 75%, ${stat.glowColor}10 75%)`, backgroundSize: '20px 20px', backgroundPosition: '0 0, 10px 10px' }"></div>
+              <div class="text-3xl lg:text-4xl font-bold mb-2 text-white">
+                <AnimatedCounter v-if="typeof item.value === 'number'" :value="item.value" :suffix="item.suffix || ''" />
+                <span v-else>{{ item.value }}</span>
               </div>
+              <div class="text-gray-400 text-sm md:text-base">{{ item.label }}</div>
             </div>
           </div>
         </div>
@@ -81,51 +34,33 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue';
+import { ref, onMounted } from 'vue';
+import { Coins, Zap, Wallet, ShieldCheck } from 'lucide-vue-next';
 import ScrollReveal from '../ScrollReveal.vue';
+import SectionBackground from './SectionBackground.vue';
 import AnimatedCounter from '../AnimatedCounter.vue';
-import { useAnimatedBackground } from '../../composables/useAnimatedBackground';
+import { getPublicMarket } from '../../services/api';
 
-const { particlesCanvas } = useAnimatedBackground();
+// Only real facts here: the crypto count is fetched live, everything else is a
+// static product fact (verified against the backend), never an invented statistic.
+const cryptoCount = ref<number | null>(null);
 
-const stats = ref([
-  { 
-    value: 7390, 
-    suffix: '+', 
-    label: 'Active Users', 
-    color: 'text-app-secondary',
-    colorValue: 'var(--blue)',
-    glowColor: '#35A7FF'
-  },
-  { 
-    value: 39, 
-    suffix: 'M+', 
-    label: 'Volume Traded', 
-    color: 'PnL--pos', 
-    prefix: '$',
-    colorValue: 'var(--blue)',
-    glowColor: '#35A7FF'
-  },
-  { 
-    value: 120, 
-    suffix: '+', 
-    label: 'Countries', 
-    color: 'text-app-primary',
-    colorValue: 'var(--blue-dark)',
-    glowColor: '#38618C'
-  },
-  { 
-    value: 99.9, 
-    suffix: '%', 
-    label: 'Uptime', 
-    color: 'text-yellow-400', 
-    decimals: 1,
-    colorValue: 'var(--blue-dark)',
-    glowColor: '#38618C'
-  }
+const highlights = ref([
+  { icon: Coins, value: '—', label: 'Supported Cryptocurrencies' },
+  { icon: Zap, value: 'Live', label: 'Real-time Coinbase-sourced pricing' },
+  { icon: Wallet, value: '€500', label: 'Starting balance for new accounts' },
+  { icon: ShieldCheck, value: 'RBAC', label: 'Secure, role-separated admin panel' },
 ]);
-</script>
 
-<style scoped>
-/* nothing extra for now; animations handled via Tailwind utility classes */
-</style>
+onMounted(async () => {
+  try {
+    const market = await getPublicMarket();
+    if (Array.isArray(market) && market.length > 0) {
+      cryptoCount.value = market.length;
+      highlights.value[0] = { icon: Coins, value: market.length, label: 'Supported Cryptocurrencies' };
+    }
+  } catch {
+    // Keep the static placeholder if the public market endpoint is unavailable
+  }
+});
+</script>

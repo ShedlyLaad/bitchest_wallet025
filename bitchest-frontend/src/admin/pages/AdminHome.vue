@@ -436,6 +436,7 @@ import AnimatedCounter from '@/components/AnimatedCounter.vue';
 import { getAdminDashboard, getAdminTransactions } from '@/services/api';
 import { useAuthStore } from '@/stores/auth';
 import { getCryptoIcon } from '@/utils/cryptoIcons';
+import { CHART_COLORS, CHART_GRID, CHART_AXIS_LABEL_STYLE } from '@/utils/chartTheme';
 
 const auth = useAuthStore();
 const router = useRouter();
@@ -479,24 +480,25 @@ const filteredPendingUsers = computed(() => {
   );
 });
 
-// Chart colors from graphs
-const CHART_GREEN = '#10b981';
-const CHART_BLUE = '#3b82f6';
+// Brand hex equivalents of CHART_COLORS.green/blue — kept as hex (not var()) because
+// these need the `${hex}20` alpha-suffix trick below, which only works on hex literals.
+const BRAND_GREEN_HEX = '#01FF19';
+const BRAND_BLUE_HEX = '#35A7FF';
 
 // Get icon color based on card type
 function getIconColor(stat: any): string {
-  if (stat.title === 'Active Users') return CHART_GREEN;
-  if (stat.title === 'Total Revenue' || stat.title === 'EUR Balance') return CHART_GREEN;
-  if (stat.title === 'Trades') return CHART_BLUE;
-  return '#9ca3af';
+  if (stat.title === 'Active Users') return BRAND_GREEN_HEX;
+  if (stat.title === 'Total Revenue' || stat.title === 'EUR Balance') return BRAND_GREEN_HEX;
+  if (stat.title === 'Trades') return BRAND_BLUE_HEX;
+  return CHART_COLORS.axisLabel;
 }
 
 // Get icon background style
 function getIconStyle(stat: any) {
   if (stat.title === 'Active Users') {
     return {
-      backgroundColor: `${CHART_GREEN}20`,
-      border: `1px solid ${CHART_GREEN}40`,
+      backgroundColor: `${BRAND_GREEN_HEX}20`,
+      border: `1px solid ${BRAND_GREEN_HEX}40`,
     };
   }
   return {
@@ -567,9 +569,9 @@ const revenueChartOptions = computed(() => ({
   stroke: {
     curve: 'smooth' as const,
     width: 3,
-    colors: ['#10b981'],
+    colors: [CHART_COLORS.green],
   },
-  colors: ['#10b981'],
+  colors: [CHART_COLORS.green],
   dataLabels: {
     enabled: false,
   },
@@ -579,31 +581,28 @@ const revenueChartOptions = computed(() => ({
   xaxis: {
     categories: chartLabels.value,
     labels: {
-      style: {
-        colors: '#9ca3af',
-        fontSize: '12px',
-      },
+      style: CHART_AXIS_LABEL_STYLE,
       rotate: timeFilter.value === '90d' ? -45 : 0,
     },
     axisBorder: {
-      color: '#374151',
+      color: CHART_COLORS.gridLine,
     },
     axisTicks: {
-      color: '#374151',
+      color: CHART_COLORS.gridLine,
     },
   },
   yaxis: {
     title: {
       text: 'Revenue (€)',
       style: {
-        color: '#10b981',
+        color: CHART_COLORS.green,
         fontSize: '12px',
         fontWeight: 600,
       },
     },
     labels: {
       style: {
-        colors: '#10b981',
+        colors: CHART_COLORS.green,
       },
       formatter: (val: number) => {
         if (val >= 1000) {
@@ -613,20 +612,7 @@ const revenueChartOptions = computed(() => ({
       },
     },
   },
-  grid: {
-    borderColor: '#374151',
-    strokeDashArray: 3,
-    xaxis: {
-      lines: {
-        show: true,
-      },
-    },
-    yaxis: {
-      lines: {
-        show: true,
-      },
-    },
-  },
+  grid: CHART_GRID,
   tooltip: {
     theme: 'dark',
     style: {
@@ -642,7 +628,7 @@ const revenueChartOptions = computed(() => ({
       shade: 'dark',
       type: 'vertical',
       shadeIntensity: 0.3,
-      gradientToColors: ['#10b981'],
+      gradientToColors: [CHART_COLORS.green],
       inverseColors: false,
       opacityFrom: 0.7,
       opacityTo: 0.1,
@@ -681,7 +667,7 @@ const tradesChartOptions = computed(() => ({
       borderRadius: 4,
     },
   },
-  colors: ['#3b82f6'],
+  colors: [CHART_COLORS.blue],
   dataLabels: {
     enabled: false,
   },
@@ -691,49 +677,33 @@ const tradesChartOptions = computed(() => ({
   xaxis: {
     categories: chartLabels.value,
     labels: {
-      style: {
-        colors: '#9ca3af',
-        fontSize: '12px',
-      },
+      style: CHART_AXIS_LABEL_STYLE,
       rotate: timeFilter.value === '90d' ? -45 : 0,
     },
     axisBorder: {
-      color: '#374151',
+      color: CHART_COLORS.gridLine,
     },
     axisTicks: {
-      color: '#374151',
+      color: CHART_COLORS.gridLine,
     },
   },
   yaxis: {
     title: {
       text: 'Trades',
       style: {
-        color: '#3b82f6',
+        color: CHART_COLORS.blue,
         fontSize: '12px',
         fontWeight: 600,
       },
     },
     labels: {
       style: {
-        colors: '#3b82f6',
+        colors: CHART_COLORS.blue,
       },
       formatter: (val: number) => Math.round(val).toString(),
     },
   },
-  grid: {
-    borderColor: '#374151',
-    strokeDashArray: 3,
-    xaxis: {
-      lines: {
-        show: true,
-      },
-    },
-    yaxis: {
-      lines: {
-        show: true,
-      },
-    },
-  },
+  grid: CHART_GRID,
   tooltip: {
     theme: 'dark',
     style: {
@@ -749,7 +719,7 @@ const tradesChartOptions = computed(() => ({
       shade: 'dark',
       type: 'vertical',
       shadeIntensity: 0.5,
-      gradientToColors: ['#60a5fa'],
+      gradientToColors: [CHART_COLORS.blue],
       inverseColors: false,
       opacityFrom: 0.8,
       opacityTo: 0.3,

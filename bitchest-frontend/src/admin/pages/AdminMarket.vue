@@ -411,7 +411,7 @@ async function loadCryptos() {
     lastUpdated.value = new Date();
   } catch (e: any) {
     console.error('Error loading cryptos:', e);
-    errorMessage.value = e?.response?.data?.message || e?.message || 'Impossible de charger les cryptos';
+    errorMessage.value = e?.response?.data?.message || e?.message || 'Unable to load cryptocurrencies';
   } finally {
     loading.value = false;
   }

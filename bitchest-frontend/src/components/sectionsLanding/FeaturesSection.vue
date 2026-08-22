@@ -1,26 +1,6 @@
 <template>
-  <section class="relative py-24 overflow-hidden" :style="{ background: 'linear-gradient(135deg, #0a0f1a 0%, #1a2332 50%, #0a0f1a 100%)' }">
-    <!-- Animated background canvas -->
-    <div class="absolute inset-0">
-      <canvas ref="canvasRef" class="absolute inset-0 w-full h-full"></canvas>
-      <div class="absolute inset-0 opacity-60" :style="{ background: 'linear-gradient(135deg, rgba(10, 15, 26, 0.95) 0%, rgba(26, 35, 50, 0.80) 50%, rgba(10, 15, 26, 0.95) 100%)' }"></div>
-    </div>
-
-    <!-- Holographic grid with brand colors -->
-    <div class="absolute inset-0 opacity-[0.08] pointer-events-none z-0">
-      <div
-        class="absolute inset-0"
-        :style="{
-          backgroundImage: `linear-gradient(to right, rgba(53, 167, 255, 0.15) 1px, transparent 1px), linear-gradient(to bottom, rgba(53, 167, 255, 0.15) 1px, transparent 1px)`,
-          backgroundSize: '80px 80px',
-          transform: 'perspective(1000px) rotateX(60deg)'
-        }"
-      />
-    </div>
-
-    <!-- Decorative lights with more transparency -->
-    <div class="absolute top-1/4 left-1/4 w-96 h-96 rounded-full blur-3xl pointer-events-none" :style="{ backgroundColor: 'var(--blue-dark)', opacity: 0.08 }"></div>
-    <div class="absolute bottom-1/3 right-1/4 w-80 h-80 rounded-full blur-3xl pointer-events-none" :style="{ backgroundColor: 'var(--blue)', opacity: 0.08 }"></div>
+  <section class="relative py-24 overflow-hidden bg-gray-900">
+    <SectionBackground :particles="false" />
 
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
       <div class="text-center mb-20">
@@ -123,9 +103,9 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onBeforeUnmount } from 'vue';
 import { Motion } from '@motionone/vue';
 import { Shield, Zap, Users } from 'lucide-vue-next';
+import SectionBackground from './SectionBackground.vue';
  
  const features = [
    {
@@ -163,97 +143,6 @@ import { Shield, Zap, Users } from 'lucide-vue-next';
    WebkitBackgroundClip: 'text',
    WebkitTextFillColor: 'transparent'
  };
- 
- /* Canvas particle system */
- const canvasRef = ref<HTMLCanvasElement | null>(null);
- 
- onMounted(() => {
-   const canvas = canvasRef.value;
-   if (!canvas) return;
-   const ctx = canvas.getContext('2d');
-   if (!ctx) return;
- 
-   const resize = () => {
-     canvas.width = canvas.clientWidth;
-     canvas.height = canvas.clientHeight;
-   };
-   resize();
- 
-   const particles: {
-     x: number;
-     y: number;
-     size: number;
-     speedX: number;
-     speedY: number;
-     color: string;
-   }[] = [];
- 
-   const particleCount = 150;
-   const colors = ['rgba(56, 189, 248, 0.3)', 'rgba(139, 92, 246, 0.3)', 'rgba(16, 185, 129, 0.3)'];
- 
-   for (let i = 0; i < particleCount; i++) {
-     particles.push({
-       x: Math.random() * canvas.width,
-       y: Math.random() * canvas.height,
-       size: Math.random() * 3 + 1,
-       speedX: (Math.random() - 0.5) * 0.5,
-       speedY: (Math.random() - 0.5) * 0.5,
-       color: colors[Math.floor(Math.random() * colors.length)]
-     });
-   }
- 
-   let animationFrameId = 0;
- 
-   const animate = () => {
-     if (!ctx || !canvas) return;
-     ctx.clearRect(0, 0, canvas.width, canvas.height);
- 
-     particles.forEach(p => {
-       p.x += p.speedX;
-       p.y += p.speedY;
- 
-       if (p.x < 0) p.x = canvas.width;
-       if (p.x > canvas.width) p.x = 0;
-       if (p.y < 0) p.y = canvas.height;
-       if (p.y > canvas.height) p.y = 0;
- 
-       ctx.beginPath();
-       ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
-       ctx.fillStyle = p.color;
-       ctx.fill();
- 
-       particles.forEach(p2 => {
-         const dx = p.x - p2.x;
-         const dy = p.y - p2.y;
-         const dist = Math.sqrt(dx * dx + dy * dy);
- 
-         if (dist < 100) {
-           const opacity = 1 - dist / 100;
-           ctx.beginPath();
-           ctx.strokeStyle = `rgba(99, 102, 241, ${opacity * 0.1})`;
-           ctx.lineWidth = 0.5;
-           ctx.moveTo(p.x, p.y);
-           ctx.lineTo(p2.x, p2.y);
-           ctx.stroke();
-         }
-       });
-     });
- 
-     animationFrameId = requestAnimationFrame(animate);
-   };
- 
-   animate();
- 
-   const onResize = () => {
-     resize();
-   };
-   window.addEventListener('resize', onResize);
- 
-   onBeforeUnmount(() => {
-     cancelAnimationFrame(animationFrameId);
-     window.removeEventListener('resize', onResize);
-   });
- });
  
  /* Small DOM handlers to mimic original inline hover effects */
  function titleHover(e: Event, enter = true) {

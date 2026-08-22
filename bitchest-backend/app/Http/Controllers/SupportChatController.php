@@ -67,6 +67,12 @@ class SupportChatController extends Controller
                 $code = $botJson['code'] ?? 2002;
                 $status = $response->status();
 
+                Log::warning('Support bot returned an error', [
+                    'bot_status' => $response->status(),
+                    'bot_code' => $code,
+                    'bot_message' => $message,
+                ]);
+
                 if (str_contains(strtolower($message), 'groq_api_key')) {
                     $message = 'Support bot API key is not configured';
                     $code = 2003;

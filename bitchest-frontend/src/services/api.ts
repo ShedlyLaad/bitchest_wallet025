@@ -749,6 +749,26 @@ export async function generateAdminPrices() {
   return data;
 }
 
+export interface CryptoPricePreview {
+  id: number;
+  symbol: string;
+  name: string;
+  currentPrice: number;
+  newPrice: number | null;
+  available: boolean;
+  diffPercent: number | null;
+}
+
+export async function previewAdminCryptoPrices() {
+  const { data } = await api.get<CryptoPricePreview[]>('/api/admin/cryptos/preview');
+  return data;
+}
+
+export async function approveAdminCryptoPrices() {
+  const { data } = await api.post<{ message: string; updated: number; failed: number; total: number }>('/api/admin/cryptos/preview/approve');
+  return data;
+}
+
 export async function getAdminCryptoHistory(symbol: string, timeframe?: string) {
   const params = timeframe ? { timeframe } : {};
   const { data } = await api.get<CryptoPricePoint[]>(`/api/admin/cryptos/${symbol}/history`, { params });
@@ -852,6 +872,8 @@ export default {
   getAdminTransactions,
   getAdminCryptos,
   generateAdminPrices,
+  previewAdminCryptoPrices,
+  approveAdminCryptoPrices,
   getAdminCryptoHistory,
   getAdminDashboard,
   getAdminUserDetails,

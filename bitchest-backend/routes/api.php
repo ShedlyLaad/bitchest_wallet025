@@ -48,6 +48,13 @@ Route::middleware(['auth:sanctum','account.status'])->group(function () {
     // Support bot (proxy vers FastAPI — utilisateurs connectés client ou admin)
     Route::post('/support/chat', SupportChatController::class)->name('support.chat');
 
+    // Notifications (client ET admin — le contrôleur se scope sur l'utilisateur authentifié)
+    Route::get('/notifications', [NotificationController::class, 'index']);
+    Route::get('/notifications/unread-count', [NotificationController::class, 'unreadCount']);
+    Route::post('/notifications/{id}/read', [NotificationController::class, 'markAsRead']);
+    Route::post('/notifications/read-all', [NotificationController::class, 'markAllAsRead']);
+    Route::delete('/notifications/{id}', [NotificationController::class, 'destroy']);
+
     /*
     |--------------------------------------------------------------------------
     | CLIENT ROUTES
@@ -77,13 +84,6 @@ Route::middleware(['auth:sanctum','account.status'])->group(function () {
         Route::get('/market/history/{crypto_currency_id}', [CryptoMarketController::class, 'history'])->where('crypto_currency_id', '[0-9A-Za-z]+');
         // Nouvelle API REST pour utilisateurs - données Coinbase avec cache
         Route::get('/user/cryptos', [CryptoMarketController::class, 'userCryptos']);
-
-        // Notifications
-        Route::get('/notifications', [NotificationController::class, 'index']);
-        Route::get('/notifications/unread-count', [NotificationController::class, 'unreadCount']);
-        Route::post('/notifications/{id}/read', [NotificationController::class, 'markAsRead']);
-        Route::post('/notifications/read-all', [NotificationController::class, 'markAllAsRead']);
-        Route::delete('/notifications/{id}', [NotificationController::class, 'destroy']);
     });
 
     /*
@@ -110,6 +110,10 @@ Route::middleware(['auth:sanctum','account.status'])->group(function () {
         Route::get('/cryptos', [AdminCryptoController::class, 'index']);
         Route::post('/cryptos/generate', [AdminCryptoController::class, 'generate']);
         Route::get('/cryptos/{symbol}/history', [AdminCryptoController::class, 'history']);
+
+        // Mise à jour des prix: preview (lecture seule) + approve (persiste)
+        Route::get('/cryptos/preview', [AdminCryptoController::class, 'preview']);
+        Route::post('/cryptos/preview/approve', [AdminCryptoController::class, 'approve']);
 
         // Transactions (admin) - consulter l'historique global
         Route::get('/transactions', [\App\Http\Controllers\Admin\TransactionController::class, 'index']);

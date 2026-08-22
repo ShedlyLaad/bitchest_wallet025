@@ -122,17 +122,17 @@
               <button
                 @click.stop="toggleNotif"
                 class="relative w-full flex items-center space-x-3 px-4 py-2.5 rounded-xl transition-all duration-200 hover:bg-gray-700/50 group"
-                :title="pendingCount > 0 ? `${pendingCount} en attente de validation` : 'Aucune notification'"
+                :title="totalNotifCount > 0 ? `${totalNotifCount} notification(s)` : 'No notifications'"
               >
                 <Bell class="h-5 w-5 text-gray-300" />
                 <span class="font-medium text-gray-300">Notifications</span>
                 <Transition name="bounce">
                   <span
-                    v-if="pendingCount > 0"
+                    v-if="totalNotifCount > 0"
                     class="ml-auto text-xs font-semibold text-white rounded-full px-2 py-0.5"
                     style="background-color: var(--accent-red);"
                   >
-                    {{ pendingCount }}
+                    {{ totalNotifCount }}
                   </span>
                 </Transition>
               </button>
@@ -140,14 +140,14 @@
               <Transition name="fade">
                 <div
                   v-if="notifOpen"
-                  class="absolute left-4 right-4 top-full mt-2 bg-gray-800 border border-gray-700 rounded-xl shadow-2xl py-2 z-50 max-h-64 overflow-y-auto"
+                  class="absolute left-4 right-4 top-full mt-2 bg-gray-800 border border-gray-700 rounded-xl shadow-2xl py-2 z-50 max-h-80 overflow-y-auto"
                   @click.stop
                 >
                   <div class="px-4 py-2 border-b border-gray-700 flex items-center justify-between sticky top-0 bg-gray-800">
-                    <span class="text-sm text-gray-200">Validations en attente</span>
-                    <span class="text-xs text-gray-400">{{ pendingUsers.length }} items</span>
+                    <span class="text-sm text-gray-200">Pending validations</span>
+                    <span class="text-xs text-gray-400">{{ pendingUsers.length }} item(s)</span>
                   </div>
-                  <div v-if="pendingUsers.length === 0" class="p-4 text-sm text-gray-400">Aucune notification</div>
+                  <div v-if="pendingUsers.length === 0" class="p-4 text-sm text-gray-400">No pending validations</div>
                   <div v-else class="divide-y divide-gray-700">
                     <button
                       v-for="u in pendingUsers"
@@ -162,6 +162,32 @@
                       <span class="text-[11px] px-2 py-1 rounded-full" style="background-color: var(--accent-orange); color: #111827">
                         pending
                       </span>
+                    </button>
+                  </div>
+
+                  <div class="px-4 py-2 border-t border-b border-gray-700 flex items-center justify-between sticky top-0 bg-gray-800">
+                    <span class="text-sm text-gray-200">Notifications</span>
+                    <button
+                      v-if="unreadNotifCount > 0"
+                      @click.stop="markSystemNotificationsRead"
+                      class="text-xs text-blue-400 hover:text-blue-300"
+                    >
+                      Mark all read
+                    </button>
+                  </div>
+                  <div v-if="systemNotifications.length === 0" class="p-4 text-sm text-gray-400">No notifications</div>
+                  <div v-else class="divide-y divide-gray-700">
+                    <button
+                      v-for="n in systemNotifications"
+                      :key="n.id"
+                      class="w-full text-left px-4 py-2 hover:bg-gray-700/60 transition"
+                      @click="handleSystemNotificationClick(n)"
+                    >
+                      <div class="flex items-center justify-between gap-2">
+                        <span class="text-white text-sm font-semibold truncate">{{ n.title }}</span>
+                        <span v-if="!n.is_read" class="w-2 h-2 rounded-full flex-shrink-0" style="background-color: var(--blue);"></span>
+                      </div>
+                      <div class="text-xs text-gray-400 mt-0.5">{{ n.message }}</div>
                     </button>
                   </div>
                 </div>
@@ -200,8 +226,6 @@
         <div class="p-6 flex items-center justify-center">
           <img :src="AdminLogo" alt="Admin Logo" class="h-auto w-full max-w-[160px] object-contain" />
         </div>
-
-      
 
         <!-- Profile Section avec Menu - Futuriste -->
         <div class="px-4 py-2 group relative" ref="menuRef">
@@ -308,17 +332,17 @@
           <button
             @click.stop="toggleNotif"
             class="relative w-full flex items-center space-x-3 px-4 py-2.5 rounded-xl transition-all duration-200 hover:bg-gray-700/50 group"
-            :title="pendingCount > 0 ? `${pendingCount} en attente de validation` : 'Aucune notification'"
+            :title="totalNotifCount > 0 ? `${totalNotifCount} notification(s)` : 'No notifications'"
           >
             <Bell class="h-5 w-5 text-gray-300" />
             <span class="font-medium text-gray-300">Notifications</span>
             <Transition name="bounce">
               <span
-                v-if="pendingCount > 0"
+                v-if="totalNotifCount > 0"
                 class="ml-auto text-xs font-semibold text-white rounded-full px-2 py-0.5"
                 style="background-color: var(--accent-red);"
               >
-                {{ pendingCount }}
+                {{ totalNotifCount }}
               </span>
             </Transition>
           </button>
@@ -326,14 +350,14 @@
           <Transition name="fade">
             <div
               v-if="notifOpen"
-              class="absolute left-4 right-4 top-full mt-2 bg-gray-800 border border-gray-700 rounded-xl shadow-2xl py-2 z-50 max-h-64 overflow-y-auto"
+              class="absolute left-4 right-4 top-full mt-2 bg-gray-800 border border-gray-700 rounded-xl shadow-2xl py-2 z-50 max-h-80 overflow-y-auto"
               @click.stop
             >
               <div class="px-4 py-2 border-b border-gray-700 flex items-center justify-between sticky top-0 bg-gray-800">
-                <span class="text-sm text-gray-200">Validations en attente</span>
-                <span class="text-xs text-gray-400">{{ pendingUsers.length }} items</span>
+                <span class="text-sm text-gray-200">Pending validations</span>
+                <span class="text-xs text-gray-400">{{ pendingUsers.length }} item(s)</span>
               </div>
-              <div v-if="pendingUsers.length === 0" class="p-4 text-sm text-gray-400">Aucune notification</div>
+              <div v-if="pendingUsers.length === 0" class="p-4 text-sm text-gray-400">No pending validations</div>
               <div v-else class="divide-y divide-gray-700">
                 <button
                   v-for="u in pendingUsers"
@@ -348,6 +372,32 @@
                   <span class="text-[11px] px-2 py-1 rounded-full" style="background-color: var(--accent-orange); color: #111827">
                     pending
                   </span>
+                </button>
+              </div>
+
+              <div class="px-4 py-2 border-t border-b border-gray-700 flex items-center justify-between sticky top-0 bg-gray-800">
+                <span class="text-sm text-gray-200">Notifications</span>
+                <button
+                  v-if="unreadNotifCount > 0"
+                  @click.stop="markSystemNotificationsRead"
+                  class="text-xs text-blue-400 hover:text-blue-300"
+                >
+                  Mark all read
+                </button>
+              </div>
+              <div v-if="systemNotifications.length === 0" class="p-4 text-sm text-gray-400">No notifications</div>
+              <div v-else class="divide-y divide-gray-700">
+                <button
+                  v-for="n in systemNotifications"
+                  :key="n.id"
+                  class="w-full text-left px-4 py-2 hover:bg-gray-700/60 transition"
+                  @click="handleSystemNotificationClick(n)"
+                >
+                  <div class="flex items-center justify-between gap-2">
+                    <span class="text-white text-sm font-semibold truncate">{{ n.title }}</span>
+                    <span v-if="!n.is_read" class="w-2 h-2 rounded-full flex-shrink-0" style="background-color: var(--blue);"></span>
+                  </div>
+                  <div class="text-xs text-gray-400 mt-0.5">{{ n.message }}</div>
                 </button>
               </div>
             </div>
@@ -384,6 +434,13 @@ import { LayoutDashboard, Users, TrendingUp, FileText, Shield, X, Bell, User, Lo
 import AdminLogo from '../../assets/ADMIN.png';
 import { useAuthStore } from '@/stores/auth';
 import api from '@/services/api';
+import {
+  getNotifications,
+  getUnreadNotificationsCount,
+  markNotificationAsRead,
+  markAllNotificationsAsRead,
+} from '@/services/api';
+import type { Notification } from '@/types';
 
 interface SidebarItem {
   path: string;
@@ -400,6 +457,8 @@ const isMobileMenuOpen = ref(false);
 const pendingCount = ref(0);
 const loadingNotif = ref(false);
 const authPendingUsers = ref<any[]>([]);
+const systemNotifications = ref<Notification[]>([]);
+const unreadNotifCount = ref(0);
 const menuRef = ref<HTMLElement | null>(null);
 const notifRef = ref<HTMLElement | null>(null);
 let notifTimer: ReturnType<typeof setInterval> | null = null;
@@ -447,6 +506,7 @@ function handleImageError(event: Event) {
 }
 
 const pendingUsers = computed(() => (authPendingUsers.value ?? []).slice(0, 20));
+const totalNotifCount = computed(() => pendingCount.value + unreadNotifCount.value);
 
 function isActive(path: string) {
   if (path === '/admin') {
@@ -522,6 +582,47 @@ async function fetchPending() {
   }
 }
 
+async function fetchSystemNotifications() {
+  if (!auth.token) {
+    systemNotifications.value = [];
+    unreadNotifCount.value = 0;
+    return;
+  }
+  try {
+    const [list, unread] = await Promise.all([
+      getNotifications({ per_page: 10 }),
+      getUnreadNotificationsCount(),
+    ]);
+    systemNotifications.value = list?.data ?? [];
+    unreadNotifCount.value = unread?.count ?? 0;
+  } catch (_) {
+    // silent fail to avoid blocking UI
+  }
+}
+
+async function handleSystemNotificationClick(notification: Notification) {
+  notifOpen.value = false;
+  if (!notification.is_read) {
+    try {
+      await markNotificationAsRead(notification.id);
+      notification.is_read = true;
+      if (unreadNotifCount.value > 0) unreadNotifCount.value--;
+    } catch (_) {
+      // silent fail to avoid blocking UI
+    }
+  }
+}
+
+async function markSystemNotificationsRead() {
+  try {
+    await markAllNotificationsAsRead();
+    systemNotifications.value.forEach((n) => { n.is_read = true; });
+    unreadNotifCount.value = 0;
+  } catch (_) {
+    // silent fail to avoid blocking UI
+  }
+}
+
 const handleClickOutside = (e: MouseEvent) => {
   const target = e.target as Node;
   if (menuRef.value && !menuRef.value.contains(target)) {
@@ -538,8 +639,11 @@ onMounted(() => {
     if (!auth.user && auth.token) {
       try { await auth.fetchCurrentUser(); } catch (_) {}
     }
-    await fetchPending();
-    notifTimer = setInterval(fetchPending, 30000);
+    await Promise.all([fetchPending(), fetchSystemNotifications()]);
+    notifTimer = setInterval(() => {
+      fetchPending();
+      fetchSystemNotifications();
+    }, 30000);
   })();
 });
 

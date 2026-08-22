@@ -469,6 +469,39 @@ class NotificationService
     }
 
     /**
+     * Notifie chaque admin actif qu'une mise à jour des prix crypto a réussi.
+     * Réutilise le modèle Notification existant (type 'price_alert', déjà
+     * prévu dans le schéma) : aucune table ni colonne supplémentaire.
+     */
+    public function notifyAdminsCryptoPricesUpdated(int $updatedCount): void
+    {
+        if ($updatedCount <= 0) {
+            return;
+        }
+
+        $admins = User::where('role', 'admin')->where('status', 'active')->get();
+
+        foreach ($admins as $admin) {
+            try {
+                $notification = Notification::create([
+                    'user_id' => $admin->id,
+                    'type' => 'price_alert',
+                    'title' => 'Crypto prices updated',
+                    'message' => 'Crypto prices have been successfully updated.',
+                    'is_read' => false,
+                ]);
+
+                $this->notificationCacheService->store($admin->id, $this->normalizeNotification($notification));
+                $this->cleanupOldNotifications($admin->id);
+            } catch (\Exception $e) {
+                Log::error('Erreur notification admin (prix mis à jour): ' . $e->getMessage(), [
+                    'admin_id' => $admin->id,
+                ]);
+            }
+        }
+    }
+
+    /**
      * Crée une notification de transaction
      */
     public function createTransactionNotification(

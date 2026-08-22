@@ -17,14 +17,14 @@
           <span class="font-medium text-white">Last update:</span>
           <span class="ml-1">{{ lastUpdatedLabel }}</span>
         </div>
-        <!-- <button
+        <button
           class="px-4 py-2 text-sm rounded-lg bg-blue-600 hover:bg-blue-700 transition-colors disabled:opacity-50 font-medium flex items-center gap-2"
-          :disabled="loading"
-          @click="loadCryptos"
+          :disabled="loading || previewLoading"
+          @click="openPreview"
         >
-          <RefreshCw :class="['h-4 w-4', loading && 'animate-spin']" />
-          {{ loading ? 'Refreshing...' : 'Refresh' }}
-        </button> -->
+          <RefreshCw :class="['h-4 w-4', previewLoading && 'animate-spin']" />
+          {{ previewLoading ? 'Fetching...' : 'Refresh prices' }}
+        </button>
       </div>
     </div>
 
@@ -104,8 +104,22 @@
                       <div class="flex items-center gap-2 mb-0.5">
                         <span class="text-white font-bold text-base group-hover:text-blue-400 transition-colors">{{ crypto.symbol }}</span>
                         <span v-if="selectedCrypto?.id === crypto.id" class="px-1.5 py-0.5 bg-blue-500/20 text-blue-400 text-xs font-medium rounded">Active</span>
+                        <span
+                          v-if="crypto.status"
+                          :class="[
+                            'px-1.5 py-0.5 text-[10px] font-medium rounded',
+                            crypto.status === 'Updated' ? 'bg-green-500/20 text-green-400' :
+                            crypto.status === 'Outdated' ? 'bg-yellow-500/20 text-yellow-400' :
+                            'bg-red-500/20 text-red-400'
+                          ]"
+                        >
+                          {{ crypto.status }}
+                        </span>
                       </div>
                       <span class="text-gray-400 text-xs truncate">{{ crypto.name }}</span>
+                      <span v-if="crypto.updatedAt" class="text-gray-500 text-[10px] truncate">
+                        Updated {{ formatLastUpdated(crypto.updatedAt) }}
+                      </span>
                     </div>
                   </div>
 
@@ -193,16 +207,92 @@
         </div>
       </div>
     </div>
+
+    <!-- Review price update modal -->
+    <Teleport to="body">
+      <div
+        v-if="showPreviewModal"
+        class="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
+        @click.self="closePreview"
+      >
+        <div class="bg-gradient-to-br from-gray-800 to-gray-900 rounded-xl border border-gray-700 shadow-2xl w-full max-w-2xl max-h-[85vh] flex flex-col overflow-hidden">
+          <div class="p-4 border-b border-gray-700 flex items-center justify-between">
+            <div>
+              <h3 class="text-lg font-semibold text-white">Review price update</h3>
+              <p class="text-xs text-gray-400 mt-1">Live prices fetched from Coinbase — approve to apply</p>
+            </div>
+            <button @click="closePreview" class="p-1.5 rounded-lg hover:bg-gray-700/50 text-gray-400 hover:text-white transition-colors">
+              <X class="h-5 w-5" />
+            </button>
+          </div>
+
+          <div class="overflow-y-auto flex-1 p-4">
+            <div v-if="previewLoading" class="flex items-center gap-2 text-gray-400 text-sm py-8 justify-center">
+              <div class="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-500"></div>
+              Fetching live prices from Coinbase...
+            </div>
+            <div v-else-if="previewError" class="text-red-400 text-sm py-4 text-center">{{ previewError }}</div>
+            <div v-else-if="previewData.length === 0" class="text-gray-400 text-sm py-8 text-center">No active cryptocurrencies to update.</div>
+            <div v-else class="space-y-2">
+              <div
+                v-for="item in previewData"
+                :key="item.id"
+                class="flex items-center justify-between p-3 rounded-lg bg-gray-800/50 border border-gray-700/50"
+              >
+                <div class="flex items-center gap-2 min-w-0">
+                  <span class="font-semibold text-white">{{ item.symbol }}</span>
+                  <span class="text-xs text-gray-400 truncate">{{ item.name }}</span>
+                </div>
+                <div v-if="item.available" class="text-right flex-shrink-0">
+                  <div class="text-sm text-gray-400">
+                    {{ formatEUR(item.currentPrice) }}
+                    <span class="text-gray-500">→</span>
+                    <span class="text-white font-medium">{{ formatEUR(item.newPrice ?? 0) }}</span>
+                  </div>
+                  <div :class="['text-xs', (item.diffPercent ?? 0) >= 0 ? 'text-green-400' : 'text-red-400']">
+                    {{ (item.diffPercent ?? 0) >= 0 ? '+' : '' }}{{ (item.diffPercent ?? 0).toFixed(2) }}%
+                  </div>
+                </div>
+                <span v-else class="text-xs text-red-400 flex-shrink-0">Unavailable</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="p-4 border-t border-gray-700 flex items-center justify-end gap-3">
+            <button
+              @click="closePreview"
+              :disabled="approving"
+              class="px-4 py-2 text-sm rounded-lg bg-gray-700 hover:bg-gray-600 text-white font-medium transition-colors disabled:opacity-50"
+            >
+              Reject
+            </button>
+            <button
+              @click="approvePreview"
+              :disabled="previewLoading || approving || previewData.length === 0"
+              class="px-4 py-2 text-sm rounded-lg bg-green-600 hover:bg-green-700 disabled:opacity-50 text-white font-medium transition-colors"
+            >
+              {{ approving ? 'Applying...' : 'Approve & update' }}
+            </button>
+          </div>
+        </div>
+      </div>
+    </Teleport>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue';
-import { RefreshCw, TrendingUp, AlertCircle } from 'lucide-vue-next';
+import { RefreshCw, TrendingUp, AlertCircle, X } from 'lucide-vue-next';
 import { formatEUR } from '@/utils/format';
 import { getCryptoIcon } from '@/utils/cryptoIcons';
 import ProfessionalTradingChart from '@/components/ProfessionalTradingChart.vue';
-import { getAdminCryptoHistory, getAdminCryptos } from '@/services/api';
+import {
+  getAdminCryptoHistory,
+  getAdminCryptos,
+  previewAdminCryptoPrices,
+  approveAdminCryptoPrices,
+  type CryptoPricePreview,
+} from '@/services/api';
 import { useAuthStore } from '@/stores/auth';
 import type { CryptoCurrency, CryptoPricePoint } from '@/types';
 
@@ -213,6 +303,14 @@ type AdminCryptoUI = CryptoCurrency & {
   isUpdating?: boolean;
   animationClass?: string;
 };
+
+function formatLastUpdated(iso?: string): string {
+  if (!iso) return '—';
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return '—';
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
 
 const adminCryptosLocal = ref<AdminCryptoUI[]>([]);
 const selectedCrypto = ref<AdminCryptoUI | null>(null);
@@ -316,6 +414,48 @@ async function loadCryptos() {
     errorMessage.value = e?.response?.data?.message || e?.message || 'Impossible de charger les cryptos';
   } finally {
     loading.value = false;
+  }
+}
+
+const showPreviewModal = ref(false);
+const previewLoading = ref(false);
+const previewError = ref('');
+const previewData = ref<CryptoPricePreview[]>([]);
+const approving = ref(false);
+
+async function openPreview() {
+  showPreviewModal.value = true;
+  previewLoading.value = true;
+  previewError.value = '';
+  previewData.value = [];
+  try {
+    previewData.value = await previewAdminCryptoPrices();
+  } catch (e: any) {
+    previewError.value = e?.response?.data?.message || 'Failed to fetch live prices from Coinbase.';
+  } finally {
+    previewLoading.value = false;
+  }
+}
+
+function closePreview() {
+  if (approving.value) return;
+  showPreviewModal.value = false;
+  previewData.value = [];
+  previewError.value = '';
+}
+
+async function approvePreview() {
+  approving.value = true;
+  previewError.value = '';
+  try {
+    await approveAdminCryptoPrices();
+    showPreviewModal.value = false;
+    previewData.value = [];
+    await loadCryptos();
+  } catch (e: any) {
+    previewError.value = e?.response?.data?.message || 'Failed to apply the price update.';
+  } finally {
+    approving.value = false;
   }
 }
 

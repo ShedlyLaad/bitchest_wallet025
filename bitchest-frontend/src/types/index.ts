@@ -45,6 +45,8 @@ export interface CryptoCurrency {
   change24h?: number;
   marketCap?: number;
   volume24h?: number;
+  updatedAt?: string;
+  status?: string;
 }
 
 export interface CryptoPricePoint {

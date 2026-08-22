@@ -9,12 +9,13 @@ class Kernel extends ConsoleKernel
 {
     protected function schedule(Schedule $schedule)
     {
-        // Update crypto prices from Coinbase API every 24 hours at midnight
+        // Update crypto prices from Coinbase API every 24 hours at midnight.
+        // Concurrency (vs. a manual run or an Admin "Approve" click) is
+        // guarded inside CryptoPriceUpdateService itself via a cache lock,
+        // so no extra flag is needed here.
         $schedule->command('crypto:update-prices')
             ->daily()
             ->at('00:00')
-            ->withoutOverlapping()
-            ->onOneServer()
             ->appendOutputTo(storage_path('logs/crypto-update.log'));
 
         // Generate crypto prices hourly (for crypto_price_records historique)

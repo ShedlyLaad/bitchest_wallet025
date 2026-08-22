@@ -174,8 +174,6 @@
       </div>
     </div>
 
-    <!-- Bottom decorative line -->
-    <div class="absolute bottom-0 left-0 w-full h-1 opacity-20" :style="{ background: 'linear-gradient(to right, transparent, var(--blue-dark), var(--blue), var(--blue-dark), transparent)' }"></div>
   </section>
 </template>
 

@@ -1,6 +1,6 @@
 <template>
   <ScrollReveal width="100%">
-    <footer class="relative border-t border-gray-700/30 overflow-hidden bg-gray-950">
+    <footer class="relative overflow-hidden bg-gray-900">
       <SectionBackground :particles="false" :orbs="[]" />
 
       <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 z-10">

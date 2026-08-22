@@ -95,34 +95,10 @@
         </button>
       </div>
 
-      <!-- Chart Type Selector -->
-      <div class="flex items-center gap-1">
-        <button
-          @click="selectedChartType = 'line'"
-          :class="[
-            'px-3 py-1.5 text-xs font-medium rounded transition-all flex items-center gap-1.5 border',
-            selectedChartType === 'line'
-              ? 'bg-blue-600/20 text-blue-400 border-blue-500/50'
-              : 'text-gray-400 hover:text-white hover:bg-gray-700/50 border-transparent'
-          ]"
-          title="Line Chart"
-        >
-          <TrendingUp class="h-3.5 w-3.5" />
-          Line
-        </button>
-        <button
-          @click="selectedChartType = 'area'"
-          :class="[
-            'px-3 py-1.5 text-xs font-medium rounded transition-all flex items-center gap-1.5 border',
-            selectedChartType === 'area'
-              ? 'bg-green-600/20 text-green-400 border-green-500/50'
-              : 'text-gray-400 hover:text-white hover:bg-gray-700/50 border-transparent'
-          ]"
-          title="Area Chart"
-        >
-          <Activity class="h-3.5 w-3.5" />
-          Area
-        </button>
+      <!-- Chart type: candlestick only (this component no longer offers line/area) -->
+      <div class="flex items-center gap-1.5 text-xs text-gray-500">
+        <CandlestickChart class="h-3.5 w-3.5" />
+        Candlestick
       </div>
     </div>
 
@@ -153,17 +129,17 @@
 
       <!-- Chart -->
       <ApexChart
-        v-else-if="chartOptions && chartSeries && chartSeries.length > 0 && chartSeries[0].data && chartSeries[0].data.length > 0"
-        :key="`chart-${selectedTimeframe}-${selectedChartType}-${symbol}-${chartSeries[0].data.length}-${currentPrice}`"
+        v-else-if="chartOptions && candlestickSeries && candlestickSeries.length > 0 && candlestickSeries[0].data && candlestickSeries[0].data.length > 0"
+        :key="`chart-${selectedTimeframe}-${symbol}-${candlestickSeries[0].data.length}-${currentPrice}`"
         :options="chartOptions"
-        :series="chartSeries"
-        :type="selectedChartType"
+        :series="candlestickSeries"
+        type="candlestick"
         :height="typeof height === 'number' ? height : undefined"
         width="100%"
         class="relative z-0 chart-wrapper"
       />
       <!-- No data message -->
-      <div v-else-if="!isLoading && !error && (!chartSeries || chartSeries.length === 0 || !chartSeries[0].data || chartSeries[0].data.length === 0)" class="absolute inset-0 flex items-center justify-center bg-gray-900/80 z-20">
+      <div v-else-if="!isLoading && !error && (!candlestickSeries || candlestickSeries.length === 0 || !candlestickSeries[0].data || candlestickSeries[0].data.length === 0)" class="absolute inset-0 flex items-center justify-center bg-gray-900/80 z-20">
         <div class="text-center text-gray-400">
           <p class="text-sm font-medium mb-1">No chart data available</p>
           <p class="text-xs text-gray-500">Loading historical data from Coinbase...</p>
@@ -177,7 +153,7 @@
 import { ref, computed, watch } from 'vue';
 import ApexChart from 'vue3-apexcharts';
 import type { ApexOptions } from 'apexcharts';
-import { TrendingUp, TrendingDown, Activity } from 'lucide-vue-next';
+import { TrendingUp, TrendingDown, CandlestickChart } from 'lucide-vue-next';
 import type { CryptoPricePoint } from '@/types';
 
 interface Props {
@@ -213,7 +189,6 @@ const timeframes = [
 ];
 
 const selectedTimeframe = ref(props.timeframe || '30d');
-const selectedChartType = ref<'line' | 'area'>('line');
 const isLoading = ref(false);
 const error = ref('');
 
@@ -446,30 +421,65 @@ const buildSeriesFromArray = (): Array<{ x: number; y: number }> => {
     .filter((p): p is { x: number; y: number } => p !== null);
 };
 
-// Construire les séries pour le chart - Utiliser les données CryptoPriceRecord depuis la base de données
-const chartSeries = computed(() => {
-  // Priorité 1: Utiliser priceDataWithDates (données CryptoPriceRecord depuis l'API)
-  // Format: [{ crypto_currency_id: number, price: number, recorded_at: string }]
+// Build the real, validated price-point series (same pipeline used before, unchanged):
+// priceDataWithDates first, falling back to priceData. No fabrication happens here.
+const realPricePoints = computed(() => {
   let data = buildSeriesFromHistory();
-
-  // Priorité 2: Fallback vers priceData si disponible (format simple: number[])
   if (data.length < 2) {
     const fallbackFromArray = buildSeriesFromArray();
     if (fallbackFromArray.length >= 2) {
       data = fallbackFromArray;
     }
   }
+  return data;
+});
 
-  // Si aucune donnée valide, retourner vide
-  // Le composant affichera un message "No chart data available"
-  if (data.length === 0) {
-    return [];
+// The API only ever gives us one price per timestamp (CryptoPricePoint = { price, recorded_at }),
+// never real per-candle Open/High/Low/Close. Rather than invent OHLC, each candle is derived
+// honestly from the real price ticks that fall inside its time bucket:
+// Open = first real tick in the bucket, Close = last real tick, High/Low = real max/min in the bucket.
+// A bucket with a single tick simply renders as a flat (doji) candle — that's an accurate
+// reflection of the data's real granularity, not fabricated data.
+const CANDLE_BUCKET_MS: Record<string, number> = {
+  '1d': 60 * 60 * 1000,        // hourly candles
+  '7d': 24 * 60 * 60 * 1000,   // daily candles
+  '30d': 24 * 60 * 60 * 1000,  // daily candles
+  '90d': 2 * 24 * 60 * 60 * 1000 // 2-day candles, keeps the chart readable
+};
+
+const candlestickData = computed((): Array<{ x: number; y: [number, number, number, number] }> => {
+  const points = realPricePoints.value;
+  if (points.length === 0) return [];
+
+  const bucketMs = CANDLE_BUCKET_MS[selectedTimeframe.value] || 24 * 60 * 60 * 1000;
+  const buckets = new Map<number, number[]>();
+
+  for (const point of points) {
+    const bucketKey = Math.floor(point.x / bucketMs) * bucketMs;
+    const existing = buckets.get(bucketKey);
+    if (existing) {
+      existing.push(point.y);
+    } else {
+      buckets.set(bucketKey, [point.y]);
+    }
   }
 
-  // Retourner les données depuis CryptoPriceRecord (base de données)
+  return Array.from(buckets.entries())
+    .sort((a, b) => a[0] - b[0])
+    .map(([x, prices]) => {
+      const open = prices[0];
+      const close = prices[prices.length - 1];
+      const high = Math.max(...prices);
+      const low = Math.min(...prices);
+      return { x, y: [open, high, low, close] as [number, number, number, number] };
+    });
+});
+
+const candlestickSeries = computed(() => {
+  if (candlestickData.value.length === 0) return [];
   return [{
     name: props.symbol,
-    data: data
+    data: candlestickData.value
   }];
 });
 
@@ -514,11 +524,11 @@ const chartOptions = computed<ApexOptions>(() => {
         tools: {
           download: false,
           selection: false,
-          zoom: false,
+          zoom: true,
           zoomin: true,
           zoomout: true,
-          pan: false,
-          reset: false
+          pan: true,
+          reset: true
         },
         offsetX: 0,
         offsetY: 0
@@ -662,53 +672,32 @@ const chartOptions = computed<ApexOptions>(() => {
         fontFamily: 'monospace'
       },
       custom: ({ seriesIndex, dataPointIndex, w }) => {
-        const series = w.globals.initialSeries[seriesIndex];
-        const dataPoint = series.data[dataPointIndex];
-        const timestamp = typeof dataPoint.x === 'number' ? dataPoint.x : new Date(dataPoint.x).getTime();
-        const date = new Date(timestamp);
-        const value = typeof dataPoint.y === 'number' ? dataPoint.y : Number(dataPoint.y);
-        
-        const dateLabel = formatDateLabel(date, selectedTimeframe.value);
-        
-        const formattedValue = formatPrice(value);
+        const timestamp = w.globals.seriesX[seriesIndex][dataPointIndex];
+        const dateLabel = formatDateLabel(new Date(timestamp), selectedTimeframe.value);
+        const o = w.globals.seriesCandleO[seriesIndex][dataPointIndex];
+        const h = w.globals.seriesCandleH[seriesIndex][dataPointIndex];
+        const l = w.globals.seriesCandleL[seriesIndex][dataPointIndex];
+        const c = w.globals.seriesCandleC[seriesIndex][dataPointIndex];
+        const changeColor = c >= o ? 'var(--accent-green)' : 'var(--accent-red)';
         return `
-          <div class="px-2 py-1.5 bg-gray-800 border border-gray-600 rounded text-xs">
+          <div class="px-3 py-2 bg-gray-800 border border-gray-600 rounded text-xs space-y-1">
             <div class="text-gray-400 mb-1">${dateLabel}</div>
-            <div class="text-white font-semibold">${formattedValue}</div>
+            <div style="color: ${changeColor};" class="font-semibold">O ${formatPrice(o)} &nbsp; H ${formatPrice(h)}</div>
+            <div style="color: ${changeColor};" class="font-semibold">L ${formatPrice(l)} &nbsp; C ${formatPrice(c)}</div>
           </div>
         `;
-      },
-      x: {
-        format: 'dd MMM yyyy HH:mm'
       }
     },
-    stroke: {
-      width: selectedChartType.value === 'line' ? 3 : 2,
-      curve: 'smooth',
-      colors: selectedChartType.value === 'line' ? ['var(--blue)'] : ['var(--accent-green)'],
-      lineCap: 'round',
-      show: true,
-      dashArray: 0
-    },
-    markers: {
-      size: 0,
-      hover: {
-        size: 5
+    plotOptions: {
+      candlestick: {
+        colors: {
+          upward: 'var(--accent-green)',
+          downward: 'var(--accent-red)'
+        },
+        wick: {
+          useFillColor: true
+        }
       }
-    },
-    fill: {
-      type: selectedChartType.value === 'area' ? 'gradient' : 'solid',
-      gradient: selectedChartType.value === 'area' ? {
-        type: 'vertical',
-        shadeIntensity: 1,
-        gradientToColors: ['var(--accent-green)'],
-        inverseColors: false,
-        opacityFrom: 0.4,
-        opacityTo: 0.1,
-        stops: [0, 50, 100]
-      } : undefined,
-      colors: selectedChartType.value === 'area' ? ['var(--accent-green)'] : ['transparent'],
-      opacity: selectedChartType.value === 'area' ? 1 : 0
     },
     dataLabels: {
       enabled: false
@@ -745,11 +734,6 @@ watch(() => [props.priceDataWithDates, props.priceData, props.currentPrice, prop
   // This ensures the chart updates when switching between cryptos or when new data arrives
 }, { deep: true, immediate: false });
 
-// Watch chart type changes
-watch(selectedChartType, () => {
-  // Chart will update automatically via :key binding
-});
-
 </script>
 
 <style scoped>
@@ -772,35 +756,6 @@ watch(selectedChartType, () => {
     linear-gradient(rgba(156, 163, 175, 0.05) 1px, transparent 1px),
     linear-gradient(90deg, rgba(156, 163, 175, 0.05) 1px, transparent 1px);
   background-size: 50px 50px; /* Grille fine et discrète */
-}
-
-/* Assurer la visibilité des lignes du chart */
-.chart-wrapper :deep(.apexcharts-line-series path) {
-  stroke-width: 3px !important;
-  stroke: var(--blue) !important;
-  fill: none !important;
-  filter: drop-shadow(0 0 2px rgba(53, 167, 255, 0.5));
-}
-
-.chart-wrapper :deep(.apexcharts-area-series path) {
-  stroke-width: 2px !important;
-  stroke: var(--accent-green) !important;
-  fill: url(#gradient) !important;
-}
-
-.chart-wrapper :deep(.apexcharts-line-series .apexcharts-line) {
-  stroke-width: 3px !important;
-  fill: none !important;
-}
-
-.chart-wrapper :deep(.apexcharts-area-series .apexcharts-area) {
-  stroke-width: 2px !important;
-  stroke: var(--accent-green) !important;
-}
-
-/* Ensure gradients are visible for area charts */
-.chart-wrapper :deep(.apexcharts-area-series .apexcharts-area) {
-  opacity: 1 !important;
 }
 
 /* Ensure tooltip is visible */

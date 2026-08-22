@@ -1,5 +1,5 @@
 <template>
-  <section class="relative py-24 overflow-hidden bg-gray-900">
+  <section class="relative py-16 md:py-24 overflow-hidden bg-gray-900">
     <SectionBackground :particles="false" />
 
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
@@ -96,9 +96,6 @@
        </div>
     </div>
 
-    <!-- Decorative borders -->
-    <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-blue-500 to-transparent opacity-20" />
-    <div class="absolute bottom-0 left-0 w-full h-1 opacity-20" :style="{ background: 'linear-gradient(to right, transparent, var(--blue-dark), transparent)' }" />
   </section>
 </template>
 

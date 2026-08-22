@@ -38,7 +38,6 @@
     <div class="relative z-10">
       <HeroSection />
       <PartnersSection />
-      <StatsSection />
       <FeaturesSection />
       <!-- Team intentionally commented out like original -->
       <!-- <TeamSection /> -->
@@ -55,7 +54,6 @@ import { Motion } from '@motionone/vue';
 
 import HeroSection from '../components/sectionsLanding/HeroSection.vue';
 import PartnersSection from '../components/sectionsLanding/PartnersSection.vue';
-import StatsSection from '../components/sectionsLanding/StatsSection.vue';
 import FeaturesSection from '../components/sectionsLanding/FeaturesSection.vue';
 import CTASection from '../components/sectionsLanding/CTASection.vue';
 import FooterSection from '../components/sectionsLanding/FooterSection.vue';

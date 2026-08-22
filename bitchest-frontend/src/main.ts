@@ -21,8 +21,11 @@ app.mount('#app');
 // Set initial page title and favicon based on current route
 updatePageHead(router.currentRoute.value.name?.toString());
 
-// Précharger les données si l'utilisateur est déjà authentifié
+// Hydrater l'état d'authentification depuis le localStorage AVANT de vérifier si l'utilisateur est connecté
 const auth = useAuthStore();
+auth.hydrate();
+
+// Précharger les données si l'utilisateur est déjà authentifié
 if (auth.token) {
   // Attendre un peu pour que l'app soit complètement initialisée
   setTimeout(() => {

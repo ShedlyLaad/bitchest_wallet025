@@ -28,7 +28,7 @@ def get_settings() -> Settings:
     return Settings(
         groq_api_key=os.getenv("GROQ_API_KEY", "").strip(),
         groq_url=os.getenv("GROQ_URL", "https://api.groq.com/openai/v1/chat/completions"),
-        groq_model=os.getenv("GROQ_MODEL", "llama-3.3-70b-versatile"),
+        groq_model=os.getenv("GROQ_MODEL", "openai/gpt-oss-120b"),
         allowed_origins=origins,
         mysql_host=os.getenv("MYSQL_HOST", "127.0.0.1"),
         mysql_port=int(os.getenv("MYSQL_PORT", "3306")),

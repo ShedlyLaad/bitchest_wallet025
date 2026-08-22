@@ -3,24 +3,34 @@ import logging
 from fastapi import APIRouter
 from fastapi.responses import JSONResponse
 
+from app.prompts import SYSTEM_PROMPT
 from app.schemas import ChatRequest, ChatSuccessResponse
 from app.services.groq_service import GroqService, GroqServiceError
-from app.services.user_service import UserService
+from app.services.user_service import UserContext, UserService
 
 logger = logging.getLogger("bitchest_support_bot")
 
 router = APIRouter()
 
-SYSTEM_PROMPT = """
-You are the BitChest Support Bot — the official AI assistant for the BitChest cryptocurrency trading platform.
 
-- Tone: Professional, concise, friendly.
-- Language: Respond in the same language the user writes in.
-- Never give financial advice or predict prices.
-- Keep responses under 120 words unless necessary.
-- When the user's portfolio data is provided below, use it directly to answer questions about holdings, balances, and crypto positions.
-- Never ask the user to link or update their portfolio when portfolio data is already provided.
-"""
+def _build_personalization_context(user_context: UserContext | None, user_email: str | None) -> str:
+    """Turn the authenticated user's data into system-prompt context lines."""
+    if not user_context:
+        if user_email:
+            return "The user is authenticated by email."
+        return ""
+
+    lines = [f"The user's name is {user_context.name}."]
+
+    portfolio = user_context.portfolio_data
+    if portfolio and portfolio != "No portfolio data available":
+        lines.append(f"User portfolio (live from BitChest database): {portfolio}.")
+        lines.append("Use this portfolio data to answer questions about the user's crypto holdings.")
+    else:
+        lines.append("User portfolio: empty (no active crypto holdings).")
+
+    lines.append("Always greet the user by name in the first sentence.")
+    return "\n".join(lines)
 
 
 def build_chat_router(groq_service: GroqService, user_service: UserService) -> APIRouter:
@@ -40,25 +50,12 @@ def build_chat_router(groq_service: GroqService, user_service: UserService) -> A
             user_email=request.user_email,
         )
 
-        personalization_lines = []
-        if user_context:
-            personalization_lines.append(f"The user's name is {user_context.name}.")
-            portfolio = user_context.portfolio_data
-            if portfolio and portfolio != "No portfolio data available":
-                personalization_lines.append(f"User portfolio (live from BitChest database): {portfolio}.")
-                personalization_lines.append(
-                    "Use this portfolio data to answer questions about the user's crypto holdings."
-                )
-            else:
-                personalization_lines.append("User portfolio: empty (no active crypto holdings).")
-            personalization_lines.append("Always greet the user by name in the first sentence.")
-        elif request.user_email:
-            personalization_lines.append("The user is authenticated by email.")
+        personalization = _build_personalization_context(user_context, request.user_email)
 
         messages = [
             {
                 "role": "system",
-                "content": f"{SYSTEM_PROMPT}\n\n" + "\n".join(personalization_lines),
+                "content": f"{SYSTEM_PROMPT}\n\n{personalization}",
             },
             *[{"role": msg.role, "content": msg.content} for msg in request.messages],
         ]

@@ -37,7 +37,7 @@ class GroqService:
             "model": self._settings.groq_model,
             "messages": messages,
             "temperature": 0.7,
-            "max_tokens": 512,
+            "max_tokens": 700,
         }
 
         try:

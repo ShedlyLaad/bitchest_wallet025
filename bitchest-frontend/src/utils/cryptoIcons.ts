@@ -37,24 +37,3 @@ export function getCryptoIcon(symbol: string): string | undefined {
   return cryptoIconMap[symbol.toUpperCase()];
 }
 
-/**
- * Get the icon image for a cryptocurrency symbol with a fallback
- * @param symbol - The cryptocurrency symbol
- * @param fallback - Optional fallback icon if not found
- * @returns The icon image path, or the fallback if not found
- */
-export function getCryptoIconWithFallback(symbol: string, fallback?: string): string {
-  return getCryptoIcon(symbol) || fallback || '';
-}
-
-/**
- * Check if an icon exists for a given symbol
- * @param symbol - The cryptocurrency symbol
- * @returns true if icon exists, false otherwise
- */
-export function hasCryptoIcon(symbol: string): boolean {
-  return !!getCryptoIcon(symbol);
-}
-
-export default cryptoIconMap;
-

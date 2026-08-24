@@ -22,7 +22,7 @@
             <Wallet class="h-6 w-6 text-blue-400" />
           </div>
           <div>
-            <h1 class="text-3xl sm:text-4xl font-bold mb-2 bg-gradient-to-r from-white via-gray-200 to-gray-300 bg-clip-text text-transparent">Portfolio</h1>
+            <h1 class="text-3xl sm:text-4xl font-bold mb-2 bg-gradient-to-r from-white via-gray-200 to-gray-300 bg-clip-text text-transparent">Wallet</h1>
             <p class="text-gray-400 text-sm sm:text-base">View and manage your cryptocurrency assets</p>
           </div>
         </div>
@@ -147,45 +147,57 @@
 
       <!-- Top Performers & Diversification -->
       <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <!-- Enhanced Top Gainers -->
-        <div class="bg-gradient-to-br from-gray-800/60 to-gray-800/40 backdrop-blur-sm rounded-xl border border-gray-700/50 p-6 shadow-lg hover:shadow-xl hover:shadow-green-500/20 transition-all duration-300">
-          <h2 class="text-xl font-bold mb-4 flex items-center gap-2">
-            <div class="p-2 bg-green-500/20 rounded-lg">
-              <TrendingUp class="h-5 w-5 text-green-400" />
-            </div>
-            <span>Top Gainers</span>
-          </h2>
+        <!-- Top Gainers -->
+        <div class="bg-gradient-to-br from-gray-800/60 to-gray-800/40 backdrop-blur-sm rounded-xl border border-gray-700/50 p-6 shadow-lg hover:shadow-xl hover:shadow-green-500/10 transition-all duration-300">
+          <div class="flex items-center justify-between mb-5">
+            <h2 class="text-lg font-bold flex items-center gap-2">
+              <div class="p-2 bg-green-500/20 rounded-lg">
+                <TrendingUp class="h-5 w-5 text-green-400" />
+              </div>
+              <span>Best Performers</span>
+            </h2>
+            <span class="text-xs text-gray-500 font-medium uppercase tracking-wider">By 24h return</span>
+          </div>
           <div v-if="isLoadingPortfolio" class="flex justify-center items-center h-48">
             <div class="h-8 w-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
           </div>
-          <div v-else-if="topGainers.length > 0" class="space-y-3">
-              <div
-              v-for="holding in topGainers"
+          <div v-else-if="topGainers.length > 0" class="space-y-1">
+            <div
+              v-for="(holding, index) in topGainers"
               :key="holding.id"
-              class="group flex items-center justify-between p-4 bg-gradient-to-br from-gray-700/40 to-gray-800/40 backdrop-blur-sm rounded-xl border border-gray-700/50 hover:border-green-500/50 hover:shadow-lg hover:shadow-green-500/10 transition-all duration-300 hover:scale-[1.02]"
+              class="group flex items-center gap-3 py-3 border-b border-gray-700/30 last:border-b-0"
             >
-              <div class="flex items-center gap-3 flex-1">
-                <div class="w-8 h-8 bg-gray-700 rounded-full flex items-center justify-center flex-shrink-0 overflow-hidden" :data-symbol="holding.symbol">
-                  <img
-                    v-if="getCryptoIcon(holding.symbol)"
-                    :src="getCryptoIcon(holding.symbol)"
-                    :alt="holding.name"
-                    class="w-full h-full object-cover"
-                    @error="handleImageError($event)"
-                  />
-                  <span v-else class="text-white font-bold text-xs">{{ holding.symbol }}</span>
-                </div>
-                <div class="flex-1 min-w-0">
-                  <div class="font-semibold text-white text-sm">{{ holding.symbol }}</div>
-                  <div class="text-xs text-gray-400 truncate">{{ holding.name }}</div>
-                </div>
+              <div class="flex items-center justify-center w-6 h-6 rounded-full bg-gray-700/50 text-xs font-bold text-gray-400 flex-shrink-0">
+                {{ index + 1 }}
               </div>
-              <div class="text-right">
-                <div class="font-bold text-sm" style="color: #01ff19;">
-                  {{ holding.gainLossPercent >= 0 ? '+' : '' }}{{ holding.gainLossPercent.toFixed(2) }}%
+              <div class="w-9 h-9 bg-gray-700 rounded-full flex items-center justify-center flex-shrink-0 overflow-hidden" :data-symbol="holding.symbol">
+                <img
+                  v-if="getCryptoIcon(holding.symbol)"
+                  :src="getCryptoIcon(holding.symbol)"
+                  :alt="holding.name"
+                  class="w-full h-full object-cover"
+                  @error="handleImageError($event)"
+                />
+                <span v-else class="text-white font-bold text-xs">{{ holding.symbol }}</span>
+              </div>
+              <div class="flex-1 min-w-0">
+                <div class="flex items-baseline justify-between gap-2">
+                  <span class="font-semibold text-white text-sm">{{ holding.symbol }}</span>
+                  <span class="font-bold text-sm flex-shrink-0" style="color: #01ff19;">
+                    {{ holding.gainLossPercent >= 0 ? '+' : '' }}{{ holding.gainLossPercent.toFixed(2) }}%
+                  </span>
                 </div>
-                <div class="text-xs text-gray-400 font-mono">
-                  {{ holding.gainLoss >= 0 ? '+' : '' }}{{ formatEUR(Math.abs(holding.gainLoss)) }}
+                <div class="flex items-center justify-between gap-2 mt-1">
+                  <div class="h-1 flex-1 bg-gray-700/50 rounded-full overflow-hidden">
+                    <div
+                      class="h-full rounded-full transition-all duration-500"
+                      style="background: linear-gradient(90deg, rgba(1,255,25,0.4), #01ff19);"
+                      :style="{ width: `${barWidth(holding.gainLossPercent, maxGainerPercent)}%` }"
+                    ></div>
+                  </div>
+                  <span class="text-xs text-gray-500 font-mono flex-shrink-0">
+                    {{ holding.gainLoss >= 0 ? '+' : '' }}{{ formatEUR(Math.abs(holding.gainLoss)) }}
+                  </span>
                 </div>
               </div>
             </div>
@@ -195,45 +207,57 @@
           </div>
         </div>
 
-        <!-- Enhanced Top Losers -->
-        <div class="bg-gradient-to-br from-gray-800/60 to-gray-800/40 backdrop-blur-sm rounded-xl border border-gray-700/50 p-6 shadow-lg hover:shadow-xl hover:shadow-red-500/20 transition-all duration-300">
-          <h2 class="text-xl font-bold mb-4 flex items-center gap-2">
-            <div class="p-2 bg-red-500/20 rounded-lg">
-              <TrendingDown class="h-5 w-5 text-red-400" />
-            </div>
-            <span>Top Losers</span>
-          </h2>
+        <!-- Top Losers -->
+        <div class="bg-gradient-to-br from-gray-800/60 to-gray-800/40 backdrop-blur-sm rounded-xl border border-gray-700/50 p-6 shadow-lg hover:shadow-xl hover:shadow-red-500/10 transition-all duration-300">
+          <div class="flex items-center justify-between mb-5">
+            <h2 class="text-lg font-bold flex items-center gap-2">
+              <div class="p-2 bg-red-500/20 rounded-lg">
+                <TrendingDown class="h-5 w-5 text-red-400" />
+              </div>
+              <span>Worst Performers</span>
+            </h2>
+            <span class="text-xs text-gray-500 font-medium uppercase tracking-wider">By 24h return</span>
+          </div>
           <div v-if="isLoadingPortfolio" class="flex justify-center items-center h-48">
             <div class="h-8 w-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
           </div>
-          <div v-else-if="topLosers.length > 0" class="space-y-3">
-              <div
-              v-for="holding in topLosers"
+          <div v-else-if="topLosers.length > 0" class="space-y-1">
+            <div
+              v-for="(holding, index) in topLosers"
               :key="holding.id"
-              class="group flex items-center justify-between p-4 bg-gradient-to-br from-gray-700/40 to-gray-800/40 backdrop-blur-sm rounded-xl border border-gray-700/50 hover:border-red-500/50 hover:shadow-lg hover:shadow-red-500/10 transition-all duration-300 hover:scale-[1.02]"
+              class="group flex items-center gap-3 py-3 border-b border-gray-700/30 last:border-b-0"
             >
-              <div class="flex items-center gap-3 flex-1">
-                <div class="w-8 h-8 bg-gray-700 rounded-full flex items-center justify-center flex-shrink-0 overflow-hidden" :data-symbol="holding.symbol">
-                  <img
-                    v-if="getCryptoIcon(holding.symbol)"
-                    :src="getCryptoIcon(holding.symbol)"
-                    :alt="holding.name"
-                    class="w-full h-full object-cover"
-                    @error="handleImageError($event)"
-                  />
-                  <span v-else class="text-white font-bold text-xs">{{ holding.symbol }}</span>
-                </div>
-                <div class="flex-1 min-w-0">
-                  <div class="font-semibold text-white text-sm">{{ holding.symbol }}</div>
-                  <div class="text-xs text-gray-400 truncate">{{ holding.name }}</div>
-                </div>
+              <div class="flex items-center justify-center w-6 h-6 rounded-full bg-gray-700/50 text-xs font-bold text-gray-400 flex-shrink-0">
+                {{ index + 1 }}
               </div>
-              <div class="text-right">
-                <div class="font-bold text-sm" style="color: #ff5964;">
-                  {{ holding.gainLossPercent < 0 ? '-' : '' }}{{ Math.abs(holding.gainLossPercent).toFixed(2) }}%
+              <div class="w-9 h-9 bg-gray-700 rounded-full flex items-center justify-center flex-shrink-0 overflow-hidden" :data-symbol="holding.symbol">
+                <img
+                  v-if="getCryptoIcon(holding.symbol)"
+                  :src="getCryptoIcon(holding.symbol)"
+                  :alt="holding.name"
+                  class="w-full h-full object-cover"
+                  @error="handleImageError($event)"
+                />
+                <span v-else class="text-white font-bold text-xs">{{ holding.symbol }}</span>
+              </div>
+              <div class="flex-1 min-w-0">
+                <div class="flex items-baseline justify-between gap-2">
+                  <span class="font-semibold text-white text-sm">{{ holding.symbol }}</span>
+                  <span class="font-bold text-sm flex-shrink-0" style="color: #ff5964;">
+                    {{ holding.gainLossPercent < 0 ? '-' : '' }}{{ Math.abs(holding.gainLossPercent).toFixed(2) }}%
+                  </span>
                 </div>
-                <div class="text-xs text-gray-400 font-mono">
-                  {{ holding.gainLoss < 0 ? '-' : '' }}{{ formatEUR(Math.abs(holding.gainLoss)) }}
+                <div class="flex items-center justify-between gap-2 mt-1">
+                  <div class="h-1 flex-1 bg-gray-700/50 rounded-full overflow-hidden">
+                    <div
+                      class="h-full rounded-full transition-all duration-500"
+                      style="background: linear-gradient(90deg, rgba(255,89,100,0.4), #ff5964);"
+                      :style="{ width: `${barWidth(Math.abs(holding.gainLossPercent), maxLoserPercent)}%` }"
+                    ></div>
+                  </div>
+                  <span class="text-xs text-gray-500 font-mono flex-shrink-0">
+                    {{ holding.gainLoss < 0 ? '-' : '' }}{{ formatEUR(Math.abs(holding.gainLoss)) }}
+                  </span>
                 </div>
               </div>
             </div>
@@ -281,7 +305,7 @@
               <div class="p-1.5 bg-purple-500/20 rounded-lg group-hover:bg-purple-500/30 transition-colors">
                 <Activity class="h-4 w-4 text-purple-400" />
               </div>
-              <div class="text-gray-400 text-sm font-medium">Portfolio Concentration</div>
+              <div class="text-gray-400 text-sm font-medium">Wallet Concentration</div>
             </div>
             <div class="text-lg font-bold text-white mb-2 transition-transform duration-300 group-hover:scale-110">{{ concentrationIndex.toFixed(2) }}</div>
             <div class="text-xs font-medium mt-1 px-2 py-1 rounded-lg inline-block" :style="{ 
@@ -345,7 +369,7 @@
             <thead class="bg-gray-700/30 border-b border-gray-700/50">
               <tr>
                 <th class="px-6 py-4 text-left text-xs font-semibold text-gray-300 uppercase tracking-wider">Token</th>
-                <th class="px-6 py-4 text-right text-xs font-semibold text-gray-300 uppercase tracking-wider">Portfolio %</th>
+                <th class="px-6 py-4 text-right text-xs font-semibold text-gray-300 uppercase tracking-wider">Wallet %</th>
                 <th class="px-6 py-4 text-right text-xs font-semibold text-gray-300 uppercase tracking-wider">Price</th>
                 <th class="px-6 py-4 text-right text-xs font-semibold text-gray-300 uppercase tracking-wider">Balance</th>
                 <th class="px-6 py-4 text-center text-xs font-semibold text-gray-300 uppercase tracking-wider">Actions</th>
@@ -413,8 +437,8 @@
           <div class="w-16 h-16 bg-gray-700/30 rounded-full flex items-center justify-center mx-auto mb-4">
             <Wallet class="h-8 w-8 text-gray-500" />
           </div>
-          <p class="text-gray-400 mb-2 text-lg">No portfolio holdings</p>
-          <p class="text-sm text-gray-500">Start trading to build your portfolio</p>
+          <p class="text-gray-400 mb-2 text-lg">No wallet holdings</p>
+          <p class="text-sm text-gray-500">Start trading to build your wallet</p>
         </div>
       </div>
     </div>
@@ -852,6 +876,21 @@ const topLosers = computed(() => {
     .sort((a, b) => a.gainLossPercent - b.gainLossPercent)
     .slice(0, 3);
 });
+
+// Largest magnitude in each list, used to scale the relative-return bars
+const maxGainerPercent = computed(() => {
+  return Math.max(...topGainers.value.map(h => h.gainLossPercent), 0);
+});
+
+const maxLoserPercent = computed(() => {
+  return Math.max(...topLosers.value.map(h => Math.abs(h.gainLossPercent)), 0);
+});
+
+// Bar width (%) scaled relative to the largest magnitude in the list, floored so tiny values stay visible
+function barWidth(value: number, max: number): number {
+  if (max <= 0) return 0;
+  return Math.max(6, Math.min(100, (Math.abs(value) / max) * 100));
+}
 
 // Largest position
 const largestPosition = computed(() => {

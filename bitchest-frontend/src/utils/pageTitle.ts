@@ -19,7 +19,7 @@ const routeTitles: Record<string, RouteConfig> = {
   'Dashboard': { title: 'Dashboard - BitChest', favicon: 'user' },
   'Profile': { title: 'Profile - BitChest', favicon: 'user' },
   'Trade': { title: 'Trade Cryptocurrencies - BitChest', favicon: 'user' },
-  'Portfolio': { title: 'Portfolio - BitChest', favicon: 'user' },
+  'Portfolio': { title: 'Wallet - BitChest', favicon: 'user' },
   'Support': { title: 'Support - BitChest', favicon: 'user' },
   
   // Public routes
@@ -33,17 +33,17 @@ const routeTitles: Record<string, RouteConfig> = {
  * Update favicon based on type with multiple sizes for better clarity
  */
 function updateFavicon(type: 'admin' | 'user' | 'default'): void {
-  let faviconPath = '/LogoUser.png'; // Default to user logo
-  
+  let faviconPath = '/LogoUser-icon.png'; // Default to user logo
+
   switch (type) {
     case 'admin':
-      faviconPath = '/LogoAdmin.png';
+      faviconPath = '/LogoAdmin-icon.png';
       break;
     case 'user':
-      faviconPath = '/LogoUser.png';
+      faviconPath = '/LogoUser-icon.png';
       break;
     case 'default':
-      faviconPath = '/LogoUser.png';
+      faviconPath = '/LogoUser-icon.png';
       break;
   }
 

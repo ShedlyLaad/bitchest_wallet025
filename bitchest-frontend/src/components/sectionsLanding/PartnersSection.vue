@@ -142,6 +142,7 @@ import ScrollReveal from '../ScrollReveal.vue';
 import SectionBackground from './SectionBackground.vue';
 import type { CryptoCurrency } from '../../types';
 import { getPublicMarket } from '../../services/api';
+import { getCryptoColor } from '../../utils/cryptoColors';
 
 // State
 const cryptos = ref<CryptoCurrency[]>([]);
@@ -163,23 +164,6 @@ const getCryptoIcon = (symbol: string): string => {
     'DASH': '/src/assets/dash.png'
   };
   return iconMap[symbol.toUpperCase()] || '/src/assets/bitcoin.png';
-};
-
-// Crypto color mapping
-const getCryptoColor = (symbol: string): string => {
-  const colorMap: Record<string, string> = {
-    'BTC': '#F7931A',
-    'ETH': '#627EEA',
-    'XRP': '#0085c3',
-    'BCH': '#0ac18e',
-    'ADA': '#0033ad',
-    'LTC': '#345d9d',
-    'XEM': '#67B2E8',
-    'XLM': '#7d00ff',
-    'MIOTA': '#00d4ff',
-    'DASH': '#008de4'
-  };
-  return colorMap[symbol.toUpperCase()] || '#35a7ff';
 };
 
 // Format price (EUR format)

@@ -817,6 +817,10 @@ export async function getAdminDashboard(timeFilter?: string, useCache: boolean =
           trades_series: number[];
           pending_users: { id: number; name: string; email: string; submitDate: string }[];
           recent_activities: { id: number; user: string; action: string; time: string }[];
+          coin_distribution: {
+            by_users: { symbol: string; name: string; count: number }[];
+            by_value: { symbol: string; name: string; value: number }[];
+          };
         };
       },
       { ttl: 60 * 1000 } // 1 minute

@@ -211,7 +211,7 @@
           @click="closeMenu"
           :class="`${isActive('/app/portfolio') ? 'bg-blue-600 text-white' : 'text-white hover:bg-white/10'} block px-4 py-2 rounded-md flex items-center gap-2`"
         >
-          <Wallet class="h-4 w-4" /> Portfolio
+          <Wallet class="h-4 w-4" /> Wallet
         </router-link>
         <button @click="handleLogout" class="w-full px-4 py-2 rounded-md border border-red-600/50 hover:bg-red-600/20 transition text-sm text-white flex items-center gap-2">
           <LogOut class="h-4 w-4" /> Logout

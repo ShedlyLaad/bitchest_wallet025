@@ -3,10 +3,12 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\Portfolio;
 use App\Models\Transaction;
 use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class DashboardController extends Controller
 {
@@ -79,7 +81,44 @@ class DashboardController extends Controller
             'trades_series' => $tradesSeries,
             'pending_users' => $pendingUsers,
             'recent_activities' => $recentActivities,
+            'coin_distribution' => $this->buildCoinDistribution(),
         ]);
+    }
+
+    /**
+     * Aggregate, per cryptocurrency, how many client users currently hold a
+     * position and the total invested value they hold — powers the admin
+     * dashboard's coin-usage donut charts.
+     */
+    private function buildCoinDistribution(): array
+    {
+        $rows = Portfolio::query()
+            ->join('users', 'users.id', '=', 'portfolios.user_id')
+            ->join('crypto_currencies', 'crypto_currencies.id', '=', 'portfolios.crypto_currency_id')
+            ->where('users.role', 'client')
+            ->where('portfolios.total_crypto_value', '>', 0)
+            ->groupBy('crypto_currencies.id', 'crypto_currencies.symbol', 'crypto_currencies.name')
+            ->select([
+                'crypto_currencies.symbol as symbol',
+                'crypto_currencies.name as name',
+                DB::raw('COUNT(portfolios.id) as holders'),
+                DB::raw('SUM(portfolios.total_crypto_value) as value'),
+            ])
+            ->orderByDesc('holders')
+            ->get();
+
+        return [
+            'by_users' => $rows->map(fn ($r) => [
+                'symbol' => $r->symbol,
+                'name' => $r->name,
+                'count' => (int) $r->holders,
+            ])->values()->all(),
+            'by_value' => $rows->sortByDesc('value')->map(fn ($r) => [
+                'symbol' => $r->symbol,
+                'name' => $r->name,
+                'value' => (float) $r->value,
+            ])->values()->all(),
+        ];
     }
 
     /**

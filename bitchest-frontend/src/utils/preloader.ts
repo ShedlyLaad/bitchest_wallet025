@@ -2,7 +2,6 @@
  * Preloader - Précharge les données critiques au démarrage de l'application
  */
 
-import { cacheService } from '@/services/cacheService';
 import { getPortfolio, getUserCryptos, getUnreadNotificationsCount } from '@/services/api';
 import { useAuthStore } from '@/stores/auth';
 

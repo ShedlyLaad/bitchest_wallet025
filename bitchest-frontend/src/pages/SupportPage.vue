@@ -263,7 +263,6 @@
 import { ref, computed } from 'vue';
 import {
   ChevronDown as ChevronDownIcon,
-  MessageCircle as MessageCircleIcon,
   Ticket as TicketIcon,
   Send as SendIcon,
   Clock as ClockIcon,

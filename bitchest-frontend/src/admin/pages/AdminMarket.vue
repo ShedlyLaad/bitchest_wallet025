@@ -319,7 +319,7 @@ const loading = ref(false);
 const historyLoading = ref(false);
 const errorMessage = ref('');
 const lastUpdated = ref<Date | null>(null);
-const timeframe = ref('30d'); // Default to 30 days
+const timeframe = ref('90d'); // Default to 90 days
 // Timer pour rafraîchir les données depuis Coinbase API
 let refreshTimer: ReturnType<typeof setInterval> | null = null;
 const REFRESH_INTERVAL = 86400000; // Rafraîchir toutes les 24h (86400000 ms)

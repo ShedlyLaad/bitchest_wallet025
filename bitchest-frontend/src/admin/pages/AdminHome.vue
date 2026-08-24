@@ -203,6 +203,71 @@
       </div>
     </div>
 
+    <!-- Coin Usage Donut Charts -->
+    <div v-if="!loading || totals" class="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+      <!-- Coins by Holders -->
+      <div class="bg-gradient-to-br from-gray-800 to-gray-900 rounded-xl border border-gray-700 shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden">
+        <div class="p-4 sm:p-6 border-b border-gray-700/50 bg-gray-800/30">
+          <div class="flex items-center justify-between">
+            <div>
+              <h3 class="text-lg sm:text-xl font-semibold text-white">Coins by Holders</h3>
+              <p class="text-xs text-gray-400 mt-1">Users currently holding each cryptocurrency</p>
+            </div>
+            <div class="px-3 py-1.5 bg-gray-700/50 rounded-lg text-sm text-gray-300 font-medium border border-gray-600/50">
+              <Users class="h-4 w-4 inline mr-1" />
+              Adoption
+            </div>
+          </div>
+        </div>
+
+        <div v-if="coinUsersChartSeries.length > 0" class="p-4 sm:p-6">
+          <ApexChart
+            :key="`coin-users-chart-${timeFilter}`"
+            :options="coinUsersChartOptions"
+            :series="coinUsersChartSeries"
+            type="donut"
+            height="320"
+          />
+        </div>
+        <div v-else class="h-[320px] flex items-center justify-center">
+          <div class="text-center text-gray-500 text-sm">
+            <div>{{ loading ? 'Loading chart data...' : 'No holdings data available' }}</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Coins by Value Held -->
+      <div class="bg-gradient-to-br from-gray-800 to-gray-900 rounded-xl border border-gray-700 shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden">
+        <div class="p-4 sm:p-6 border-b border-gray-700/50 bg-gray-800/30">
+          <div class="flex items-center justify-between">
+            <div>
+              <h3 class="text-lg sm:text-xl font-semibold text-white">Coins by Value Held</h3>
+              <p class="text-xs text-gray-400 mt-1">Total invested value per cryptocurrency</p>
+            </div>
+            <div class="px-3 py-1.5 bg-gray-700/50 rounded-lg text-sm text-gray-300 font-medium border border-gray-600/50">
+              <span class="text-base font-bold mr-1">€</span>
+              Value
+            </div>
+          </div>
+        </div>
+
+        <div v-if="coinValueChartSeries.length > 0" class="p-4 sm:p-6">
+          <ApexChart
+            :key="`coin-value-chart-${timeFilter}`"
+            :options="coinValueChartOptions"
+            :series="coinValueChartSeries"
+            type="donut"
+            height="320"
+          />
+        </div>
+        <div v-else class="h-[320px] flex items-center justify-center">
+          <div class="text-center text-gray-500 text-sm">
+            <div>{{ loading ? 'Loading chart data...' : 'No holdings data available' }}</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- Tables -->
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
       <!-- Pending KYC Approvals -->
@@ -446,6 +511,7 @@ import AnimatedCounter from '@/components/AnimatedCounter.vue';
 import { getAdminDashboard, getAdminTransactions, approveUser } from '@/services/api';
 import { useAuthStore } from '@/stores/auth';
 import { getCryptoIcon } from '@/utils/cryptoIcons';
+import { getCryptoColor } from '@/utils/cryptoColors';
 import { CHART_COLORS, CHART_GRID, CHART_AXIS_LABEL_STYLE } from '@/utils/chartTheme';
 
 const auth = useAuthStore();
@@ -472,6 +538,8 @@ const tradesSeries = ref<number[]>([]);
 const pendingKycUsers = ref<{ id: number; name: string; email: string; submitDate: string }[]>([]);
 const recentTransactions = ref<Transaction[]>([]);
 const selectedTransaction = ref<Transaction | null>(null);
+const coinDistributionByUsers = ref<{ symbol: string; name: string; count: number }[]>([]);
+const coinDistributionByValue = ref<{ symbol: string; name: string; value: number }[]>([]);
 
 const isAdmin = computed(() => auth.user?.role === 'admin');
 
@@ -743,6 +811,101 @@ const tradesChartOptions = computed(() => ({
   },
 } as ApexOptions));
 
+// Coin distribution donut charts — one slice per crypto, colored by the
+// shared brand-color key so a coin always reads as the same color across
+// the whole app (landing page, trading chart, dashboard).
+const coinUsersChartSeries = computed(() => coinDistributionByUsers.value.map((c) => c.count));
+const coinUsersChartLabels = computed(() => coinDistributionByUsers.value.map((c) => c.symbol));
+const coinUsersChartColors = computed(() => coinDistributionByUsers.value.map((c) => getCryptoColor(c.symbol)));
+
+const coinValueChartSeries = computed(() => coinDistributionByValue.value.map((c) => c.value));
+const coinValueChartLabels = computed(() => coinDistributionByValue.value.map((c) => c.symbol));
+const coinValueChartColors = computed(() => coinDistributionByValue.value.map((c) => getCryptoColor(c.symbol)));
+
+function donutChartOptions(
+  labels: string[],
+  colors: string[],
+  totalLabel: string,
+  centerFormatter: (val: number) => string,
+  tooltipFormatter: (val: number) => string
+): ApexOptions {
+  return {
+    chart: {
+      type: 'donut' as const,
+      background: 'transparent',
+    },
+    labels,
+    colors,
+    legend: {
+      position: 'bottom',
+      labels: { colors: CHART_COLORS.axisLabel },
+      fontSize: '12px',
+      markers: { size: 8 } as any,
+    },
+    dataLabels: {
+      enabled: true,
+      formatter: (val: number) => `${val.toFixed(1)}%`,
+      style: { fontSize: '11px', fontWeight: 600 },
+    },
+    stroke: {
+      show: true,
+      width: 2,
+      colors: ['#1f2937'],
+    },
+    plotOptions: {
+      pie: {
+        donut: {
+          size: '68%',
+          labels: {
+            show: true,
+            total: {
+              show: true,
+              label: totalLabel,
+              color: '#e5e7eb',
+              formatter: (w: any) => centerFormatter(w.globals.seriesTotals.reduce((a: number, b: number) => a + b, 0)),
+            },
+            value: {
+              color: '#fff',
+              fontSize: '20px',
+              fontWeight: 700,
+            },
+          },
+        },
+      },
+    },
+    theme: {
+      mode: 'dark' as const,
+    },
+    tooltip: {
+      theme: 'dark',
+      y: { formatter: tooltipFormatter },
+    },
+  };
+}
+
+// Center total: a clean number, no inline unit text (e.g. "50", not "50 users") —
+// the "Holders" label above it already gives the number its meaning.
+// Tooltip: keeps a unit for clarity on hover, using "holders" to match the chart's own title.
+const coinUsersChartOptions = computed<ApexOptions>(() =>
+  donutChartOptions(
+    coinUsersChartLabels.value,
+    coinUsersChartColors.value,
+    'Holders',
+    (val) => Math.round(val).toLocaleString('en-US'),
+    (val) => `${Math.round(val).toLocaleString('en-US')} holder${Math.round(val) === 1 ? '' : 's'}`
+  )
+);
+
+const coinValueChartOptions = computed<ApexOptions>(() =>
+  donutChartOptions(
+    coinValueChartLabels.value,
+    coinValueChartColors.value,
+    'Total Value',
+    (val) => formatCurrency(val),
+    (val) => formatCurrency(val)
+  )
+);
+
 const statCards = computed(() => {
   const cards = [
     { title: 'Total Users', value: totals.value?.total_users ?? 0, change: '', changeType: 'positive', icon: Users },
@@ -869,7 +1032,9 @@ async function loadData() {
       : [];
     
     pendingKycUsers.value = data.pending_users || [];
-    
+    coinDistributionByUsers.value = data.coin_distribution?.by_users || [];
+    coinDistributionByValue.value = data.coin_distribution?.by_value || [];
+
     // Fetch the last 5 transactions with full details
     try {
       const txData = await getAdminTransactions({ per_page: 5, page: 1 });

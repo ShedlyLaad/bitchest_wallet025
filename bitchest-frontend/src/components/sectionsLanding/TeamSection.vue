@@ -44,9 +44,9 @@
               </div>
 
               <div class="card-content">
-                <h3 class="text-3xl font-bold mb-2 gradient-text">Shedly Laadhiby</h3>
-                <p class="text-gray-300 mb-4 font-medium">Founder &amp; Full-Stack Developer</p>
-                <p class="text-gray-400 text-sm leading-relaxed mb-5">
+                <h3 class="text-4xl font-bold mb-2 gradient-text">Shedly Laadhiby</h3>
+                <p class="text-gray-200 text-lg mb-4 font-medium">Founder &amp; Full-Stack Developer</p>
+                <p class="text-gray-300 text-base leading-relaxed mb-5">
                   Full-Stack Developer with a background in Information Systems and Web &amp; Mobile Development.
                   Founder of Bitchets, responsible for its design, development, and technical direction, with a
                   focus on building practical and scalable digital solutions.
@@ -76,7 +76,7 @@
 <script setup lang="ts">
 import ScrollReveal from '../ScrollReveal.vue';
 
-// const skills = ['Vue.js', 'TypeScript', 'Laravel', 'Tailwind CSS'];
+const skills = ['Vue.js', 'TypeScript', 'Laravel', 'Tailwind CSS'];
 
 const bgOrbStyle = (i: number) => {
   const size = 100 + i * 50;
@@ -132,7 +132,7 @@ const bgOrbStyle = (i: number) => {
 }
 
 /* Founder card styles - landscape layout */
-.founder-card { width: 100%; max-width: 52rem; perspective: 1000px; }
+.founder-card { width: 100%; max-width: 64rem; perspective: 1000px; }
 .card-inner {
   position: relative;
   z-index: 10;
@@ -153,12 +153,16 @@ const bgOrbStyle = (i: number) => {
 .founder-card:hover .card-inner { transform: translateZ(10px); }
 
 @media (min-width: 768px) {
-  .card-inner { flex-direction: row; align-items: center; text-align: left; padding: 3rem; }
+  .card-inner { flex-direction: row; align-items: center; text-align: left; padding: 3.5rem; gap: 3rem; }
 }
 
 /* Avatar */
 .avatar-wrap { display:flex; justify-content:center; flex-shrink: 0; }
-.avatar-ring { width: 10rem; height: 10rem; border-radius:9999px; padding: 0.3rem; box-shadow: 0 10px 30px rgba(0,0,0,0.5); background: linear-gradient(to bottom right, var(--blue), var(--blue-dark), var(--accent-green)); border: 1px solid rgba(53,167,255,0.12); display:flex; align-items:center; justify-content:center; overflow:hidden; }
+.avatar-ring { width: 12rem; height: 12rem; border-radius:9999px; padding: 0.35rem; box-shadow: 0 10px 30px rgba(0,0,0,0.5); background: linear-gradient(to bottom right, var(--blue), var(--blue-dark), var(--accent-green)); border: 1px solid rgba(53,167,255,0.12); display:flex; align-items:center; justify-content:center; overflow:hidden; }
+
+@media (min-width: 768px) {
+  .avatar-ring { width: 14rem; height: 14rem; }
+}
 .avatar-img { width: 100%; height: 100%; object-fit: cover; border-radius: 9999px; background: #111827; transform-origin: center; transition: transform 0.5s ease; }
 .founder-card:hover .avatar-img { transform: scale(1.05); }
 
@@ -178,9 +182,9 @@ const bgOrbStyle = (i: number) => {
   .skills-row { justify-content: flex-start; }
 }
 .skill-chip {
-  font-size: 0.75rem;
+  font-size: 0.8125rem;
   font-weight: 500;
-  padding: 0.35rem 0.85rem;
+  padding: 0.4rem 0.95rem;
   border-radius: 9999px;
   color: var(--blue);
   background: rgba(53,167,255,0.1);

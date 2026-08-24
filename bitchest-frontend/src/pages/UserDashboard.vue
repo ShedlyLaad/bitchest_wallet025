@@ -770,7 +770,6 @@
               </div>
               <div>
                 <h2 class="text-xl font-semibold text-white">Transaction Details</h2>
-                <!-- <p class="text-xs text-gray-400 mt-0.5">ID: #{{ selectedTransaction.id }}</p> -->
               </div>
             </div>
             <button

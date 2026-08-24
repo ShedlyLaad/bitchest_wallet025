@@ -114,7 +114,7 @@
                   class="dropdown-menu-item block px-4 py-2.5 text-gray-300 hover:text-white flex items-center gap-2 transition-all duration-150"
                 >
                   <Wallet class="h-4 w-4" />
-                  <span class="font-medium">Portfolio</span>
+                  <span class="font-medium">Wallet</span>
                 </router-link>
                 <button
                   @click="handleLogout"

@@ -647,21 +647,21 @@ export async function refreshCryptoPrices(): Promise<CryptoCurrency[]> {
   return data;
 }
 
-export async function getMarketHistory(symbol: string, useCache: boolean = true) {
-  const cacheKey = `market_history_${symbol}`;
-  
+export async function getMarketHistory(symbol: string, useCache: boolean = true, timeframe: string = '90d') {
+  const cacheKey = `market_history_${symbol}_${timeframe}`;
+
   if (useCache) {
     return cacheService.preload(
       cacheKey,
       async () => {
-        const { data } = await api.get<CryptoPricePoint[]>(`/api/market/history/${symbol}`);
+        const { data } = await api.get<CryptoPricePoint[]>(`/api/market/history/${symbol}`, { params: { timeframe } });
         return data;
       },
       { ttl: 60 * 1000 } // 1 minute
     );
   }
-  
-  const { data } = await api.get<CryptoPricePoint[]>(`/api/market/history/${symbol}`);
+
+  const { data } = await api.get<CryptoPricePoint[]>(`/api/market/history/${symbol}`, { params: { timeframe } });
   cacheService.set(cacheKey, data, { ttl: 60 * 1000 });
   return data;
 }

@@ -33,6 +33,14 @@
       </div>
     </div>
 
+    <!-- Success Message -->
+    <div v-if="successMessage" class="bg-green-900/20 border-l-4 border-green-500 rounded-lg p-4 text-green-300 shadow-lg">
+      <div class="flex items-center gap-2">
+        <CheckCircle class="h-5 w-5 flex-shrink-0" />
+        <span>{{ successMessage }}</span>
+      </div>
+    </div>
+
     <!-- Loading State -->
     <div v-if="loading && !totals" class="flex items-center justify-center py-12">
       <div class="text-gray-400">Loading dashboard data...</div>
@@ -207,7 +215,7 @@
                   <AlertCircle class="h-5 w-5 text-yellow-400" />
                 </div>
                 <div>
-                  <h3 class="text-lg sm:text-xl font-semibold text-white">Pending KYC Approvals</h3>
+                  <h3 class="text-lg sm:text-xl font-semibold text-white">Pending Account Verifications</h3>
                   <p class="text-xs text-gray-400 mt-1">Users awaiting validation</p>
                 </div>
               </div>
@@ -233,7 +241,7 @@
                 {{ searchTerm ? 'No users found' : 'All clear!' }}
               </h4>
               <p class="text-gray-400 text-sm mb-4">
-                {{ searchTerm ? 'Try adjusting your search terms' : 'No pending KYC approvals at the moment' }}
+                {{ searchTerm ? 'Try adjusting your search terms' : 'No pending account verifications at the moment' }}
               </p>
               <div v-if="!searchTerm" class="bg-gray-700/30 rounded-lg p-4 border border-gray-600/30">
                 <div class="flex items-center justify-center gap-4 text-sm">
@@ -279,10 +287,12 @@
                   <Eye class="h-4 w-4" />
                 </button>
                 <button
-                  class="p-2 rounded-lg transition-all hover:scale-110 bg-green-600/20 hover:bg-green-600/30 text-green-400 hover:text-green-300 border border-green-600/30"
+                  @click="handleApproveUser(user.id)"
+                  :disabled="approvingUserId === user.id"
+                  class="p-2 rounded-lg transition-all hover:scale-110 bg-green-600/20 hover:bg-green-600/30 text-green-400 hover:text-green-300 border border-green-600/30 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
                   title="Approve"
                 >
-                  <CheckCircle class="h-4 w-4" />
+                  <CheckCircle class="h-4 w-4" :class="{ 'animate-pulse': approvingUserId === user.id }" />
                 </button>
                 <button
                   class="p-2 rounded-lg transition-all hover:scale-110 bg-red-600/20 hover:bg-red-600/30 text-red-400 hover:text-red-300 border border-red-600/30"
@@ -433,17 +443,19 @@ import type { Transaction } from '@/types';
 import ApexChart from 'vue3-apexcharts';
 import type { ApexOptions } from 'apexcharts';
 import AnimatedCounter from '@/components/AnimatedCounter.vue';
-import { getAdminDashboard, getAdminTransactions } from '@/services/api';
+import { getAdminDashboard, getAdminTransactions, approveUser } from '@/services/api';
 import { useAuthStore } from '@/stores/auth';
 import { getCryptoIcon } from '@/utils/cryptoIcons';
 import { CHART_COLORS, CHART_GRID, CHART_AXIS_LABEL_STYLE } from '@/utils/chartTheme';
 
 const auth = useAuthStore();
 const router = useRouter();
-const timeFilter = ref('30d'); // Default to 30 days
+const timeFilter = ref('90d'); // Default to 90 days
 const searchTerm = ref('');
 const loading = ref(false);
 const errorMessage = ref('');
+const successMessage = ref('');
+const approvingUserId = ref<number | null>(null);
 
 type Totals = {
   total_users: number;
@@ -803,6 +815,25 @@ function formatNumber(value: number, decimals: number = 8) {
     minimumFractionDigits: 0,
     maximumFractionDigits: decimals,
   }).format(value);
+}
+
+async function handleApproveUser(id: number) {
+  errorMessage.value = '';
+  approvingUserId.value = id;
+  try {
+    const { message } = await approveUser(id);
+    pendingKycUsers.value = pendingKycUsers.value.filter((u) => u.id !== id);
+    if (totals.value) {
+      totals.value.pending_validation = Math.max(0, totals.value.pending_validation - 1);
+      totals.value.active_users += 1;
+    }
+    successMessage.value = message || 'User approved successfully';
+    setTimeout(() => { successMessage.value = ''; }, 3000);
+  } catch (e: any) {
+    errorMessage.value = e?.response?.data?.message || 'Unable to approve this user';
+  } finally {
+    approvingUserId.value = null;
+  }
 }
 
 function openTransactionDetails(transaction: Transaction) {

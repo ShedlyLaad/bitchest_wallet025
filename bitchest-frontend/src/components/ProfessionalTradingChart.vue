@@ -188,7 +188,7 @@ const timeframes = [
   { label: '90d', value: '90d' }
 ];
 
-const selectedTimeframe = ref(props.timeframe || '30d');
+const selectedTimeframe = ref(props.timeframe || '90d');
 const isLoading = ref(false);
 const error = ref('');
 

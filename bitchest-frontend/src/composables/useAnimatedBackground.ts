@@ -1,8 +1,30 @@
 import { ref, onMounted, onBeforeUnmount } from 'vue';
 
 /**
+ * Shared visual constants so every consumer of the animated background
+ * (page-level or per-section) renders the same grid texture.
+ */
+export const backgroundGridStyle = {
+  backgroundImage: `linear-gradient(to right, rgba(53, 167, 255, 0.15) 1px, transparent 1px), linear-gradient(to bottom, rgba(53, 167, 255, 0.15) 1px, transparent 1px)`,
+  backgroundSize: '64px 64px'
+};
+
+export interface BackgroundOrb {
+  size: string;
+  color: string;
+  top?: string;
+  left?: string;
+  right?: string;
+  bottom?: string;
+}
+
+export const defaultBackgroundOrbs: BackgroundOrb[] = [
+  { size: '480px', color: 'var(--blue-dark)', top: '10%', left: '-10%' },
+  { size: '420px', color: 'var(--blue)', bottom: '10%', right: '-8%' }
+];
+
+/**
  * Composable for animated background with particles canvas and holographic grid
- * Inspired by LogoIntro3D component
  */
 export function useAnimatedBackground() {
   const particlesCanvas = ref<HTMLCanvasElement | null>(null);

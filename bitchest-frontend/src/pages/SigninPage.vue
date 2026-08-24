@@ -115,8 +115,8 @@
                 @click="showPassword = !showPassword"
                 class="absolute right-4 top-1/2 transform -translate-y-1/2 p-1 text-gray-500 hover:text-white rounded-lg hover:bg-gray-700/50 transition-all duration-200"
               >
-                <EyeOffIcon v-if="showPassword" class="h-5 w-5" />
-                <EyeIcon v-else class="h-5 w-5" />
+                <EyeIcon v-if="showPassword" class="h-5 w-5" />
+                <EyeOffIcon v-else class="h-5 w-5" />
               </button>
             </div>
           </div>
@@ -266,5 +266,14 @@ async function handleSubmit() {
 
 .delay-1000 {
   animation-delay: 1s;
+}
+
+/* Hide the native browser reveal-password icon (Edge/IE) so it doesn't
+   overlap with our custom eye toggle button. */
+input[type="password"]::-ms-reveal,
+input[type="password"]::-ms-clear,
+input[type="text"]::-ms-reveal,
+input[type="text"]::-ms-clear {
+  display: none;
 }
 </style>

@@ -225,6 +225,8 @@
               :change24h="selectedCrypto?.change24h || 0"
               :crypto-icon="selectedCrypto?.icon"
               :market-cap="selectedCrypto?.marketCap ? Number(selectedCrypto.marketCap) : undefined"
+              :timeframe="timeframe"
+              @timeframe-changed="handleTimeframeChange"
               :height="500"
               currency="EUR"
             />
@@ -496,6 +498,7 @@ const search = ref('');
 const loading = ref(false);
 const historyLoading = ref(false);
 const errorMessage = ref('');
+const timeframe = ref('90d'); // Default to 90 days
 
 const tradeType = ref<'buy' | 'sell'>('buy');
 const amount = ref('');
@@ -1018,7 +1021,7 @@ async function loadMarket(forceRefresh = false) {
 async function loadHistory(symbol: string) {
   historyLoading.value = true;
   try {
-    const data = await getMarketHistory(symbol);
+    const data = await getMarketHistory(symbol, true, timeframe.value);
     history.value = data as CryptoPricePoint[];
   } catch {
     history.value = [];
@@ -1032,6 +1035,13 @@ const selectCrypto = async (crypto: DisplayCrypto) => {
   selectedCrypto.value = crypto;
   await loadHistory(crypto.symbol);
 };
+
+async function handleTimeframeChange(newTimeframe: string) {
+  timeframe.value = newTimeframe;
+  if (selectedCrypto.value) {
+    await loadHistory(selectedCrypto.value.symbol);
+  }
+}
 
 // Watch tradeType to clear errors and amount when switching
 watch(tradeType, () => {

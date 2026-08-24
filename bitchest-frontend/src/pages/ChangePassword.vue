@@ -57,8 +57,8 @@
               class="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-gray-500 hover:text-white rounded-lg hover:bg-gray-700/50 transition-all duration-200"
               tabindex="-1"
             >
-              <EyeOff v-if="showCurrentPassword" class="h-5 w-5" />
-              <Eye v-else class="h-5 w-5" />
+              <Eye v-if="showCurrentPassword" class="h-5 w-5" />
+              <EyeOff v-else class="h-5 w-5" />
             </button>
           </div>
         </div>
@@ -91,8 +91,8 @@
               class="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-gray-500 hover:text-white rounded-lg hover:bg-gray-700/50 transition-all duration-200"
               tabindex="-1"
             >
-              <EyeOff v-if="showNewPassword" class="h-5 w-5" />
-              <Eye v-else class="h-5 w-5" />
+              <Eye v-if="showNewPassword" class="h-5 w-5" />
+              <EyeOff v-else class="h-5 w-5" />
             </button>
           </div>
 
@@ -168,8 +168,8 @@
               class="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-gray-500 hover:text-white rounded-lg hover:bg-gray-700/50 transition-all duration-200"
               tabindex="-1"
             >
-              <EyeOff v-if="showConfirmPassword" class="h-5 w-5" />
-              <Eye v-else class="h-5 w-5" />
+              <Eye v-if="showConfirmPassword" class="h-5 w-5" />
+              <EyeOff v-else class="h-5 w-5" />
             </button>
           </div>
           <Transition name="slide-fade">
@@ -344,5 +344,14 @@ async function handleSubmit() {
 .slide-fade-leave-to {
   transform: translateY(-10px);
   opacity: 0;
+}
+
+/* Hide the native browser reveal-password icon (Edge/IE) so it doesn't
+   overlap with our custom eye toggle button. */
+input[type="password"]::-ms-reveal,
+input[type="password"]::-ms-clear,
+input[type="text"]::-ms-reveal,
+input[type="text"]::-ms-clear {
+  display: none;
 }
 </style>

@@ -8,6 +8,7 @@ use App\Models\User;
 use App\Models\Portfolio;
 use App\Models\Transaction;
 use App\Services\UniversalMailService;
+use App\Mail\WelcomeApprovedMailable;
 use Illuminate\Http\Request;
 
 class UserController extends Controller
@@ -74,23 +75,25 @@ class UserController extends Controller
         $u->delete();
         return response()->json(['message' => 'Deleted']);
     }
-    public function approve($id)
+    public function approve($id, UniversalMailService $mailService)
     {
         $user = User::findOrFail($id);
-    
+
         if ($user->isActive()) {
             return response()->json(['message' => 'User already active'], 400);
         }
-    
+
         $user->update([
             'status' => User::STATUS_ACTIVE,
             'must_change_password' => false,
             'euro_balance' => 500.00,
             'email_verified_at' => now(),
         ]);
-    
+
+        $mailService->send(new WelcomeApprovedMailable($user->name), $user->email);
+
         return response()->json([
-            'message' => 'User approved and account activated',
+            'message' => 'User approved, account activated and welcome email sent',
             'user' => $user->fresh()
         ]);
     }

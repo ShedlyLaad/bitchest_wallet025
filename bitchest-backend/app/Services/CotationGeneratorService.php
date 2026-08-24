@@ -6,7 +6,6 @@ use App\Models\CryptoCurrency;
 use App\Models\CryptoPriceRecord;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
-use Illuminate\Support\Facades\Log;
 
 /**
  * Service de génération de cotations pour les cryptomonnaies

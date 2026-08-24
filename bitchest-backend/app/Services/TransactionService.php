@@ -7,7 +7,6 @@ use App\Models\User;
 use App\Models\CryptoCurrency;
 use App\Models\Portfolio;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Log;
 
 class TransactionService
 {

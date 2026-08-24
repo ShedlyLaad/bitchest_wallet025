@@ -114,18 +114,28 @@ class CryptoMarketController extends Controller
         }
     }
 
-    public function history($crypto_currency_id)
+    public function history($crypto_currency_id, \Illuminate\Http\Request $request)
     {
         // Support both ID and symbol for backward compatibility
         $crypto = CryptoCurrency::where('id', $crypto_currency_id)
             ->orWhere('symbol', strtoupper($crypto_currency_id))
             ->first();
-        
+
         if (!$crypto) {
             return response()->json(['error' => 'Cryptocurrency not found'], 404);
         }
 
-        $prices = $this->cryptoService->getHistoricalPrices($crypto->symbol, 30, false);
+        // Support timeframe: 1d, 7d, 30d, 90d (default: 30d, same as before)
+        $timeframe = $request->query('timeframe', '30d');
+        $daysMap = [
+            '1d' => 1,
+            '7d' => 7,
+            '30d' => 30,
+            '90d' => 90
+        ];
+        $days = $daysMap[$timeframe] ?? 30;
+
+        $prices = $this->cryptoService->getHistoricalPrices($crypto->symbol, $days, false);
         
         // Format response to match frontend expectations
         return response()->json($prices->map(function ($price) {

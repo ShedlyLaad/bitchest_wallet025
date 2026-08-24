@@ -88,17 +88,20 @@
                   <p class="text-gray-400 text-sm mb-3">{{ crypto.symbol }}</p>
                   
                   <!-- Market Data -->
-                  <div class="grid grid-cols-2 gap-3 mt-4 pt-4 border-t border-white/10">
-                    <div>
+                  <div
+                    v-if="hasValue(crypto.marketCap) || hasValue(crypto.volume24h)"
+                    class="grid grid-cols-2 gap-3 mt-4 pt-4 border-t border-white/10"
+                  >
+                    <div v-if="hasValue(crypto.marketCap)">
                       <div class="text-xs text-gray-500 mb-1">Market Cap</div>
                       <div class="text-sm font-semibold text-white">
-                        {{ formatMarketCap(crypto.marketCap || 0) }}
+                        {{ formatMarketCap(crypto.marketCap) }}
                       </div>
                     </div>
-                    <div>
+                    <div v-if="hasValue(crypto.volume24h)">
                       <div class="text-xs text-gray-500 mb-1">24h Volume</div>
                       <div class="text-sm font-semibold text-white">
-                        {{ formatVolume(crypto.volume24h || 0) }}
+                        {{ formatVolume(crypto.volume24h) }}
                       </div>
                     </div>
                   </div>
@@ -207,9 +210,13 @@ const formatPercentage = (value: number): string => {
   return Math.abs(value).toFixed(2);
 };
 
+// Whether a market metric is present and usable
+const hasValue = (value: number | undefined | null): boolean => {
+  return typeof value === 'number' && !isNaN(value) && value > 0;
+};
+
 // Format market cap
 const formatMarketCap = (value: number): string => {
-  if (!value || isNaN(value) || value <= 0) return '€0';
   if (value >= 1e12) return `€${(value / 1e12).toFixed(2)}T`;
   if (value >= 1e9) return `€${(value / 1e9).toFixed(2)}B`;
   if (value >= 1e6) return `€${(value / 1e6).toFixed(2)}M`;
@@ -219,7 +226,6 @@ const formatMarketCap = (value: number): string => {
 
 // Format volume
 const formatVolume = (value: number): string => {
-  if (!value || isNaN(value) || value <= 0) return '€0';
   if (value >= 1e9) return `€${(value / 1e9).toFixed(2)}B`;
   if (value >= 1e6) return `€${(value / 1e6).toFixed(2)}M`;
   if (value >= 1e3) return `€${(value / 1e3).toFixed(2)}K`;

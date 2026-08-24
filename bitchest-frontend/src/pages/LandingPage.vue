@@ -1,7 +1,28 @@
 <template>
   <div class="min-h-screen bg-gray-900 text-white overflow-hidden relative">
-    <!-- Base background: each section layers its own subtle depth via SectionBackground -->
-    <div class="fixed inset-0 pointer-events-none z-0 bg-gradient-to-br from-gray-900 via-gray-900 to-gray-950"></div>
+    <!-- Single unified background for the whole landing page -->
+    <div class="fixed inset-0 pointer-events-none z-0 overflow-hidden" aria-hidden="true">
+      <div class="absolute inset-0 bg-gradient-to-br from-gray-900 via-gray-900 to-gray-950"></div>
+      <canvas ref="particlesCanvas" class="absolute inset-0 w-full h-full opacity-60"></canvas>
+      <div class="absolute inset-0 opacity-[0.035]">
+        <div class="absolute inset-0" :style="backgroundGridStyle"></div>
+      </div>
+      <div
+        v-for="(orb, i) in backgroundOrbs"
+        :key="i"
+        class="absolute rounded-full blur-3xl"
+        :style="{
+          width: orb.size,
+          height: orb.size,
+          top: orb.top,
+          left: orb.left,
+          right: orb.right,
+          bottom: orb.bottom,
+          backgroundColor: orb.color,
+          opacity: 0.07
+        }"
+      ></div>
+    </div>
 
     <!-- Scroll to Top Button -->
     <Motion
@@ -39,9 +60,7 @@
       <HeroSection />
       <PartnersSection />
       <FeaturesSection />
-      <!-- Team intentionally commented out like original -->
-      <!-- <TeamSection /> -->
-      <CTASection />
+      <TeamSection />
       <FooterSection />
     </div>
   </div>
@@ -51,12 +70,16 @@
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue';
 import { MoveUp } from 'lucide-vue-next';
 import { Motion } from '@motionone/vue';
+import { useAnimatedBackground, backgroundGridStyle, defaultBackgroundOrbs } from '../composables/useAnimatedBackground';
 
 import HeroSection from '../components/sectionsLanding/HeroSection.vue';
 import PartnersSection from '../components/sectionsLanding/PartnersSection.vue';
 import FeaturesSection from '../components/sectionsLanding/FeaturesSection.vue';
-import CTASection from '../components/sectionsLanding/CTASection.vue';
+import TeamSection from '../components/sectionsLanding/TeamSection.vue';
 import FooterSection from '../components/sectionsLanding/FooterSection.vue';
+
+const { particlesCanvas } = useAnimatedBackground();
+const backgroundOrbs = defaultBackgroundOrbs;
 
 const showScrollTop = ref(false);
 const scrollProgress = ref(0);

@@ -22,15 +22,14 @@ piloter la plateforme.
 2. [Objectifs pédagogiques](#2-objectifs-pédagogiques)
 3. [Fonctionnalités](#3-fonctionnalités)
 4. [Pile technologique](#4-pile-technologique)
-5. [Installation et démarrage](#5-installation-et-démarrage)
-6. [Comptes de démonstration](#6-comptes-de-démonstration)
-7. [Principales routes de l'API](#7-principales-routes-de-lapi)
-8. [Assistant de support](#8-assistant-de-support)
-9. [Sécurité](#9-sécurité)
-10. [Tests et qualité de code](#10-tests-et-qualité-de-code)
-11. [Choix techniques](#11-choix-techniques)
-12. [Limites connues et perspectives](#12-limites-connues-et-perspectives)
-13. [Auteur](#13-auteur)
+5. [Comptes de démonstration](#5-comptes-de-démonstration)
+6. [Principales routes de l'API](#6-principales-routes-de-lapi)
+7. [Assistant de support](#7-assistant-de-support)
+8. [Sécurité](#8-sécurité)
+9. [Tests et qualité de code](#9-tests-et-qualité-de-code)
+10. [Choix techniques](#10-choix-techniques)
+11. [Limites connues et perspectives](#11-limites-connues-et-perspectives)
+12. [Auteur](#12-auteur)
 
 ---
 
@@ -142,77 +141,9 @@ Un compte passe par les états *en attente*, *en attente de validation*, *actif*
 
 ---
 
-## 5. Installation et démarrage
+## 5. Comptes de démonstration
 
-### 5.1 Prérequis
-
-- PHP **8.1+** et Composer
-- Node.js **18+** et npm
-- MySQL / MariaDB (via XAMPP par exemple)
-- Python **3.12** (pour le service de support, optionnel)
-
-### 5.2 Backend — API Laravel
-
-```bash
-cd bitchest-backend
-composer install
-cp .env.example .env
-php artisan key:generate
-```
-
-Renseigner la connexion à la base dans `.env` :
-
-```env
-DB_DATABASE=bd_bitchest
-DB_USERNAME=root
-DB_PASSWORD=
-```
-
-Créer la base, puis :
-
-```bash
-php artisan migrate --seed
-php artisan storage:link
-php artisan serve            # http://localhost:8000
-```
-
-### 5.3 Frontend — interface Vue
-
-```bash
-cd bitchest-frontend
-npm install
-```
-
-Fichier `.env.local` :
-
-```env
-VITE_API_BASE_URL=http://localhost:8000
-VITE_BOT_API_URL=http://localhost:8000/api/support
-```
-
-```bash
-npm run dev                 # http://localhost:5173
-npm run build               # build de production
-```
-
-### 5.4 Service de support (optionnel)
-
-```bash
-cd bot
-py -3.12 -m venv venv
-.\venv\Scripts\pip install -r requirements.txt
-cp .env.example .env        # renseigner GROQ_API_KEY
-.\serve.ps1                 # http://127.0.0.1:8001
-```
-
-Sans ce service, l'application reste pleinement fonctionnelle ; seule la page de support
-renvoie une erreur contrôlée.
-
----
-
-## 6. Comptes de démonstration
-
-Créés par les seeders lors de `php artisan migrate --seed` :
+Créés par les seeders lors de l'initialisation de la base :
 
 | Rôle | Email | Mot de passe | Remarques |
 |---|---|---|---|
@@ -223,9 +154,9 @@ Ces identifiants sont destinés à un environnement local uniquement.
 
 ---
 
-## 7. Principales routes de l'API
+## 6. Principales routes de l'API
 
-Base : `http://localhost:8000/api` — Authentification : en-tête `Authorization: Bearer <token>`.
+Base : `/api` — Authentification : en-tête `Authorization: Bearer <token>`.
 Une collection Postman est fournie :
 [`bitchest-backend/BitChest_API.postman_collection.json`](bitchest-backend/BitChest_API.postman_collection.json).
 
@@ -262,7 +193,7 @@ Une collection Postman est fournie :
 
 ---
 
-## 8. Assistant de support
+## 7. Assistant de support
 
 Le dossier `bot/` fournit un service d'assistance, appelé uniquement par le backend Laravel
 (jamais directement par le navigateur) :
@@ -279,7 +210,7 @@ Le dossier possède son propre README détaillé : [`bot/README.md`](bot/README.
 
 ---
 
-## 9. Sécurité
+## 8. Sécurité
 
 - Authentification par jetons Laravel Sanctum, révoqués à la déconnexion.
 - Mots de passe hachés (bcrypt) ; contrôle de robustesse au changement ; mot de passe
@@ -295,25 +226,18 @@ Le dossier possède son propre README détaillé : [`bot/README.md`](bot/README.
 
 ---
 
-## 10. Tests et qualité de code
+## 9. Tests et qualité de code
 
-```bash
-cd bitchest-backend
-php artisan test
-```
+Les tests unitaires (PHPUnit) couvrent la logique métier critique : calcul de la quantité
+détenue et de la valorisation du portefeuille, règles d'achat et de vente, contrôle du solde,
+relations du modèle de données et règles de validation des requêtes.
 
-Les tests couvrent la logique métier critique : calcul de la quantité détenue et de la
-valorisation du portefeuille, règles d'achat et de vente, contrôle du solde, relations du
-modèle de données et règles de validation des requêtes.
-
-```bash
-./vendor/bin/pint                              # formatage du backend
-cd ../bitchest-frontend && npx eslint src && npm run build   # lint et vérification des types
-```
+La qualité du code est maintenue par **Laravel Pint** (formatage PSR-12 côté backend) et par
+**ESLint** avec la vérification de types TypeScript côté frontend.
 
 ---
 
-## 11. Choix techniques
+## 10. Choix techniques
 
 | Décision | Justification |
 |---|---|
@@ -327,7 +251,7 @@ cd ../bitchest-frontend && npx eslint src && npm run build   # lint et vérifica
 
 ---
 
-## 12. Limites connues et perspectives
+## 11. Limites connues et perspectives
 
 - Les cours dépendent d'une API publique ; il n'y a pas de flux en temps réel.
 - La couverture de tests est concentrée sur la logique métier critique.
@@ -337,7 +261,7 @@ cd ../bitchest-frontend && npx eslint src && npm run build   # lint et vérifica
 
 ---
 
-## 13. Auteur
+## 12. Auteur
 
 Projet réalisé par **Shedly Laadhiby** dans le cadre de la formation
 **Développeur Web & Web Mobile**.

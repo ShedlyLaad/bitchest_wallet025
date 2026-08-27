@@ -38,14 +38,21 @@ class AuthController extends Controller
             'euro_balance' => 0
         ]);
 
+        // L'envoi de l'email ne fait jamais échouer la création du compte : le service
+        // bascule sur le mailer "log" si le SMTP est indisponible (limite d'envoi, etc.).
         $mailService = app(\App\Services\UniversalMailService::class);
-        $mailService->send(new TemporaryPasswordMailable($tempPassword, $user->name), $user->email);
+        $temporaryPasswordSent = $mailService->send(
+            new TemporaryPasswordMailable($tempPassword, $user->name),
+            $user->email
+        );
 
         return response()->json([
-            'message' => 'Account created. A temporary password has been sent to your email. Please change it and wait for admin validation.',
+            'message' => $temporaryPasswordSent
+                ? 'Account created. A temporary password has been sent to your email. Please change it and wait for admin validation.'
+                : 'Account created and pending admin validation. The temporary password email could not be sent — an administrator can resend it.',
             'status' => User::STATUS_PENDING,
             'must_change_password' => true,
-            'temporary_password_sent' => true,
+            'temporary_password_sent' => $temporaryPasswordSent,
         ], 201);
     }
 

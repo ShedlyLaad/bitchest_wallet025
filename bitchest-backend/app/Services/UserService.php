@@ -26,10 +26,11 @@ class UserService
             'euro_balance' => $initialEuro
         ]);
 
-        // send temporary password avec service universel (fonctionne avec tous les fournisseurs)
+        // send temporary password avec service universel (fonctionne avec tous les fournisseurs).
+        // Le service ne lève jamais d'exception : bascule sur le mailer "log" si besoin.
         $mailService = app(UniversalMailService::class);
-        $mailService->send(new TemporaryPasswordMailable($password, $name), $email);
+        $mailSent = $mailService->send(new TemporaryPasswordMailable($password, $name), $email);
 
-        return ['user' => $user, 'password' => $password];
+        return ['user' => $user, 'password' => $password, 'mail_sent' => $mailSent];
     }
 }

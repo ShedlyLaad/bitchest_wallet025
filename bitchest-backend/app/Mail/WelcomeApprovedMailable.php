@@ -23,6 +23,7 @@ class WelcomeApprovedMailable extends Mailable
             ->view('emails.welcome_approved')
             ->with([
                 'name' => $this->name,
+                'loginUrl' => rtrim(env('FRONTEND_URL', config('app.url')), '/') . '/login',
             ]);
     }
 }
